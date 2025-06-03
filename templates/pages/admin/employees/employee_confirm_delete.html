@@ -1,0 +1,232 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}Confirmar Eliminación - {{ employee.user.get_full_name }} - Sistema de Nómina{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'employees:employee_detail' employee.pk %}" 
+                       class="text-primary-600 hover:text-primary-700 transition-colors">
+                        <i class="fas fa-arrow-left text-lg"></i>
+                    </a>
+                    <div>
+                        <h1 class="text-2xl font-bold text-red-600">Confirmar Eliminación</h1>
+                        <p class="text-gray-600 mt-1">Esta acción desactivará al empleado</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Advertencia Principal -->
+        <div class="bg-red-50 border border-red-200 rounded-xl p-6 mb-8">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-exclamation-triangle text-red-400 text-2xl"></i>
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-lg font-medium text-red-800">
+                        ¿Estás seguro de que deseas desactivar este empleado?
+                    </h3>
+                    <div class="mt-2 text-sm text-red-700">
+                        <p>Esta acción realizará los siguientes cambios:</p>
+                        <ul class="list-disc list-inside mt-2 space-y-1">
+                            <li>El empleado será marcado como "Terminado" en el sistema</li>
+                            <li>Su cuenta de usuario será desactivada</li>
+                            <li>No podrá acceder al sistema</li>
+                            <li>Aparecerá como inactivo en los reportes</li>
+                            <li>Sus datos históricos se mantendrán para referencias futuras</li>
+                        </ul>
+                    </div>
+                    <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <p class="text-sm font-medium text-yellow-800">
+                            <i class="fas fa-info-circle mr-2"></i>
+                            Nota: Esta acción no elimina permanentemente los datos del empleado. 
+                            Puedes reactivar la cuenta más tarde si es necesario.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Información del Empleado -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-8">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">Información del Empleado</h3>
+            </div>
+            <div class="p-6">
+                <div class="flex items-center space-x-6">
+                    <!-- Foto del empleado -->
+                    <div class="flex-shrink-0">
+                        {% if employee.user.profile_picture %}
+                            <img src="{{ employee.user.profile_picture.url }}" 
+                                 alt="{{ employee.user.get_full_name }}"
+                                 class="w-20 h-20 rounded-full object-cover border-4 border-gray-200">
+                        {% else %}
+                            <div class="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center">
+                                <i class="fas fa-user text-gray-400 text-2xl"></i>
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Información básica -->
+                    <div class="flex-1">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <h4 class="text-xl font-bold text-gray-900">
+                                    {{ employee.user.get_full_name }}
+                                </h4>
+                                <p class="text-gray-600 mt-1">{{ employee.position.title }}</p>
+                                <p class="text-sm text-gray-500">{{ employee.department.name }}</p>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="flex items-center text-sm">
+                                    <i class="fas fa-id-badge text-gray-400 mr-2"></i>
+                                    <span class="text-gray-600">Empleado #{{ employee.employee_number }}</span>
+                                </div>
+                                <div class="flex items-center text-sm">
+                                    <i class="fas fa-envelope text-gray-400 mr-2"></i>
+                                    <span class="text-gray-600">{{ employee.user.email }}</span>
+                                </div>
+                                <div class="flex items-center text-sm">
+                                    <i class="fas fa-calendar text-gray-400 mr-2"></i>
+                                    <span class="text-gray-600">Ingresó el {{ employee.hire_date|date:"d/m/Y" }}</span>
+                                </div>
+                                <div class="flex items-center text-sm">
+                                    <i class="fas fa-dollar-sign text-gray-400 mr-2"></i>
+                                    <span class="text-gray-600">Salario: ${{ employee.salary|floatformat:2 }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Estadísticas del Empleado -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-8">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">Estadísticas del Empleado</h3>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="text-center">
+                        <div class="bg-blue-50 rounded-lg p-4">
+                            <i class="fas fa-calendar-alt text-blue-600 text-2xl mb-2"></i>
+                            <p class="text-2xl font-bold text-blue-600">
+                                {{ employee.get_years_of_service }}
+                            </p>
+                            <p class="text-sm text-gray-600">Años de servicio</p>
+                        </div>
+                    </div>
+                    <div class="text-center">
+                        <div class="bg-green-50 rounded-lg p-4">
+                            <i class="fas fa-users text-green-600 text-2xl mb-2"></i>
+                            <p class="text-2xl font-bold text-green-600">
+                                {{ employee.subordinates.count }}
+                            </p>
+                            <p class="text-sm text-gray-600">Subordinados</p>
+                        </div>
+                    </div>
+                    <div class="text-center">
+                        <div class="bg-purple-50 rounded-lg p-4">
+                            <i class="fas fa-file-alt text-purple-600 text-2xl mb-2"></i>
+                            <p class="text-2xl font-bold text-purple-600">
+                                {{ employee.documents.count }}
+                            </p>
+                            <p class="text-sm text-gray-600">Documentos</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Formulario de confirmación -->
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+            
+            <!-- Motivo de la desactivación (opcional) -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Motivo de Desactivación (Opcional)</h3>
+                <div>
+                    <label for="termination_reason" class="block text-sm font-medium text-gray-700 mb-2">
+                        Especifica el motivo de la desactivación
+                    </label>
+                    <textarea id="termination_reason" name="termination_reason" rows="4" 
+                              class="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                              placeholder="Ejemplo: Finalización de contrato, renuncia voluntaria, etc."></textarea>
+                    <p class="mt-1 text-sm text-gray-500">
+                        Esta información será guardada para referencias futuras.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Botones de acción -->
+            <div class="flex flex-col sm:flex-row gap-4 justify-end">
+                <a href="{% url 'employees:employee_detail' employee.pk %}" 
+                   class="inline-flex justify-center items-center px-6 py-3 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                    <i class="fas fa-times mr-2"></i>
+                    Cancelar
+                </a>
+                <button type="submit" 
+                        class="inline-flex justify-center items-center px-6 py-3 border border-transparent text-sm font-medium rounded-lg text-black bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors">
+                    <i class="fas fa-user-times mr-2"></i>
+                    Confirmar Desactivación
+                </button>
+            </div>
+        </form>
+
+        <!-- Información adicional -->
+        <div class="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-lightbulb text-blue-400"></i>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-blue-800">
+                        ¿Necesitas ayuda?
+                    </h3>
+                    <div class="mt-2 text-sm text-blue-700">
+                        <p>Si tienes dudas sobre este proceso, contacta al administrador del sistema o revisa la documentación sobre gestión de empleados.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Confirmación adicional al enviar el formulario
+    const form = document.querySelector('form');
+    const submitButton = form.querySelector('button[type="submit"]');
+    
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Mostrar confirmación final
+        if (confirm('¿Estás absolutamente seguro de que deseas desactivar este empleado? Esta acción marcará al empleado como terminado.')) {
+            // Deshabilitar el botón para evitar múltiples envíos
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Desactivando...';
+            
+            // Enviar el formulario
+            form.submit();
+        }
+    });
+    
+    // Foco automático en el textarea si existe
+    const textArea = document.getElementById('termination_reason');
+    if (textArea) {
+        textArea.focus();
+    }
+});
+</script>
+{% endblock %}

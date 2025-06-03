@@ -1,0 +1,229 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Sistema de Gestión de Nómina{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'dist/styles.css' %}">
+    
+    <!-- Font Awesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+</head>
+<body class="h-full bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-lg border-b border-gray-200 relative z-50">
+        <div class="max-w-7xl mx-auto">
+            <div class="flex justify-between items-center px-4 sm:px-6 lg:px-8 h-16">
+                <!-- Logo y nombre -->
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 flex items-center">
+                        <i class="fas fa-users text-primary-600 text-2xl mr-3"></i>
+                        <h1 class="text-xl font-bold text-gray-900">
+                            <span class="text-primary-600">GN</span>Agro
+                        </h1>
+                    </div>
+                </div>
+
+                <!-- Navegación principal (solo si está autenticado) -->
+                {% if user.is_authenticated %}
+                <nav class="hidden md:flex space-x-8">
+                    <a href="{% url 'users:dashboard' %}" class="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                        <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
+                    </a>
+                    <a href="{% url 'employees:employee_list' %}" class="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                        <i class="fas fa-users mr-2"></i>Empleados
+                    </a>
+                    <a href="#" class="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                        <i class="fas fa-money-bill-wave mr-2"></i>Nómina
+                    </a>
+                    <a href="#" class="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                        <i class="fas fa-chart-bar mr-2"></i>Reportes
+                    </a>
+                </nav>
+                {% endif %}
+
+                <!-- Menú de usuario -->
+                <div class="flex items-center space-x-4">
+                    {% if user.is_authenticated %}
+                        <!-- Notificaciones -->
+                        <button class="p-2 text-gray-400 hover:text-gray-600 transition-colors">
+                            <i class="fas fa-bell text-lg"></i>
+                            <span class="sr-only">Notificaciones</span>
+                        </button>
+
+                        <!-- Menú desplegable de usuario -->
+                        <div class="relative" id="user-menu">
+                            <button class="flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2" id="user-menu-button">
+                                {% if user.profile_picture %}
+                                    <img class="w-8 h-8 rounded-full object-cover" 
+                                         src="{{ user.profile_picture.url }}" 
+                                         alt="{{ user.get_full_name|default:user.username }}">
+                                {% else %}
+                                    <div class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold text-sm">
+                                        {{ user.first_name|first|upper|default:user.username|first|upper }}
+                                    </div>
+                                {% endif %}
+                                <span class="ml-2 text-gray-700 font-medium hidden sm:block">{{ user.get_full_name|default:user.username }}</span>
+                                <i class="fas fa-chevron-down ml-2 text-gray-400 transition-transform duration-200" id="user-menu-chevron"></i>
+                            </button>
+                            
+                            <!-- Backdrop invisible para cerrar el menú -->
+                            <div class="fixed inset-0 hidden z-40" id="dropdown-backdrop"></div>
+                            
+                            <!-- Menú desplegable -->
+                            <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-xl ring-1 ring-black ring-opacity-5 focus:outline-none hidden z-50" id="user-menu-dropdown">
+                                <div class="py-1" role="menu">
+                                    <a href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors" role="menuitem">
+                                        <i class="fas fa-user mr-3 text-gray-400"></i>
+                                        Mi Perfil
+                                    </a>
+                                    <a href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors" role="menuitem">
+                                        <i class="fas fa-cog mr-3 text-gray-400"></i>
+                                        Configuración
+                                    </a>
+                                    <a href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors" role="menuitem">
+                                        <i class="fas fa-question-circle mr-3 text-gray-400"></i>
+                                        Ayuda
+                                    </a>
+                                    <div class="border-t border-gray-100"></div>
+                                    <form method="post" action="{% url 'users:logout' %}" class="w-full">
+                                        {% csrf_token %}
+                                        <button type="submit" class="flex items-center w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-50 transition-colors" role="menuitem">
+                                            <i class="fas fa-sign-out-alt mr-3 text-red-500"></i>
+                                            Cerrar Sesión
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    {% else %}
+                        <a href="{% url 'users:login' %}" class="bg-primary-600 text-black px-4 py-2 rounded-md text-sm font-medium hover:bg-primary-700 transition-colors">
+                            Iniciar Sesión
+                        </a>
+                    {% endif %}
+                </div>
+
+                <!-- Menú móvil -->
+                {% if user.is_authenticated %}
+                <div class="md:hidden">
+                    <button class="text-gray-700 hover:text-primary-600" id="mobile-menu-button">
+                        <i class="fas fa-bars text-lg"></i>
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Menú móvil expandido -->
+            {% if user.is_authenticated %}
+            <div class="md:hidden hidden z-40" id="mobile-menu">
+                <div class="px-2 pt-2 pb-3 space-y-1 bg-gray-50 border-t">
+                    <a href="{% url 'users:dashboard' %}" class="block px-3 py-2 text-gray-700 hover:text-primary-600 font-medium">
+                        <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
+                    </a>
+                    <a href="#" class="block px-3 py-2 text-gray-700 hover:text-primary-600 font-medium">
+                        <i class="fas fa-users mr-2"></i>Empleados
+                    </a>
+                    <a href="#" class="block px-3 py-2 text-gray-700 hover:text-primary-600 font-medium">
+                        <i class="fas fa-money-bill-wave mr-2"></i>Nómina
+                    </a>
+                    <a href="#" class="block px-3 py-2 text-gray-700 hover:text-primary-600 font-medium">
+                        <i class="fas fa-chart-bar mr-2"></i>Reportes
+                    </a>
+                    <div class="border-t border-gray-200 pt-2">
+                        <a href="#" class="block px-3 py-2 text-gray-700 hover:text-primary-600 font-medium">
+                            <i class="fas fa-user mr-2"></i>Mi Perfil
+                        </a>
+                        <form method="post" action="{% url 'users:logout' %}" class="w-full">
+                            {% csrf_token %}
+                            <button type="submit" class="w-full text-left block px-3 py-2 text-red-700 hover:text-red-800 font-medium">
+                                <i class="fas fa-sign-out-alt mr-2"></i>Cerrar Sesión
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- Contenido principal -->
+    <main class="flex-1">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-800 text-white mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <!-- Información de la empresa -->
+                <div class="col-span-1 md:col-span-2">
+                    <div class="flex items-center mb-4">
+                        <i class="fas fa-users text-primary-400 text-2xl mr-3"></i>
+                        <h3 class="text-lg font-bold">
+                            <span class="text-primary-400">GN</span>Agro
+                        </h3>
+                    </div>
+                    <p class="text-gray-300 text-sm leading-relaxed">
+                        Sistema integral de gestión de nómina y recursos humanos. 
+                        Simplificamos la administración de personal para que puedas 
+                        enfocarte en hacer crecer tu empresa.
+                    </p>
+                </div>
+
+                <!-- Enlaces rápidos -->
+                <div>
+                    <h4 class="font-semibold mb-4">Enlaces Rápidos</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="{% url 'users:dashboard' %}" class="text-gray-300 hover:text-primary-400 transition-colors">Dashboard</a></li>
+                        <li><a href="{% url 'employees:employee_list' %}" class="text-gray-300 hover:text-primary-400 transition-colors">Empleados</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-primary-400 transition-colors">Nómina</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-primary-400 transition-colors">Reportes</a></li>
+                    </ul>
+                </div>
+
+                <!-- Soporte -->
+                <div>
+                    <h4 class="font-semibold mb-4">Soporte</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li><a href="#" class="text-gray-300 hover:text-primary-400 transition-colors">Centro de Ayuda</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-primary-400 transition-colors">Documentación</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-primary-400 transition-colors">Contacto</a></li>
+                        <li><a href="#" class="text-gray-300 hover:text-primary-400 transition-colors">Estado del Servicio</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Línea divisoria y copyright -->
+            <div class="border-t border-gray-700 mt-8 pt-6">
+                <div class="flex flex-col md:flex-row justify-between items-center">
+                    <p class="text-sm text-gray-400">
+                        © 2025 GNAgro. Todos los derechos reservados.
+                    </p>
+                    <div class="flex space-x-6 mt-4 md:mt-0">
+                        <a href="#" class="text-gray-400 hover:text-primary-400 transition-colors">
+                            <i class="fab fa-facebook-f"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-primary-400 transition-colors">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-primary-400 transition-colors">
+                            <i class="fab fa-linkedin-in"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-primary-400 transition-colors">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="{% static 'js/dashboard.js' %}"></script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

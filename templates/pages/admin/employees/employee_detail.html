@@ -1,0 +1,479 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}{{ employee.user.get_full_name }} - Detalle del Empleado - Sistema de Nómina{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'employees:employee_list' %}" 
+                       class="text-primary-600 hover:text-primary-700 transition-colors">
+                        <i class="fas fa-arrow-left text-lg"></i>
+                    </a>
+                    <div class="flex items-center space-x-4">
+                        <!-- Foto de perfil -->
+                        <div class="flex-shrink-0">
+                            {% if employee.user.profile_picture %}
+                                <img class="h-16 w-16 rounded-full object-cover border-4 border-white shadow-lg" 
+                                     src="{{ employee.user.profile_picture.url }}" 
+                                     alt="{{ employee.user.get_full_name }}">
+                            {% else %}
+                                <div class="h-16 w-16 bg-primary-600 text-black rounded-full flex items-center justify-center font-bold text-xl border-4 border-white shadow-lg">
+                                    {{ employee.user.first_name|first|upper }}{{ employee.user.last_name|first|upper }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <h1 class="text-2xl font-bold text-gray-900">
+                                {{ employee.user.get_full_name }}
+                            </h1>
+                            <div class="flex items-center space-x-4 mt-1">
+                                <p class="text-gray-600">{{ employee.position.title }}</p>
+                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
+                                    {% if employee.status == 'active' %}bg-green-100 text-green-800
+                                    {% elif employee.status == 'inactive' %}bg-red-100 text-red-800
+                                    {% elif employee.status == 'terminated' %}bg-gray-100 text-gray-800
+                                    {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                    {{ employee.get_status_display }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    {% if perms.employees.change_employee %}
+                        <a href="{% url 'employees:employee_update' employee.pk %}" 
+                           class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                            <i class="fas fa-edit mr-2"></i>Editar
+                        </a>
+                    {% endif %}
+                    {% if perms.employees.delete_employee %}
+                        <a href="{% url 'employees:employee_delete' employee.pk %}" 
+                           class="bg-red-600 text-black px-4 py-2 rounded-lg hover:bg-red-700 transition-colors">
+                            <i class="fas fa-trash mr-2"></i>Eliminar
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Información Principal -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Información Personal -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div class="flex items-center mb-6">
+                        <div class="bg-blue-100 p-2 rounded-lg mr-3">
+                            <i class="fas fa-user text-blue-600"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900">Información Personal</h3>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Nombre Completo</label>
+                            <p class="text-sm text-gray-900">{{ employee.user.get_full_name }}</p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Cédula de Identidad</label>
+                            <p class="text-sm text-gray-900">{{ employee.national_id|default:"-" }}</p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Correo Electrónico</label>
+                            <p class="text-sm text-gray-900">
+                                <a href="mailto:{{ employee.user.email }}" class="text-primary-600 hover:text-primary-700">
+                                    {{ employee.user.email }}
+                                </a>
+                            </p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+                            <p class="text-sm text-gray-900">
+                                {% if employee.user.phone %}
+                                    <a href="tel:{{ employee.user.phone }}" class="text-primary-600 hover:text-primary-700">
+                                        {{ employee.user.phone }}
+                                    </a>
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de Nacimiento</label>
+                            <p class="text-sm text-gray-900">
+                                {% if employee.birth_date %}
+                                    {{ employee.birth_date|date:"d/m/Y" }}
+                                    <span class="text-gray-500">({{ employee.birth_date|timesince }} ago)</span>
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Género</label>
+                            <p class="text-sm text-gray-900">{{ employee.get_gender_display|default:"-" }}</p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Estado Civil</label>
+                            <p class="text-sm text-gray-900">{{ employee.get_marital_status_display|default:"-" }}</p>
+                        </div>
+                        
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
+                            <p class="text-sm text-gray-900">{{ employee.address|default:"-" }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Información Laboral -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div class="flex items-center mb-6">
+                        <div class="bg-green-100 p-2 rounded-lg mr-3">
+                            <i class="fas fa-briefcase text-green-600"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900">Información Laboral</h3>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Número de Empleado</label>
+                            <p class="text-sm text-gray-900 font-mono">{{ employee.employee_number }}</p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Departamento</label>
+                            <p class="text-sm text-gray-900">{{ employee.department.name }}</p>
+                            <p class="text-xs text-gray-500">{{ employee.department.code }}</p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Cargo</label>
+                            <p class="text-sm text-gray-900">{{ employee.position.title }}</p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Supervisor</label>
+                            {% if employee.supervisor %}
+                                <p class="text-sm text-gray-900">
+                                    <a href="{% url 'employees:employee_detail' employee.supervisor.pk %}" 
+                                       class="text-primary-600 hover:text-primary-700">
+                                        {{ employee.supervisor.user.get_full_name }}
+                                    </a>
+                                </p>
+                            {% else %}
+                                <p class="text-sm text-gray-900">-</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Fecha de Contratación</label>
+                            <p class="text-sm text-gray-900">{{ employee.hire_date|date:"d/m/Y" }}</p>
+                            <p class="text-xs text-gray-500">{{ employee.hire_date|timesince }} en la empresa</p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Contrato</label>
+                            <p class="text-sm text-gray-900">{{ employee.get_contract_type_display }}</p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Salario Base</label>
+                            <p class="text-sm text-gray-900 font-semibold">${{ employee.salary|floatformat:2 }}</p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
+                                {% if employee.status == 'active' %}bg-green-100 text-green-800
+                                {% elif employee.status == 'inactive' %}bg-red-100 text-red-800
+                                {% elif employee.status == 'terminated' %}bg-gray-100 text-gray-800
+                                {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                {{ employee.get_status_display }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Equipo a Cargo -->
+                {% if subordinates %}
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center">
+                            <div class="bg-purple-100 p-2 rounded-lg mr-3">
+                                <i class="fas fa-users text-purple-600"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900">Equipo a Cargo</h3>
+                            <span class="ml-2 bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                                {{ subordinates.count }}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {% for subordinate in subordinates %}
+                        <div class="flex items-center p-3 bg-gray-50 rounded-lg">
+                            {% if subordinate.user.profile_picture %}
+                                <img class="h-10 w-10 rounded-full object-cover" 
+                                     src="{{ subordinate.user.profile_picture.url }}" 
+                                     alt="{{ subordinate.user.get_full_name }}">
+                            {% else %}
+                                <div class="h-10 w-10 bg-purple-600 text-white rounded-full flex items-center justify-center font-bold text-sm">
+                                    {{ subordinate.user.first_name|first|upper }}{{ subordinate.user.last_name|first|upper }}
+                                </div>
+                            {% endif %}
+                            <div class="ml-3 flex-1">
+                                <p class="text-sm font-medium text-gray-900">
+                                    <a href="{% url 'employees:employee_detail' subordinate.pk %}" 
+                                       class="hover:text-primary-600">
+                                        {{ subordinate.user.get_full_name }}
+                                    </a>
+                                </p>
+                                <p class="text-xs text-gray-500">{{ subordinate.position.title }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Documentos -->
+                {% if documents %}
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <div class="flex items-center">
+                            <div class="bg-orange-100 p-2 rounded-lg mr-3">
+                                <i class="fas fa-file-alt text-orange-600"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900">Documentos</h3>
+                            <span class="ml-2 bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                                {{ documents.count }}
+                            </span>
+                        </div>
+                        {% if perms.employees.add_employeedocument %}
+                        <a href="{% url 'employees:employee_document_create' employee.pk %}" 
+                           class="text-sm bg-orange-600 text-white px-3 py-1 rounded-lg hover:bg-orange-700 transition-colors">
+                            <i class="fas fa-plus mr-1"></i>Subir Documento
+                        </a>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="space-y-3">
+                        {% for document in documents %}
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="bg-white p-2 rounded-lg mr-3 shadow-sm">
+                                    <i class="fas fa-file text-gray-400"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-900">{{ document.document_type }}</p>
+                                    <p class="text-xs text-gray-500">
+                                        Subido el {{ document.uploaded_at|date:"d/m/Y" }}
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <a href="{{ document.file.url }}" 
+                                   target="_blank"
+                                   class="text-primary-600 hover:text-primary-700 p-1 rounded">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{{ document.file.url }}" 
+                                   download
+                                   class="text-green-600 hover:text-green-700 p-1 rounded">
+                                    <i class="fas fa-download"></i>
+                                </a>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Panel Lateral -->
+            <div class="space-y-6">
+                <!-- Resumen Rápido -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Resumen</h3>
+                    
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-gray-600">Tiempo en empresa</span>
+                            <span class="text-sm font-medium text-gray-900">{{ employee.hire_date|timesince }}</span>
+                        </div>
+                        
+                        {% if employee.birth_date %}
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-gray-600">Edad</span>
+                            <span class="text-sm font-medium text-gray-900">{{ employee.birth_date|timesince }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-gray-600">Subordinados</span>
+                            <span class="text-sm font-medium text-gray-900">{{ subordinates.count }}</span>
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-gray-600">Documentos</span>
+                            <span class="text-sm font-medium text-gray-900">{{ documents.count }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contacto de Emergencia -->
+                {% if employee.emergency_contact_name %}
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div class="flex items-center mb-4">
+                        <div class="bg-red-100 p-2 rounded-lg mr-3">
+                            <i class="fas fa-phone text-red-600"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900">Contacto de Emergencia</h3>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
+                            <p class="text-sm text-gray-900">{{ employee.emergency_contact_name }}</p>
+                        </div>
+                        
+                        {% if employee.emergency_contact_phone %}
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Teléfono</label>
+                            <p class="text-sm text-gray-900">
+                                <a href="tel:{{ employee.emergency_contact_phone }}" 
+                                   class="text-red-600 hover:text-red-700">
+                                    {{ employee.emergency_contact_phone }}
+                                </a>
+                            </p>
+                        </div>
+                        {% endif %}
+                        
+                        {% if employee.emergency_contact_relationship %}
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Parentesco</label>
+                            <p class="text-sm text-gray-900">{{ employee.emergency_contact_relationship }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Acciones Rápidas -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Acciones Rápidas</h3>
+                    
+                    <div class="space-y-3">
+                        <a href="mailto:{{ employee.user.email }}" 
+                           class="w-full bg-blue-50 text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-100 transition-colors flex items-center">
+                            <i class="fas fa-envelope mr-2"></i>
+                            Enviar Email
+                        </a>
+                        
+                        {% if employee.user.phone %}
+                        <a href="tel:{{ employee.user.phone }}" 
+                           class="w-full bg-green-50 text-green-700 px-4 py-2 rounded-lg hover:bg-green-100 transition-colors flex items-center">
+                            <i class="fas fa-phone mr-2"></i>
+                            Llamar
+                        </a>
+                        {% endif %}
+                        
+                        {% if perms.employees.add_employeedocument %}
+                        <a href="{% url 'employees:employee_document_create' employee.pk %}" 
+                           class="w-full bg-orange-50 text-orange-700 px-4 py-2 rounded-lg hover:bg-orange-100 transition-colors flex items-center">
+                            <i class="fas fa-upload mr-2"></i>
+                            Subir Documento
+                        </a>
+                        {% endif %}
+                        
+                        <button class="w-full bg-purple-50 text-purple-700 px-4 py-2 rounded-lg hover:bg-purple-100 transition-colors flex items-center">
+                            <i class="fas fa-print mr-2"></i>
+                            Imprimir Perfil
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Notas -->
+                {% if employee.notes %}
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div class="flex items-center mb-4">
+                        <div class="bg-yellow-100 p-2 rounded-lg mr-3">
+                            <i class="fas fa-sticky-note text-yellow-600"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-900">Notas</h3>
+                    </div>
+                    
+                    <div class="bg-yellow-50 p-4 rounded-lg">
+                        <p class="text-sm text-gray-700 whitespace-pre-wrap">{{ employee.notes }}</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Función para imprimir perfil
+    const printButton = document.querySelector('button[class*="purple-50"]');
+    if (printButton) {
+        printButton.addEventListener('click', function() {
+            window.print();
+        });
+    }
+});
+
+// Estilos de impresión
+const printStyles = `
+    @media print {
+        .min-h-screen {
+            min-height: auto;
+        }
+        
+        /* Ocultar header de navegación y botones de acción */
+        .bg-white.shadow-sm.border-b,
+        .flex.items-center.space-x-3:has(a[href*="update"], a[href*="delete"]),
+        .bg-blue-50, .bg-green-50, .bg-orange-50, .bg-purple-50 {
+            display: none !important;
+        }
+        
+        /* Ajustar grid para impresión */
+        .lg\\:grid-cols-3 {
+            grid-template-columns: 1fr !important;
+        }
+        
+        .lg\\:col-span-2 {
+            grid-column: span 1 !important;
+        }
+        
+        /* Reducir espaciado */
+        .py-8 { padding-top: 1rem; padding-bottom: 1rem; }
+        .p-6 { padding: 1rem; }
+        .space-y-6 > * + * { margin-top: 1rem; }
+        
+        /* Asegurar que los colores se vean bien en impresión */
+        .bg-gray-50 { background-color: #f9fafb !important; }
+        .border-gray-200 { border-color: #e5e7eb !important; }
+    }
+`;
+
+// Inyectar estilos de impresión
+const styleSheet = document.createElement('style');
+styleSheet.textContent = printStyles;
+document.head.appendChild(styleSheet);
+</script>
+{% endblock %}

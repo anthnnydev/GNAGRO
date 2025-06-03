@@ -1,0 +1,556 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}
+    {% if object %}
+        Editar Empleado - {{ object.user.get_full_name }}
+    {% else %}
+        Nuevo Empleado
+    {% endif %} - Sistema de Nómina
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'employees:employee_list' %}" 
+                       class="text-primary-600 hover:text-primary-700 transition-colors">
+                        <i class="fas fa-arrow-left text-lg"></i>
+                    </a>
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">
+                            {% if object %}
+                                Editar Empleado
+                            {% else %}
+                                Nuevo Empleado
+                            {% endif %}
+                        </h1>
+                        <p class="text-gray-600 mt-1">
+                            {% if object %}
+                                Actualizar información de {{ object.user.get_full_name }}
+                            {% else %}
+                                Completar la información del nuevo empleado
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    {% if object %}
+                        <a href="{% url 'employees:employee_detail' object.pk %}" 
+                           class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors">
+                            <i class="fas fa-eye mr-2"></i>Ver Perfil
+                        </a>
+                    {% endif %}
+                    <button type="submit" form="employee-form" 
+                            class="bg-primary-600 text-black px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors">
+                        <i class="fas fa-save mr-2"></i>
+                        {% if object %}Actualizar{% else %}Crear{% endif %} Empleado
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <form id="employee-form" method="post" enctype="multipart/form-data" class="space-y-8">
+            {% csrf_token %}
+            
+            <!-- Mensajes de error -->
+            {% if form.errors or user_form.errors %}
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-exclamation-circle text-red-400 text-lg"></i>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-red-800">
+                                Se encontraron errores en el formulario
+                            </h3>
+                            <div class="mt-2 text-sm text-red-700">
+                                <ul class="list-disc list-inside space-y-1">
+                                    {% for field, errors in form.errors.items %}
+                                        {% for error in errors %}
+                                            <li>{{ field }}: {{ error }}</li>
+                                        {% endfor %}
+                                    {% endfor %}
+                                    {% for field, errors in user_form.errors.items %}
+                                        {% for error in errors %}
+                                            <li>{{ field }}: {{ error }}</li>
+                                        {% endfor %}
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Información Personal -->
+                <div class="lg:col-span-2 space-y-6">
+                    <!-- Datos de Acceso -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center mb-6">
+                            <div class="bg-purple-100 p-2 rounded-lg mr-3">
+                                <i class="fas fa-key text-purple-600"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900">Datos de Acceso</h3>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Username -->
+                            <div>
+                                <label for="{{ user_form.username.id_for_label }}" 
+                                       class="block text-sm font-medium text-gray-700 mb-2">
+                                    Nombre de Usuario *
+                                </label>
+                                {{ user_form.username }}
+                                {% if user_form.username.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ user_form.username.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+
+                            <div class="md:col-span-2">
+                                <p class="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
+                                    <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+                                    La contraseña inicial será generada automáticamente y enviada al empleado por correo electrónico.
+                                </p>
+                            </div>
+
+                            <!-- Password1 (solo para crear) -->
+                            {% if not object %}
+                            <div>
+                                <label for="{{ user_form.password1.id_for_label }}" 
+                                       class="block text-sm font-medium text-gray-700 mb-2">
+                                    Contraseña *
+                                </label>
+                                {{ user_form.password1 }}
+                                {% if user_form.password1.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ user_form.password1.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+
+                            <!-- Password2 (confirmación) -->
+                            <div>
+                                <label for="{{ user_form.password2.id_for_label }}" 
+                                       class="block text-sm font-medium text-gray-700 mb-2">
+                                    Confirmar Contraseña *
+                                </label>
+                                {{ user_form.password2 }}
+                                {% if user_form.password2.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ user_form.password2.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Datos Personales -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center mb-6">
+                            <div class="bg-blue-100 p-2 rounded-lg mr-3">
+                                <i class="fas fa-user text-blue-600"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900">Información Personal</h3>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Nombres -->
+                            <div>
+                                <label for="{{ user_form.first_name.id_for_label }}" 
+                                       class="block text-sm font-medium text-gray-700 mb-2">
+                                    Nombres *
+                                </label>
+                                {{ user_form.first_name }}
+                                {% if user_form.first_name.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ user_form.first_name.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+
+                            <!-- Apellidos -->
+                            <div>
+                                <label for="{{ user_form.last_name.id_for_label }}" 
+                                       class="block text-sm font-medium text-gray-700 mb-2">
+                                    Apellidos *
+                                </label>
+                                {{ user_form.last_name }}
+                                {% if user_form.last_name.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ user_form.last_name.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+
+                            <!-- Email -->
+                            <div>
+                                <label for="{{ user_form.email.id_for_label }}" 
+                                       class="block text-sm font-medium text-gray-700 mb-2">
+                                    Correo Electrónico *
+                                </label>
+                                {{ user_form.email }}
+                                {% if user_form.email.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ user_form.email.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+
+                            <!-- Teléfono -->
+                            <div>
+                                <label for="{{ user_form.phone.id_for_label }}" 
+                                       class="block text-sm font-medium text-gray-700 mb-2">
+                                    Teléfono
+                                </label>
+                                {{ user_form.phone_number }}
+                                {% if user_form.phone_number.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ user_form.phone_number.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+
+                            <!-- Cédula -->
+                            <div>
+                                <label for="{{ form.national_id.id_for_label }}" 
+                                       class="block text-sm font-medium text-gray-700 mb-2">
+                                    Cédula de Identidad *
+                                </label>
+                                {{ form.national_id }}
+                                {% if form.national_id.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.national_id.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+
+                            <!-- Fecha de Nacimiento -->
+                            <div>
+                                <label for="{{ form.birth_date.id_for_label }}" 
+                                       class="block text-sm font-medium text-gray-700 mb-2">
+                                    Fecha de Nacimiento
+                                </label>
+                                {{ form.birth_date }}
+                                {% if form.birth_date.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.birth_date.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+
+                            <!-- Género -->
+                            <div>
+                                <label for="{{ form.gender.id_for_label }}" 
+                                       class="block text-sm font-medium text-gray-700 mb-2">
+                                    Género
+                                </label>
+                                {{ form.gender }}
+                                {% if form.gender.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.gender.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+
+                            <!-- Estado Civil -->
+                            <div>
+                                <label for="{{ form.marital_status.id_for_label }}" 
+                                       class="block text-sm font-medium text-gray-700 mb-2">
+                                    Estado Civil
+                                </label>
+                                {{ form.marital_status }}
+                                {% if form.marital_status.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.marital_status.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Dirección -->
+                        <div class="mt-6">
+                            <label for="{{ form.address.id_for_label }}" 
+                                   class="block text-sm font-medium text-gray-700 mb-2">
+                                Dirección
+                            </label>
+                            {{ form.address }}
+                            {% if form.address.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.address.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Información Laboral -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center mb-6">
+                            <div class="bg-green-100 p-2 rounded-lg mr-3">
+                                <i class="fas fa-briefcase text-green-600"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900">Información Laboral</h3>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <!-- Número de Empleado -->
+                            <div>
+                                <label for="{{ form.employee_number.id_for_label }}" 
+                                       class="block text-sm font-medium text-gray-700 mb-2">
+                                    Número de Empleado *
+                                </label>
+                                {{ form.employee_number }}
+                                {% if form.employee_number.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.employee_number.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+
+                            <!-- Departamento -->
+                            <div>
+                                <label for="{{ form.department.id_for_label }}" 
+                                       class="block text-sm font-medium text-gray-700 mb-2">
+                                    Departamento *
+                                </label>
+                                {{ form.department }}
+                                {% if form.department.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.department.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+
+                            <!-- Cargo -->
+                            <div>
+                                <label for="{{ form.position.id_for_label }}" 
+                                       class="block text-sm font-medium text-gray-700 mb-2">
+                                    Cargo *
+                                </label>
+                                {{ form.position }}
+                                {% if form.position.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.position.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+
+                            <!-- Supervisor -->
+                            <div>
+                                <label for="{{ form.supervisor.id_for_label }}" 
+                                       class="block text-sm font-medium text-gray-700 mb-2">
+                                    Supervisor
+                                </label>
+                                {{ form.supervisor }}
+                                {% if form.supervisor.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.supervisor.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+
+                            <!-- Fecha de Contratación -->
+                            <div>
+                                <label for="{{ form.hire_date.id_for_label }}" 
+                                       class="block text-sm font-medium text-gray-700 mb-2">
+                                    Fecha de Contratación *
+                                </label>
+                                {{ form.hire_date }}
+                                {% if form.hire_date.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.hire_date.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+
+                            <!-- Tipo de Contrato -->
+                            <div>
+                                <label for="{{ form.contract_type.id_for_label }}" 
+                                       class="block text-sm font-medium text-gray-700 mb-2">
+                                    Tipo de Contrato *
+                                </label>
+                                {{ form.contract_type }}
+                                {% if form.contract_type.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.contract_type.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+
+                            <!-- Salario Base -->
+                            <div>
+                                <label for="{{ form.salary.id_for_label }}" 
+                                       class="block text-sm font-medium text-gray-700 mb-2">
+                                    Salario Base *
+                                </label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 sm:text-sm">$</span>
+                                    </div>
+                                    {{ form.salary }}
+                                </div>
+                                {% if form.salary.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.salary.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+
+                            <!-- Estado -->
+                            <div>
+                                <label for="{{ form.status.id_for_label }}" 
+                                       class="block text-sm font-medium text-gray-700 mb-2">
+                                    Estado
+                                </label>
+                                {{ form.status }}
+                                {% if form.status.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.status.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel Lateral -->
+                <div class="space-y-6">
+                    <!-- Foto de Perfil -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Foto de Perfil</h3>
+                        
+                        <div class="text-center">
+                            <div class="mb-4">
+                                {% if object and object.user.profile_picture %}
+                                    <img src="{{ object.user.profile_picture.url }}" 
+                                         alt="{{ object.user.get_full_name }}"
+                                         class="w-32 h-32 rounded-full mx-auto object-cover border-4 border-gray-200">
+                                {% else %}
+                                    <div class="w-32 h-32 bg-gray-200 rounded-full mx-auto flex items-center justify-center">
+                                        <i class="fas fa-user text-gray-400 text-4xl"></i>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            {{ user_form.profile_picture }}
+                            {% if user_form.profile_picture.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ user_form.profile_picture.errors.0 }}</p>
+                            {% endif %}
+                            
+                            <p class="text-xs text-gray-500 mt-2">
+                                Formatos: JPG, PNG. Máximo 2MB.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Información Adicional -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Contacto de Emergencia</h3>
+                        
+                        <!-- Contacto de Emergencia -->
+                        <div class="space-y-4">
+                            <div>
+                                <label for="{{ form.emergency_contact_name.id_for_label }}" 
+                                       class="block text-sm font-medium text-gray-700 mb-2">
+                                    Nombre Completo *
+                                </label>
+                                {{ form.emergency_contact_name }}
+                                {% if form.emergency_contact_name.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.emergency_contact_name.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+
+                            <div>
+                                <label for="{{ form.emergency_contact_phone.id_for_label }}" 
+                                       class="block text-sm font-medium text-gray-700 mb-2">
+                                    Teléfono *
+                                </label>
+                                {{ form.emergency_contact_phone }}
+                                {% if form.emergency_contact_phone.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.emergency_contact_phone.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+
+                            <div>
+                                <label for="{{ form.emergency_contact_relationship.id_for_label }}" 
+                                       class="block text-sm font-medium text-gray-700 mb-2">
+                                    Parentesco *
+                                </label>
+                                {{ form.emergency_contact_relationship }}
+                                {% if form.emergency_contact_relationship.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.emergency_contact_relationship.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notas -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Notas</h3>
+                        
+                        <div>
+                            <label for="{{ form.notes.id_for_label }}" 
+                                   class="block text-sm font-medium text-gray-700 mb-2">
+                                Observaciones
+                            </label>
+                            {{ form.notes }}
+                            {% if form.notes.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.notes.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botones de acción (móvil) -->
+            <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-200 lg:hidden">
+                <button type="submit" 
+                        class="w-full bg-primary-600 text-black px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors">
+                    <i class="fas fa-save mr-2"></i>
+                    {% if object %}Actualizar{% else %}Crear{% endif %} Empleado
+                </button>
+                <a href="{% url 'employees:employee_list' %}" 
+                   class="w-full bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors text-center">
+                    <i class="fas fa-times mr-2"></i>Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Agregar clases CSS a los campos del formulario
+    const formFields = document.querySelectorAll('input, select, textarea');
+    formFields.forEach(field => {
+        if (field.type === 'file') {
+            field.classList.add('block', 'w-full', 'text-sm', 'text-gray-500', 'file:mr-4', 'file:py-2', 'file:px-4', 'file:rounded-lg', 'file:border-0', 'file:text-sm', 'file:font-medium', 'file:bg-primary-50', 'file:text-primary-700', 'hover:file:bg-primary-100');
+        } else if (field.tagName === 'SELECT') {
+            field.classList.add('block', 'w-full', 'px-3', 'py-2', 'border', 'border-gray-300', 'rounded-lg', 'shadow-sm', 'focus:outline-none', 'focus:ring-primary-500', 'focus:border-primary-500');
+        } else if (field.tagName === 'TEXTAREA') {
+            field.classList.add('block', 'w-full', 'px-3', 'py-2', 'border', 'border-gray-300', 'rounded-lg', 'shadow-sm', 'focus:outline-none', 'focus:ring-primary-500', 'focus:border-primary-500', 'resize-vertical');
+        } else {
+            field.classList.add('block', 'w-full', 'px-3', 'py-2', 'border', 'border-gray-300', 'rounded-lg', 'shadow-sm', 'focus:outline-none', 'focus:ring-primary-500', 'focus:border-primary-500');
+        }
+        
+        // Agregar placeholder si es necesario
+        if (field.name === 'salary') {
+            field.classList.add('pl-8');
+            field.setAttribute('placeholder', '0.00');
+        }
+    });
+
+    // Previsualización de imagen
+    const photoInput = document.querySelector('input[name="profile_picture"]');
+    if (photoInput) {
+        photoInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.querySelector('.w-32.h-32.rounded-full');
+                    if (preview) {
+                        preview.innerHTML = `<img src="${e.target.result}" alt="Preview" class="w-32 h-32 rounded-full object-cover border-4 border-gray-200">`;
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    // Validación en tiempo real
+    const requiredFields = document.querySelectorAll('input[required], select[required]');
+    requiredFields.forEach(field => {
+        field.addEventListener('blur', function() {
+            if (!this.value.trim()) {
+                this.classList.add('border-red-300', 'focus:border-red-500', 'focus:ring-red-500');
+                this.classList.remove('border-gray-300', 'focus:border-primary-500', 'focus:ring-primary-500');
+            } else {
+                this.classList.remove('border-red-300', 'focus:border-red-500', 'focus:ring-red-500');
+                this.classList.add('border-gray-300', 'focus:border-primary-500', 'focus:ring-primary-500');
+            }
+        });
+    });
+
+    // Auto-generar número de empleado si está vacío
+    const employeeNumberField = document.querySelector('input[name="employee_number"]');
+    if (employeeNumberField && !employeeNumberField.value) {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const random = String(Math.floor(Math.random() * 1000)).padStart(3, '0');
+        employeeNumberField.value = `EMP${year}${month}${random}`;
+    }
+});
+</script>
+{% endblock %}

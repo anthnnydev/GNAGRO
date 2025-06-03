@@ -1,0 +1,398 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}Dashboard - Sistema de Nómina{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header del Dashboard -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
+                    <p class="text-gray-600 mt-1">Bienvenido, {{ user.get_full_name }}</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="text-sm text-gray-500">
+                        <i class="fas fa-calendar-alt mr-2"></i>
+                        {% now "d F Y" %}
+                    </div>
+                    <button class="bg-primary-600 text-black px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors">
+                        <i class="fas fa-plus mr-2"></i>
+                        Nuevo Empleado
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Tarjetas de estadísticas -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Total Empleados -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Total Empleados</p>
+                        <p class="text-3xl font-bold text-gray-900">{{ total_employees|default:0 }}</p>
+                        <p class="text-sm text-green-600 mt-1">
+                            <i class="fas fa-arrow-up mr-1"></i>
+                            +5% desde el mes pasado
+                        </p>
+                    </div>
+                    <div class="bg-blue-100 p-3 rounded-full">
+                        <i class="fas fa-users text-blue-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Empleados Activos -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Empleados Activos</p>
+                        <p class="text-3xl font-bold text-green-600">{{ active_employees|default:0 }}</p>
+                        <p class="text-sm text-gray-500 mt-1">
+                            {{ active_percentage|default:0 }}% del total
+                        </p>
+                    </div>
+                    <div class="bg-green-100 p-3 rounded-full">
+                        <i class="fas fa-user-check text-green-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Nómina del Mes -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Nómina del Mes</p>
+                        <p class="text-3xl font-bold text-purple-600">${{ monthly_payroll|default:0|floatformat:0 }}</p>
+                        <p class="text-sm text-purple-600 mt-1">
+                            <i class="fas fa-calendar mr-1"></i>
+                            {% now "F Y" %}
+                        </p>
+                    </div>
+                    <div class="bg-purple-100 p-3 rounded-full">
+                        <i class="fas fa-money-bill-wave text-purple-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Solicitudes Pendientes -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Solicitudes Pendientes</p>
+                        <p class="text-3xl font-bold text-orange-600">{{ pending_requests|default:0 }}</p>
+                        <p class="text-sm text-orange-600 mt-1">
+                            <i class="fas fa-clock mr-1"></i>
+                            Requieren atención
+                        </p>
+                    </div>
+                    <div class="bg-orange-100 p-3 rounded-full">
+                        <i class="fas fa-file-alt text-orange-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráficos y Contenido Principal -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+            <!-- Gráfico de Empleados por Departamento -->
+            <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900">Empleados por Departamento</h3>
+                    <div class="flex space-x-2">
+                        <button class="text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <button class="text-gray-400 hover:text-gray-600">
+                            <i class="fas fa-expand-arrows-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="h-64 bg-gray-50 rounded-lg flex items-center justify-center">
+                    <div class="text-center text-gray-500">
+                        <i class="fas fa-chart-bar text-4xl mb-4"></i>
+                        <p>Gráfico de empleados por departamento</p>
+                        <p class="text-sm">Integrar con Chart.js o similar</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Empleados Recientes -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900">Empleados Recientes</h3>
+                    <a href="#" class="text-primary-600 hover:text-primary-700 text-sm font-medium">Ver todos</a>
+                </div>
+                <div class="space-y-4">
+                    {% for employee in recent_employees %}
+                    <div class="flex items-center space-x-3">
+                        <img src="https://via.placeholder.com/40x40/3b82f6/ffffff?text={{ employee.user.first_name|first|upper }}" 
+                             alt="{{ employee.user.get_full_name }}" 
+                             class="h-10 w-10 rounded-full">
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-gray-900 truncate">
+                                {{ employee.user.get_full_name }}
+                            </p>
+                            <p class="text-sm text-gray-500">{{ employee.position.title }}</p>
+                        </div>
+                        <div class="text-xs text-gray-400">
+                            {{ employee.hire_date|timesince }} ago
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center text-gray-500 py-4">
+                        <i class="fas fa-user-plus text-2xl mb-2"></i>
+                        <p>No hay empleados recientes</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Acciones Rápidas y Notificaciones -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Acciones Rápidas -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-6">Acciones Rápidas</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <a href="{% url 'employees:employee_list' %}" class="flex items-center p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors group">
+                        <div class="bg-blue-600 p-2 rounded-lg mr-3 group-hover:bg-blue-700 transition-colors">
+                            <i class="fas fa-user-plus text-white"></i>
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-900">Nuevo Empleado</p>
+                            <p class="text-sm text-gray-600">Registrar empleado</p>
+                        </div>
+                    </a>
+
+                    <a href="#" class="flex items-center p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors group">
+                        <div class="bg-green-600 p-2 rounded-lg mr-3 group-hover:bg-green-700 transition-colors">
+                            <i class="fas fa-calculator text-white"></i>
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-900">Procesar Nómina</p>
+                            <p class="text-sm text-gray-600">Calcular pagos</p>
+                        </div>
+                    </a>
+
+                    <a href="#" class="flex items-center p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors group">
+                        <div class="bg-purple-600 p-2 rounded-lg mr-3 group-hover:bg-purple-700 transition-colors">
+                            <i class="fas fa-file-alt text-white"></i>
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-900">Generar Reporte</p>
+                            <p class="text-sm text-gray-600">Reportes mensuales</p>
+                        </div>
+                    </a>
+
+                    <a href="#" class="flex items-center p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors group">
+                        <div class="bg-orange-600 p-2 rounded-lg mr-3 group-hover:bg-orange-700 transition-colors">
+                            <i class="fas fa-clock text-white"></i>
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-900">Asistencia</p>
+                            <p class="text-sm text-gray-600">Control horario</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Notificaciones Recientes -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900">Notificaciones</h3>
+                    <button class="text-primary-600 hover:text-primary-700 text-sm font-medium">
+                        Marcar como leídas
+                    </button>
+                </div>
+                <div class="space-y-4 max-h-64 overflow-y-auto">
+                    <!-- Notificación 1 -->
+                    <div class="flex items-start space-x-3 p-3 bg-blue-50 rounded-lg">
+                        <div class="bg-blue-600 p-1 rounded-full">
+                            <i class="fas fa-info text-white text-xs"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-gray-900">
+                                Nueva solicitud de vacaciones
+                            </p>
+                            <p class="text-xs text-gray-600">Juan Pérez ha solicitado vacaciones del 15-20 de enero</p>
+                            <p class="text-xs text-gray-400 mt-1">Hace 2 horas</p>
+                        </div>
+                    </div>
+
+                    <!-- Notificación 2 -->
+                    <div class="flex items-start space-x-3 p-3 bg-green-50 rounded-lg">
+                        <div class="bg-green-600 p-1 rounded-full">
+                            <i class="fas fa-check text-white text-xs"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-gray-900">
+                                Nómina procesada correctamente
+                            </p>
+                            <p class="text-xs text-gray-600">La nómina de diciembre ha sido procesada</p>
+                            <p class="text-xs text-gray-400 mt-1">Hace 1 día</p>
+                        </div>
+                    </div>
+
+                    <!-- Notificación 3 -->
+                    <div class="flex items-start space-x-3 p-3 bg-yellow-50 rounded-lg">
+                        <div class="bg-yellow-600 p-1 rounded-full">
+                            <i class="fas fa-exclamation text-white text-xs"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-gray-900">
+                                Recordatorio: Evaluaciones pendientes
+                            </p>
+                            <p class="text-xs text-gray-600">5 evaluaciones de desempeño pendientes</p>
+                            <p class="text-xs text-gray-400 mt-1">Hace 2 días</p>
+                        </div>
+                    </div>
+
+                    <!-- Ver más notificaciones -->
+                    <div class="text-center pt-4">
+                        <a href="#" class="text-primary-600 hover:text-primary-700 text-sm font-medium">
+                            Ver todas las notificaciones
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla de Empleados Recientes (ampliada) -->
+        <div class="mt-8 bg-white rounded-xl shadow-sm border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-900">Actividad Reciente</h3>
+                    <div class="flex space-x-2">
+                        <button class="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors">
+                            Filtrar
+                        </button>
+                        <button class="px-3 py-1 text-sm bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors">
+                            Exportar
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Empleado
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Departamento
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Cargo
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Estado
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Fecha Ingreso
+                            </th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Acciones
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for employee in recent_employees %}
+                        <tr class="hover:bg-gray-50">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <img class="h-8 w-8 rounded-full" 
+                                         src="https://via.placeholder.com/32x32/3b82f6/ffffff?text={{ employee.user.first_name|first|upper }}" 
+                                         alt="{{ employee.user.get_full_name }}">
+                                    <div class="ml-3">
+                                        <div class="text-sm font-medium text-gray-900">
+                                            {{ employee.user.get_full_name }}
+                                        </div>
+                                        <div class="text-sm text-gray-500">
+                                            {{ employee.employee_number }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {{ employee.department.name }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {{ employee.position.title }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
+                                    {% if employee.status == 'active' %}bg-green-100 text-green-800
+                                    {% elif employee.status == 'inactive' %}bg-red-100 text-red-800
+                                    {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                    {{ employee.get_status_display }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {{ employee.hire_date|date:"d/m/Y" }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <button class="text-primary-600 hover:text-primary-900 mr-3">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                <button class="text-gray-600 hover:text-gray-900 mr-3">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="text-red-600 hover:text-red-900">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="px-6 py-12 text-center text-gray-500">
+                                <i class="fas fa-users text-4xl mb-4"></i>
+                                <p>No hay empleados registrados</p>
+                                <button class="mt-4 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors">
+                                    Agregar primer empleado
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Simulación de actualización en tiempo real
+    function updateStats() {
+        // Aquí puedes agregar llamadas AJAX para actualizar estadísticas
+        console.log('Actualizando estadísticas...');
+    }
+
+    // Actualizar cada 30 segundos
+    setInterval(updateStats, 30000);
+
+    // Animaciones para las tarjetas de estadísticas
+    document.addEventListener('DOMContentLoaded', function() {
+        const cards = document.querySelectorAll('.bg-white');
+        cards.forEach((card, index) => {
+            setTimeout(() => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                card.style.transition = 'all 0.5s ease';
+                
+                requestAnimationFrame(() => {
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                });
+            }, index * 100);
+        });
+    });
+</script>
+{% endblock %}
