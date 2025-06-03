@@ -22,18 +22,28 @@ cd tu-repositorio
 
 
 2. Crear y activar entorno virtual
+```bash
 py -m venv env
 env\Scripts\activate
+```
 
-3. Instalar dependencias de Node.js
+4. Instalar dependencias de Node.js
+```bash
 npm install
+```
 
-4. Instalar dependencias de Python
+6. Instalar dependencias de Python
+```bash
 pip install -r requirements.txt
+```
 
-5. Aplicar migraciones
+8. Aplicar migraciones
+```bash
 python manage.py makemigrations
 python manage.py migrate
+```
 
-6. Ejecutar el servidor de desarrollo
+10. Ejecutar el servidor de desarrollo
+```bash   
 python manage.py runserver
+```
