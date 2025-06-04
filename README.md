@@ -37,13 +37,13 @@ npm install
 pip install -r requirements.txt
 ```
 
-8. Aplicar migraciones
+7. Aplicar migraciones
 ```bash
 python manage.py makemigrations
 python manage.py migrate
 ```
 
-10. Ejecutar el servidor de desarrollo
+8. Ejecutar el servidor de desarrollo
 ```bash   
 python manage.py runserver
 ```
