@@ -1,0 +1,412 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}Dashboard Supervisor - Sistema de Tareas{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-green-600 to-blue-600 shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div class="text-white">
+                    <h1 class="text-3xl font-bold">Dashboard de Supervisor</h1>
+                    <p class="text-green-100 mt-1">Gestión de Tareas Agrícolas - {{ supervisor.user.get_full_name }}</p>
+                    <p class="text-green-200 text-sm">{{ supervisor.department.name }}</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="text-white text-sm">
+                        <i class="fas fa-calendar-alt mr-2"></i>
+                        {% now "l, d F Y" %}
+                    </div>
+                    <a href="{% url 'tasks:task_create' %}" 
+                       class="bg-white text-green-600 px-6 py-3 rounded-lg hover:bg-green-50 transition-colors font-semibold shadow-lg">
+                        <i class="fas fa-plus mr-2"></i>
+                        Nueva Tarea
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Estadísticas Principales -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <!-- Total de Tareas -->
+            <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6 hover:shadow-xl transition-shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Total de Tareas</p>
+                        <p class="text-3xl font-bold text-gray-900">{{ tasks_stats.total|default:0 }}</p>
+                        <p class="text-sm text-blue-600 mt-1">
+                            <i class="fas fa-tasks mr-1"></i>
+                            Gestionadas
+                        </p>
+                    </div>
+                    <div class="bg-blue-100 p-3 rounded-full">
+                        <i class="fas fa-clipboard-list text-blue-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tareas Activas -->
+            <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6 hover:shadow-xl transition-shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Tareas Activas</p>
+                        <p class="text-3xl font-bold text-green-600">{{ tasks_stats.active|default:0 }}</p>
+                        <p class="text-sm text-green-600 mt-1">
+                            <i class="fas fa-play-circle mr-1"></i>
+                            En progreso
+                        </p>
+                    </div>
+                    <div class="bg-green-100 p-3 rounded-full">
+                        <i class="fas fa-seedling text-green-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tareas Completadas -->
+            <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6 hover:shadow-xl transition-shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Completadas</p>
+                        <p class="text-3xl font-bold text-purple-600">{{ tasks_stats.completed|default:0 }}</p>
+                        <p class="text-sm text-purple-600 mt-1">
+                            <i class="fas fa-check-circle mr-1"></i>
+                            Finalizadas
+                        </p>
+                    </div>
+                    <div class="bg-purple-100 p-3 rounded-full">
+                        <i class="fas fa-trophy text-purple-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Empleados Supervisados -->
+            <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6 hover:shadow-xl transition-shadow">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Mi Equipo</p>
+                        <p class="text-3xl font-bold text-orange-600">{{ subordinates_count|default:0 }}</p>
+                        <p class="text-sm text-orange-600 mt-1">
+                            <i class="fas fa-users mr-1"></i>
+                            Empleados
+                        </p>
+                    </div>
+                    <div class="bg-orange-100 p-3 rounded-full">
+                        <i class="fas fa-user-friends text-orange-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contenido Principal -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+            <!-- Tareas Urgentes -->
+            <div class="lg:col-span-2 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-200 bg-red-50">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-red-900 flex items-center">
+                            <i class="fas fa-exclamation-triangle text-red-600 mr-2"></i>
+                            Tareas Urgentes
+                        </h3>
+                        <span class="bg-red-100 text-red-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                            {{ urgent_tasks|length }} pendientes
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="p-6">
+                    {% if urgent_tasks %}
+                        <div class="space-y-4">
+                            {% for task in urgent_tasks %}
+                            <div class="border-l-4 border-red-500 bg-red-50 p-4 rounded-r-lg hover:bg-red-100 transition-colors">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex-1">
+                                        <h4 class="font-semibold text-gray-900">{{ task.title }}</h4>
+                                        <p class="text-sm text-gray-600 mt-1">
+                                            <i class="fas fa-map-marker-alt mr-1"></i>{{ task.location|default:"Sin ubicación" }}
+                                        </p>
+                                        <p class="text-sm text-red-600 mt-1">
+                                            <i class="fas fa-clock mr-1"></i>
+                                            Vence: {{ task.end_date|date:"d/m/Y H:i" }}
+                                        </p>
+                                    </div>
+                                    <div class="text-right">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                            {{ task.assigned_employees.count }} empleado{{ task.assigned_employees.count|pluralize }}
+                                        </span>
+                                        <div class="mt-2">
+                                            <a href="{% url 'tasks:task_detail' task.pk %}" 
+                                               class="text-red-600 hover:text-red-700 text-sm font-medium">
+                                                Ver detalles →
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-8">
+                            <i class="fas fa-check-circle text-green-500 text-4xl mb-3"></i>
+                            <p class="text-gray-500">¡Excelente! No tienes tareas urgentes pendientes.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Acciones Rápidas -->
+            <div class="space-y-6">
+                <!-- Menu de Acciones -->
+                <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <i class="fas fa-bolt text-yellow-500 mr-2"></i>
+                        Acciones Rápidas
+                    </h3>
+                    
+                    <div class="space-y-3">
+                        <a href="{% url 'tasks:task_create' %}" 
+                           class="w-full bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center font-medium">
+                            <i class="fas fa-plus mr-2"></i>
+                            Crear Nueva Tarea
+                        </a>
+                        
+                        <a href="{% url 'tasks:task_list' %}" 
+                           class="w-full bg-blue-600 text-white px-4 py-3 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center font-medium">
+                            <i class="fas fa-list mr-2"></i>
+                            Ver Todas las Tareas
+                        </a>
+                        
+                        <a href="{% url 'tasks:category_list' %}" 
+                           class="w-full bg-purple-600 text-white px-4 py-3 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center font-medium">
+                            <i class="fas fa-tags mr-2"></i>
+                            Gestionar Categorías
+                        </a>
+                        
+                        <a href="{% url 'tasks:export_tasks_csv' %}" 
+                           class="w-full bg-gray-600 text-white px-4 py-3 rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center font-medium">
+                            <i class="fas fa-download mr-2"></i>
+                            Exportar Datos
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Estadísticas del Equipo -->
+                <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <i class="fas fa-chart-line text-blue-500 mr-2"></i>
+                        Rendimiento del Equipo
+                    </h3>
+                    
+                    <div class="space-y-4">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Tareas Vencidas</span>
+                            <span class="font-semibold text-red-600">{{ tasks_stats.overdue|default:0 }}</span>
+                        </div>
+                        
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Eficiencia</span>
+                            <span class="font-semibold text-green-600">
+                                {% if tasks_stats.total > 0 %}
+                                    {{ tasks_stats.completed|floatformat:0 }}/{{ tasks_stats.total|floatformat:0 }}
+                                    ({% widthratio tasks_stats.completed tasks_stats.total 100 %}%)
+                                {% else %}
+                                    100%
+                                {% endif %}
+                            </span>
+                        </div>
+                        
+                        <div class="w-full bg-gray-200 rounded-full h-2">
+                            <div class="bg-green-600 h-2 rounded-full" 
+                                 style="width: {% if tasks_stats.total > 0 %}{% widthratio tasks_stats.completed tasks_stats.total 100 %}{% else %}100{% endif %}%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actividad Reciente -->
+        <div class="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                    <i class="fas fa-history text-gray-500 mr-2"></i>
+                    Actividad Reciente del Equipo
+                </h3>
+            </div>
+            
+            <div class="p-6">
+                {% if recent_activity %}
+                    <div class="flow-root">
+                        <ul class="-mb-8">
+                            {% for activity in recent_activity %}
+                            <li>
+                                <div class="relative pb-8">
+                                    {% if not forloop.last %}
+                                        <span class="absolute top-4 left-4 -ml-px h-full w-0.5 bg-gray-200"></span>
+                                    {% endif %}
+                                    
+                                    <div class="relative flex space-x-3">
+                                        <div>
+                                            <span class="h-8 w-8 rounded-full bg-green-500 flex items-center justify-center ring-8 ring-white">
+                                                <i class="fas fa-leaf text-white text-sm"></i>
+                                            </span>
+                                        </div>
+                                        <div class="min-w-0 flex-1 pt-1.5 flex justify-between space-x-4">
+                                            <div>
+                                                <p class="text-sm text-gray-500">
+                                                    <span class="font-medium text-gray-900">{{ activity.assignment.employee.user.get_full_name }}</span>
+                                                    reportó progreso en
+                                                    <span class="font-medium text-green-600">{{ activity.assignment.task.title }}</span>
+                                                </p>
+                                                <p class="text-xs text-gray-400 mt-1">{{ activity.progress_description|truncatechars:100 }}</p>
+                                            </div>
+                                            <div class="text-right text-xs text-gray-400">
+                                                <time datetime="{{ activity.timestamp|date:'c' }}">{{ activity.timestamp|timesince }} ago</time>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                {% else %}
+                    <div class="text-center py-8">
+                        <i class="fas fa-clipboard text-gray-300 text-4xl mb-3"></i>
+                        <p class="text-gray-500">No hay actividad reciente del equipo.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Tareas Recientes -->
+        <div class="mt-8 bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                        <i class="fas fa-clipboard-list text-gray-500 mr-2"></i>
+                        Mis Tareas Recientes
+                    </h3>
+                    <a href="{% url 'tasks:task_list' %}" 
+                       class="text-green-600 hover:text-green-700 text-sm font-medium">
+                        Ver todas →
+                    </a>
+                </div>
+            </div>
+            
+            {% if tasks %}
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tarea</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoría</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Empleados</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Progreso</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for task in tasks %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="flex-shrink-0 h-8 w-8">
+                                            <div class="h-8 w-8 rounded-full flex items-center justify-center" 
+                                                 style="background-color: {{ task.category.color }}20;">
+                                                <i class="{{ task.category.icon }} text-sm" style="color: {{ task.category.color }};"></i>
+                                            </div>
+                                        </div>
+                                        <div class="ml-4">
+                                            <div class="text-sm font-medium text-gray-900">{{ task.title }}</div>
+                                            <div class="text-sm text-gray-500">{{ task.location|default:"Sin ubicación" }}</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full" 
+                                          style="background-color: {{ task.category.color }}20; color: {{ task.category.color }};">
+                                        {{ task.category.name }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
+                                        {% if task.status == 'completed' %}bg-green-100 text-green-800
+                                        {% elif task.status == 'in_progress' %}bg-blue-100 text-blue-800
+                                        {% elif task.status == 'assigned' %}bg-yellow-100 text-yellow-800
+                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        {{ task.get_status_display }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {{ task.assigned_employees.count }} empleado{{ task.assigned_employees.count|pluralize }}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                                            <div class="bg-green-600 h-2 rounded-full" style="width: {{ task.progress_percentage }}%"></div>
+                                        </div>
+                                        <span class="text-sm text-gray-600">{{ task.progress_percentage }}%</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <a href="{% url 'tasks:task_detail' task.pk %}" 
+                                       class="text-green-600 hover:text-green-900 mr-3">Ver</a>
+                                    <a href="{% url 'tasks:task_update' task.pk %}" 
+                                       class="text-blue-600 hover:text-blue-900">Editar</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="px-6 py-12 text-center">
+                    <i class="fas fa-seedling text-gray-300 text-6xl mb-4"></i>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">No hay tareas creadas</h3>
+                    <p class="text-gray-500 mb-6">Comienza creando tu primera tarea agrícola.</p>
+                    <a href="{% url 'tasks:task_create' %}" 
+                       class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors inline-flex items-center">
+                        <i class="fas fa-plus mr-2"></i>
+                        Crear Primera Tarea
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Actualizar estadísticas en tiempo real cada 30 segundos
+    setInterval(function() {
+        fetch('{% url "tasks:supervisor_stats_api" %}')
+            .then(response => response.json())
+            .then(data => {
+                console.log('Estadísticas actualizadas:', data);
+                // Aquí podrías actualizar los números en tiempo real
+            })
+            .catch(error => console.error('Error:', error));
+    }, 30000);
+
+    // Animaciones de entrada
+    document.addEventListener('DOMContentLoaded', function() {
+        const cards = document.querySelectorAll('.bg-white');
+        cards.forEach((card, index) => {
+            setTimeout(() => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                card.style.transition = 'all 0.5s ease';
+                
+                requestAnimationFrame(() => {
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                });
+            }, index * 100);
+        });
+    });
+</script>
+{% endblock %}

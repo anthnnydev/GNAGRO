@@ -56,6 +56,12 @@ class User(AbstractUser):
         verbose_name='Empleado Activo'
     )
     
+    needs_password_change = models.BooleanField(
+        default=False,
+        verbose_name='Necesita cambiar contraseña',
+        help_text='Indica si el usuario debe cambiar su contraseña temporal'
+    )
+    
     # Redefinimos para evitar conflictos con auth.User (E304)
     groups = models.ManyToManyField(
         'auth.Group',

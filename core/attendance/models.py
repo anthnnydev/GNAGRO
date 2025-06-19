@@ -732,7 +732,7 @@ class AttendanceSummary(models.Model):
         verbose_name_plural = 'Resúmenes de Asistencia'
         db_table = 'attendance_summary'
         unique_together = ['employee', 'year', 'month']
-        ordering = ['-year', '-month', 'employee__first_name']
+        ordering = ['-year', '-month', 'employee__employee_number']
     
     def __str__(self):
         return f"{self.employee.full_name} - {self.month}/{self.year}"

@@ -1,0 +1,296 @@
+
+<!-- components/parameters/attendance/rule/delete.html -->
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block title %}Eliminar Regla de Asistencia - {{ object.name }} - Sistema de Asistencia{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'attendance:attendance_rule_list' %}" 
+                       class="text-primary-600 hover:text-primary-700 transition-colors">
+                        <i class="fas fa-arrow-left text-lg"></i>
+                    </a>
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">Eliminar Regla de Asistencia</h1>
+                        <p class="text-gray-600 mt-1">Esta acción no se puede deshacer</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <!-- Alerta de Advertencia -->
+            <div class="bg-red-50 border-l-4 border-red-400 p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-exclamation-triangle text-red-400 text-2xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-lg font-medium text-red-800">
+                            ¿Estás seguro de que quieres eliminar esta regla?
+                        </h3>
+                        <div class="mt-2 text-sm text-red-700">
+                            <p>
+                                Esta acción eliminará permanentemente la regla de asistencia 
+                                <strong>"{{ object.name }}"</strong> y no se puede deshacer.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Información de la Regla -->
+            <div class="p-6">
+                <div class="bg-gray-50 rounded-lg p-6 mb-6">
+                    <h4 class="text-lg font-semibold text-gray-900 mb-4">Información de la Regla a Eliminar</h4>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-3">
+                            <div class="flex items-center">
+                                <i class="fas fa-gavel text-purple-500 mr-3"></i>
+                                <div>
+                                    <span class="text-sm font-medium text-gray-700">Nombre:</span>
+                                    <span class="ml-2 text-sm text-gray-900">{{ object.name }}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center">
+                                <i class="fas fa-clock text-yellow-500 mr-3"></i>
+                                <div>
+                                    <span class="text-sm font-medium text-gray-700">Umbral de Tardanza:</span>
+                                    <span class="ml-2 text-sm text-gray-900">{{ object.late_threshold }} minutos</span>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center">
+                                <i class="fas fa-business-time text-blue-500 mr-3"></i>
+                                <div>
+                                    <span class="text-sm font-medium text-gray-700">Umbral Horas Extra:</span>
+                                    <span class="ml-2 text-sm text-gray-900">{{ object.overtime_threshold }} horas</span>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center">
+                                <i class="fas fa-calculator text-green-500 mr-3"></i>
+                                <div>
+                                    <span class="text-sm font-medium text-gray-700">Multiplicador Extra:</span>
+                                    <span class="ml-2 text-sm text-gray-900">{{ object.overtime_multiplier }}x</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3">
+                            <div class="flex items-center">
+                                <i class="fas fa-calendar-times text-red-500 mr-3"></i>
+                                <div>
+                                    <span class="text-sm font-medium text-gray-700">Máximo Faltas Consecutivas:</span>
+                                    <span class="ml-2 text-sm text-gray-900">{{ object.max_consecutive_absences }}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center">
+                                <i class="fas fa-{% if object.require_justification %}check-circle{% else %}times-circle{% endif %} {% if object.require_justification %}text-green-500{% else %}text-red-500{% endif %} mr-3"></i>
+                                <div>
+                                    <span class="text-sm font-medium text-gray-700">Justificación:</span>
+                                    <span class="ml-2 text-sm {% if object.require_justification %}text-green-600{% else %}text-red-600{% endif %}">
+                                        {% if object.require_justification %}Requerida{% else %}No requerida{% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center">
+                                <i class="fas fa-{% if object.is_active %}check-circle{% else %}times-circle{% endif %} {% if object.is_active %}text-green-500{% else %}text-red-500{% endif %} mr-3"></i>
+                                <div>
+                                    <span class="text-sm font-medium text-gray-700">Estado:</span>
+                                    <span class="ml-2 text-sm {% if object.is_active %}text-green-600{% else %}text-red-600{% endif %}">
+                                        {% if object.is_active %}Activa{% else %}Inactiva{% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Resumen de Configuración -->
+                    <div class="mt-6">
+                        <span class="text-sm font-medium text-gray-700">Configuración Actual:</span>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
+                            <div class="bg-yellow-50 p-3 rounded-lg text-center">
+                                <div class="text-lg font-bold text-yellow-700">{{ object.late_threshold }}</div>
+                                <div class="text-xs text-yellow-600">Min. tardanza</div>
+                            </div>
+                            <div class="bg-blue-50 p-3 rounded-lg text-center">
+                                <div class="text-lg font-bold text-blue-700">{{ object.overtime_threshold }}h</div>
+                                <div class="text-xs text-blue-600">Límite extra</div>
+                            </div>
+                            <div class="bg-green-50 p-3 rounded-lg text-center">
+                                <div class="text-lg font-bold text-green-700">{{ object.overtime_multiplier }}x</div>
+                                <div class="text-xs text-green-600">Multiplicador</div>
+                            </div>
+                            <div class="bg-red-50 p-3 rounded-lg text-center">
+                                <div class="text-lg font-bold text-red-700">{{ object.max_consecutive_absences }}</div>
+                                <div class="text-xs text-red-600">Faltas máx.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Advertencia sobre Impacto -->
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                    <div class="flex items-start">
+                        <i class="fas fa-exclamation-triangle text-yellow-500 mr-3 mt-0.5"></i>
+                        <div>
+                            <h4 class="text-sm font-medium text-yellow-800">Impacto de la Eliminación</h4>
+                            <div class="text-sm text-yellow-700 mt-2">
+                                <p class="mb-2">Esta regla podría estar siendo utilizada por:</p>
+                                <ul class="space-y-1">
+                                    <li>• Empleados con esta regla asignada</li>
+                                    <li>• Cálculos automáticos de asistencia</li>
+                                    <li>• Reportes y estadísticas existentes</li>
+                                    <li>• Procesos de nómina y pagos</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Información Adicional -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                    <div class="flex items-start">
+                        <i class="fas fa-info-circle text-blue-500 mr-3 mt-0.5"></i>
+                        <div>
+                            <h4 class="text-sm font-medium text-blue-800">Información Importante</h4>
+                            <ul class="text-sm text-blue-700 mt-2 space-y-1">
+                                <li>• Los registros de asistencia calculados con esta regla se mantendrán</li>
+                                <li>• Los empleados asignados quedarán sin regla de asistencia</li>
+                                <li>• Esta acción no se puede deshacer</li>
+                                <li>• Se recomienda desactivar la regla en lugar de eliminarla</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Formulario de Confirmación -->
+                <form method="post" class="space-y-6">
+                    {% csrf_token %}
+                    
+                    <!-- Campo de Confirmación -->
+                    <div>
+                        <label for="confirm_deletion" class="block text-sm font-medium text-gray-700 mb-2">
+                            Para confirmar la eliminación, escribe el nombre de la regla:
+                        </label>
+                        <input type="text" 
+                               id="confirm_deletion" 
+                               name="confirm_deletion"
+                               placeholder="{{ object.name }}"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
+                               required>
+                        <p class="mt-1 text-xs text-gray-500">
+                            Debe coincidir exactamente: <strong>{{ object.name }}</strong>
+                        </p>
+                    </div>
+
+                    <!-- Botones de Acción -->
+                    <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-200">
+                        <button type="submit" 
+                                id="delete-button"
+                                disabled
+                                class="w-full sm:w-auto bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed">
+                            <i class="fas fa-trash mr-2"></i>
+                            Eliminar Regla Permanentemente
+                        </button>
+                        
+                        <a href="{% url 'attendance:attendance_rule_list' %}" 
+                           class="w-full sm:w-auto bg-gray-100 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-200 transition-colors text-center">
+                            <i class="fas fa-times mr-2"></i>
+                            Cancelar
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const confirmInput = document.getElementById('confirm_deletion');
+    const deleteButton = document.getElementById('delete-button');
+    const expectedName = "{{ object.name|escapejs }}";
+
+    if (confirmInput && deleteButton) {
+        confirmInput.addEventListener('input', function() {
+            const isMatch = this.value.trim() === expectedName;
+            deleteButton.disabled = !isMatch;
+            
+            if (isMatch) {
+                deleteButton.classList.remove('bg-gray-300', 'cursor-not-allowed');
+                deleteButton.classList.add('bg-red-600', 'hover:bg-red-700');
+            } else {
+                deleteButton.classList.add('bg-gray-300', 'cursor-not-allowed');
+                deleteButton.classList.remove('bg-red-600', 'hover:bg-red-700');
+            }
+        });
+
+        // Prevenir envío si no coincide
+        const form = confirmInput.closest('form');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                if (confirmInput.value.trim() !== expectedName) {
+                    e.preventDefault();
+                    showNotification('El nombre ingresado no coincide con la regla a eliminar', 'error');
+                    confirmInput.focus();
+                }
+            });
+        }
+    }
+});
+
+// Función para mostrar notificaciones
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm ${
+        type === 'success' ? 'bg-green-100 border border-green-400 text-green-700' :
+        type === 'error' ? 'bg-red-100 border border-red-400 text-red-700' :
+        type === 'warning' ? 'bg-yellow-100 border border-yellow-400 text-yellow-700' :
+        'bg-blue-100 border border-blue-400 text-blue-700'
+    }`;
+    
+    notification.innerHTML = `
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                <i class="fas fa-${
+                    type === 'success' ? 'check-circle' :
+                    type === 'error' ? 'exclamation-circle' :
+                    type === 'warning' ? 'exclamation-triangle' :
+                    'info-circle'
+                } ${
+                    type === 'success' ? 'text-green-400' :
+                    type === 'error' ? 'text-red-400' :
+                    type === 'warning' ? 'text-yellow-400' :
+                    'text-blue-400'
+                }"></i>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm font-medium">${message}</p>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 5000);
+}
+</script>
+{% endblock %}

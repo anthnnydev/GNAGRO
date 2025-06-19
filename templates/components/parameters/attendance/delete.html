@@ -1,0 +1,309 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}Eliminar Horario - {{ object.name }} - Sistema de Asistencia{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'attendance:work_schedule_detail' object.pk %}" 
+                       class="text-primary-600 hover:text-primary-700 transition-colors">
+                        <i class="fas fa-arrow-left text-lg"></i>
+                    </a>
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">Eliminar Horario de Trabajo</h1>
+                        <p class="text-gray-600 mt-1">Esta acción no se puede deshacer</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <!-- Alerta de Advertencia -->
+            <div class="bg-red-50 border-l-4 border-red-400 p-6">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-exclamation-triangle text-red-400 text-2xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <h3 class="text-lg font-medium text-red-800">
+                            ¿Estás seguro de que quieres eliminar este horario?
+                        </h3>
+                        <div class="mt-2 text-sm text-red-700">
+                            <p>
+                                Esta acción eliminará permanentemente el horario de trabajo 
+                                <strong>"{{ object.name }}"</strong> y no se puede deshacer.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Información del Horario -->
+            <div class="p-6">
+                <div class="bg-gray-50 rounded-lg p-6 mb-6">
+                    <h4 class="text-lg font-semibold text-gray-900 mb-4">Información del Horario a Eliminar</h4>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-3">
+                            <div class="flex items-center">
+                                <i class="fas fa-clock text-blue-500 mr-3"></i>
+                                <div>
+                                    <span class="text-sm font-medium text-gray-700">Nombre:</span>
+                                    <span class="ml-2 text-sm text-gray-900">{{ object.name }}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center">
+                                <i class="fas fa-tag text-green-500 mr-3"></i>
+                                <div>
+                                    <span class="text-sm font-medium text-gray-700">Tipo:</span>
+                                    <span class="ml-2 text-sm text-gray-900">{{ object.get_schedule_type_display }}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center">
+                                <i class="fas fa-calendar-week text-purple-500 mr-3"></i>
+                                <div>
+                                    <span class="text-sm font-medium text-gray-700">Horas Semanales:</span>
+                                    <span class="ml-2 text-sm text-gray-900">{{ object.weekly_hours }} horas</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3">
+                            <div class="flex items-center">
+                                <i class="fas fa-play text-green-500 mr-3"></i>
+                                <div>
+                                    <span class="text-sm font-medium text-gray-700">Horario:</span>
+                                    <span class="ml-2 text-sm text-gray-900">
+                                        {{ object.start_time|time:"H:i" }} - {{ object.end_time|time:"H:i" }}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center">
+                                <i class="fas fa-coffee text-orange-500 mr-3"></i>
+                                <div>
+                                    <span class="text-sm font-medium text-gray-700">Descanso:</span>
+                                    <span class="ml-2 text-sm text-gray-900">{{ object.break_duration }}</span>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center">
+                                <i class="fas fa-{% if object.is_active %}check-circle{% else %}times-circle{% endif %} {% if object.is_active %}text-green-500{% else %}text-red-500{% endif %} mr-3"></i>
+                                <div>
+                                    <span class="text-sm font-medium text-gray-700">Estado:</span>
+                                    <span class="ml-2 text-sm {% if object.is_active %}text-green-600{% else %}text-red-600{% endif %}">
+                                        {% if object.is_active %}Activo{% else %}Inactivo{% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Días Laborales -->
+                    <div class="mt-6">
+                        <span class="text-sm font-medium text-gray-700">Días Laborales:</span>
+                        <div class="flex flex-wrap gap-2 mt-2">
+                            {% if object.monday %}<span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">Lunes</span>{% endif %}
+                            {% if object.tuesday %}<span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">Martes</span>{% endif %}
+                            {% if object.wednesday %}<span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">Miércoles</span>{% endif %}
+                            {% if object.thursday %}<span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">Jueves</span>{% endif %}
+                            {% if object.friday %}<span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">Viernes</span>{% endif %}
+                            {% if object.saturday %}<span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">Sábado</span>{% endif %}
+                            {% if object.sunday %}<span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">Domingo</span>{% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Verificación de Dependencias -->
+                {% if object.employee_assignments.exists %}
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                        <div class="flex items-center">
+                            <i class="fas fa-exclamation-triangle text-yellow-500 mr-3"></i>
+                            <div>
+                                <h4 class="text-sm font-medium text-yellow-800">Advertencia: Empleados Asignados</h4>
+                                <p class="text-sm text-yellow-700 mt-1">
+                                    Este horario tiene <strong>{{ object.employee_assignments.count }}</strong> 
+                                    empleado{{ object.employee_assignments.count|pluralize }} asignado{{ object.employee_assignments.count|pluralize }}.
+                                    No se puede eliminar mientras tenga asignaciones activas.
+                                </p>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4">
+                            <h5 class="text-sm font-medium text-yellow-800 mb-2">Empleados asignados:</h5>
+                            <div class="space-y-2">
+                                {% for assignment in object.employee_assignments.all|slice:":5" %}
+                                    <div class="flex items-center text-sm text-yellow-700">
+                                        <i class="fas fa-user mr-2"></i>
+                                        <span>{{ assignment.employee.full_name }}</span>
+                                        {% if assignment.is_active %}
+                                            <span class="ml-2 px-2 py-0.5 bg-green-100 text-green-800 text-xs rounded">Activo</span>
+                                        {% endif %}
+                                    </div>
+                                {% endfor %}
+                                {% if object.employee_assignments.count > 5 %}
+                                    <p class="text-xs text-yellow-600">... y {{ object.employee_assignments.count|add:"-5" }} más</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <!-- Información Adicional -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                    <div class="flex items-start">
+                        <i class="fas fa-info-circle text-blue-500 mr-3 mt-0.5"></i>
+                        <div>
+                            <h4 class="text-sm font-medium text-blue-800">Información Importante</h4>
+                            <ul class="text-sm text-blue-700 mt-2 space-y-1">
+                                <li>• Los registros de asistencia asociados a este horario se mantendrán</li>
+                                <li>• Las asignaciones de empleados serán eliminadas</li>
+                                <li>• Esta acción no se puede deshacer</li>
+                                <li>• Se recomienda desactivar el horario en lugar de eliminarlo</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Formulario de Confirmación -->
+                <form method="post" class="space-y-6">
+                    {% csrf_token %}
+                    
+                    {% if not object.employee_assignments.exists %}
+                        <!-- Campo de Confirmación -->
+                        <div>
+                            <label for="confirm_deletion" class="block text-sm font-medium text-gray-700 mb-2">
+                                Para confirmar la eliminación, escribe el nombre del horario:
+                            </label>
+                            <input type="text" 
+                                   id="confirm_deletion" 
+                                   name="confirm_deletion"
+                                   placeholder="{{ object.name }}"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-colors"
+                                   required>
+                            <p class="mt-1 text-xs text-gray-500">
+                                Debe coincidir exactamente: <strong>{{ object.name }}</strong>
+                            </p>
+                        </div>
+
+                        <!-- Botones de Acción -->
+                        <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-200">
+                            <button type="submit" 
+                                    id="delete-button"
+                                    disabled
+                                    class="w-full sm:w-auto bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed">
+                                <i class="fas fa-trash mr-2"></i>
+                                Eliminar Horario Permanentemente
+                            </button>
+                            
+                            <a href="{% url 'attendance:work_schedule_detail' object.pk %}" 
+                               class="w-full sm:w-auto bg-gray-100 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-200 transition-colors text-center">
+                                <i class="fas fa-times mr-2"></i>
+                                Cancelar
+                            </a>
+                        </div>
+                    {% else %}
+                        <!-- Botones cuando hay dependencias -->
+                        <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-200">
+                            <a href="{% url 'attendance:employee_schedule_list' %}?schedule={{ object.id }}" 
+                               class="w-full sm:w-auto bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors text-center">
+                                <i class="fas fa-users mr-2"></i>
+                                Gestionar Asignaciones
+                            </a>
+                            
+                            <a href="{% url 'attendance:work_schedule_detail' object.pk %}" 
+                               class="w-full sm:w-auto bg-gray-100 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-200 transition-colors text-center">
+                                <i class="fas fa-arrow-left mr-2"></i>
+                                Volver al Horario
+                            </a>
+                        </div>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const confirmInput = document.getElementById('confirm_deletion');
+    const deleteButton = document.getElementById('delete-button');
+    const expectedName = "{{ object.name }}";
+
+    if (confirmInput && deleteButton) {
+        confirmInput.addEventListener('input', function() {
+            const isMatch = this.value.trim() === expectedName;
+            deleteButton.disabled = !isMatch;
+            
+            if (isMatch) {
+                deleteButton.classList.remove('bg-gray-300', 'cursor-not-allowed');
+                deleteButton.classList.add('bg-red-600', 'hover:bg-red-700');
+            } else {
+                deleteButton.classList.add('bg-gray-300', 'cursor-not-allowed');
+                deleteButton.classList.remove('bg-red-600', 'hover:bg-red-700');
+            }
+        });
+
+        // Prevenir envío si no coincide
+        const form = confirmInput.closest('form');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                if (confirmInput.value.trim() !== expectedName) {
+                    e.preventDefault();
+                    showNotification('El nombre ingresado no coincide con el horario a eliminar', 'error');
+                    confirmInput.focus();
+                }
+            });
+        }
+    }
+});
+
+// Función para mostrar notificaciones
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm ${
+        type === 'success' ? 'bg-green-100 border border-green-400 text-green-700' :
+        type === 'error' ? 'bg-red-100 border border-red-400 text-red-700' :
+        type === 'warning' ? 'bg-yellow-100 border border-yellow-400 text-yellow-700' :
+        'bg-blue-100 border border-blue-400 text-blue-700'
+    }`;
+    
+    notification.innerHTML = `
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                <i class="fas fa-${
+                    type === 'success' ? 'check-circle' :
+                    type === 'error' ? 'exclamation-circle' :
+                    type === 'warning' ? 'exclamation-triangle' :
+                    'info-circle'
+                } ${
+                    type === 'success' ? 'text-green-400' :
+                    type === 'error' ? 'text-red-400' :
+                    type === 'warning' ? 'text-yellow-400' :
+                    'text-blue-400'
+                }"></i>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm font-medium">${message}</p>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 5000);
+}
+</script>
+{% endblock %}

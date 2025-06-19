@@ -101,7 +101,7 @@
                         
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <!-- Username -->
-                            <div>
+                            <div class="md:col-span-2">
                                 <label for="{{ user_form.username.id_for_label }}" 
                                        class="block text-sm font-medium text-gray-700 mb-2">
                                     Nombre de Usuario *
@@ -110,22 +110,32 @@
                                 {% if user_form.username.errors %}
                                     <p class="mt-1 text-sm text-red-600">{{ user_form.username.errors.0 }}</p>
                                 {% endif %}
+                                {% if not object %}
+                                    <!-- Vista previa del username para nuevos empleados -->
+                                    <div id="username-preview" class="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200 hidden">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-lightbulb text-blue-500 mr-2"></i>
+                                            <span class="text-sm text-blue-700">
+                                                <strong>Usuario sugerido:</strong> <span id="suggested-username" class="font-mono"></span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                {% endif %}
                             </div>
 
-                            <div class="md:col-span-2">
-                                <p class="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
-                                    <i class="fas fa-info-circle text-blue-500 mr-2"></i>
-                                    La contraseña inicial será generada automáticamente y enviada al empleado por correo electrónico.
-                                </p>
-                            </div>
+                            {% if not object %}
+                                <div class="md:col-span-2">
+                                    <p class="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
+                                        <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+                                        El nombre de usuario se generará automáticamente basado en los nombres y apellidos. 
+                                        La contraseña inicial será generada automáticamente y enviada al empleado por correo electrónico.
+                                    </p>
+                                </div>
+                            {% endif %}
 
                             <!-- Password1 (solo para crear) -->
                             {% if not object %}
                             <div>
-                                <label for="{{ user_form.password1.id_for_label }}" 
-                                       class="block text-sm font-medium text-gray-700 mb-2">
-                                    Contraseña *
-                                </label>
                                 {{ user_form.password1 }}
                                 {% if user_form.password1.errors %}
                                     <p class="mt-1 text-sm text-red-600">{{ user_form.password1.errors.0 }}</p>
@@ -134,10 +144,6 @@
 
                             <!-- Password2 (confirmación) -->
                             <div>
-                                <label for="{{ user_form.password2.id_for_label }}" 
-                                       class="block text-sm font-medium text-gray-700 mb-2">
-                                    Confirmar Contraseña *
-                                </label>
                                 {{ user_form.password2 }}
                                 {% if user_form.password2.errors %}
                                     <p class="mt-1 text-sm text-red-600">{{ user_form.password2.errors.0 }}</p>
@@ -451,22 +457,6 @@
                             </div>
                         </div>
                     </div>
-
-                    <!-- Notas -->
-                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Notas</h3>
-                        
-                        <div>
-                            <label for="{{ form.notes.id_for_label }}" 
-                                   class="block text-sm font-medium text-gray-700 mb-2">
-                                Observaciones
-                            </label>
-                            {{ form.notes }}
-                            {% if form.notes.errors %}
-                                <p class="mt-1 text-sm text-red-600">{{ form.notes.errors.0 }}</p>
-                            {% endif %}
-                        </div>
-                    </div>
                 </div>
             </div>
 
@@ -490,6 +480,71 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Función para limpiar y dividir nombres
+    function cleanNameParts(name) {
+        if (!name) return [];
+        // Eliminar caracteres especiales y normalizar espacios
+        const cleanedName = name.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '').trim();
+        // Dividir por espacios y filtrar partes vacías
+        return cleanedName.split(/\s+/).filter(part => part.trim());
+    }
+
+    // Función para generar username basado en nombres y apellidos
+    function generateUsername(firstName, lastName) {
+        if (!firstName || !lastName) return '';
+        
+        const firstNames = cleanNameParts(firstName);
+        const lastNames = cleanNameParts(lastName);
+        
+        if (firstNames.length === 0 || lastNames.length === 0) return '';
+        
+        // Tomar la primera letra del primer nombre
+        const firstInitial = firstNames[0][0].toLowerCase();
+        
+        // Tomar el primer apellido completo
+        const firstLastname = lastNames[0].toLowerCase();
+        
+        // Tomar la primera letra del segundo apellido (si existe)
+        const secondLastnameInitial = lastNames.length > 1 ? lastNames[1][0].toLowerCase() : '';
+        
+        // Formar el username base
+        return `${firstInitial}${firstLastname}${secondLastnameInitial}`;
+    }
+
+    // Función para mostrar vista previa del username
+    function updateUsernamePreview() {
+        const firstNameField = document.querySelector('input[name="first_name"]');
+        const lastNameField = document.querySelector('input[name="last_name"]');
+        const usernameField = document.querySelector('input[name="username"]');
+        const previewContainer = document.getElementById('username-preview');
+        const suggestedUsernameSpan = document.getElementById('suggested-username');
+        
+        if (!firstNameField || !lastNameField || !previewContainer || !suggestedUsernameSpan) return;
+        
+        const firstName = firstNameField.value.trim();
+        const lastName = lastNameField.value.trim();
+        
+        if (firstName && lastName) {
+            const suggestedUsername = generateUsername(firstName, lastName);
+            if (suggestedUsername) {
+                suggestedUsernameSpan.textContent = suggestedUsername;
+                previewContainer.classList.remove('hidden');
+                
+                // Solo actualizar el campo si es un nuevo empleado (readonly)
+                if (usernameField && usernameField.hasAttribute('readonly')) {
+                    usernameField.value = suggestedUsername;
+                }
+            } else {
+                previewContainer.classList.add('hidden');
+            }
+        } else {
+            previewContainer.classList.add('hidden');
+            if (usernameField && usernameField.hasAttribute('readonly')) {
+                usernameField.value = '';
+            }
+        }
+    }
+
     // Agregar clases CSS a los campos del formulario
     const formFields = document.querySelectorAll('input, select, textarea');
     formFields.forEach(field => {
@@ -509,6 +564,18 @@ document.addEventListener('DOMContentLoaded', function() {
             field.setAttribute('placeholder', '0.00');
         }
     });
+
+    // Event listeners para generar username en tiempo real
+    const firstNameField = document.querySelector('input[name="first_name"]');
+    const lastNameField = document.querySelector('input[name="last_name"]');
+    
+    if (firstNameField && lastNameField) {
+        firstNameField.addEventListener('input', updateUsernamePreview);
+        lastNameField.addEventListener('input', updateUsernamePreview);
+        
+        // Generar vista previa inicial si ya hay valores
+        updateUsernamePreview();
+    }
 
     // Previsualización de imagen
     const photoInput = document.querySelector('input[name="profile_picture"]');

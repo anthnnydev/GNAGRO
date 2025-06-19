@@ -1,0 +1,129 @@
+<!-- components/parameters/attendance/holiday/form.html -->
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block title %}
+    {% if form.instance.pk %}Editar{% else %}Crear{% endif %} Feriado - Sistema de Asistencia
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'attendance:holiday_list' %}" 
+                       class="text-primary-600 hover:text-primary-700 transition-colors">
+                        <i class="fas fa-arrow-left text-lg"></i>
+                    </a>
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">
+                            {% if form.instance.pk %}Editar{% else %}Nuevo{% endif %} Feriado
+                        </h1>
+                        <p class="text-gray-600 mt-1">
+                            {% if form.instance.pk %}
+                                Modificar información del feriado
+                            {% else %}
+                                Crear un nuevo feriado en el calendario
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Nombre -->
+                    <div>
+                        <label for="{{ form.name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Nombre del Feriado <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                            <div class="mt-1 text-sm text-red-600">
+                                {% for error in form.name.errors %}
+                                    <p>{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Fecha -->
+                    <div>
+                        <label for="{{ form.date.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                            Fecha <span class="text-red-500">*</span>
+                        </label>
+                        {{ form.date }}
+                        {% if form.date.errors %}
+                            <div class="mt-1 text-sm text-red-600">
+                                {% for error in form.date.errors %}
+                                    <p>{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Descripción -->
+                <div>
+                    <label for="{{ form.description.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                        Descripción
+                    </label>
+                    {{ form.description }}
+                    {% if form.description.errors %}
+                        <div class="mt-1 text-sm text-red-600">
+                            {% for error in form.description.errors %}
+                                <p>{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Opciones -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="flex items-center">
+                        {{ form.is_recurring }}
+                        <label for="{{ form.is_recurring.id_for_label }}" class="ml-2 text-sm font-medium text-gray-700">
+                            Feriado Recurrente
+                        </label>
+                    </div>
+
+                    <div class="flex items-center">
+                        {{ form.is_paid }}
+                        <label for="{{ form.is_paid.id_for_label }}" class="ml-2 text-sm font-medium text-gray-700">
+                            Feriado Pagado
+                        </label>
+                    </div>
+
+                    <div class="flex items-center">
+                        {{ form.is_active }}
+                        <label for="{{ form.is_active.id_for_label }}" class="ml-2 text-sm font-medium text-gray-700">
+                            Activo
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Botones -->
+                <div class="flex items-center justify-end space-x-4 pt-6 border-t border-gray-200">
+                    <a href="{% url 'attendance:holiday_list' %}" 
+                       class="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-300 transition-colors">
+                        Cancelar
+                    </a>
+                    <button type="submit" 
+                            class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+                        <i class="fas fa-save mr-2"></i>
+                        {% if form.instance.pk %}Actualizar{% else %}Crear{% endif %} Feriado
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

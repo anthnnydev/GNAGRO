@@ -1,0 +1,884 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}
+    {% if object %}
+        Editar Horario de Trabajo - {{ object.name }}
+    {% else %}
+        Nuevo Horario de Trabajo
+    {% endif %} - Sistema de Asistencia
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'attendance:work_schedule_list' %}" 
+                       class="text-primary-600 hover:text-primary-700 transition-colors">
+                        <i class="fas fa-arrow-left text-lg"></i>
+                    </a>
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">
+                            {% if object %}
+                                Editar Horario de Trabajo
+                            {% else %}
+                                Nuevo Horario de Trabajo
+                            {% endif %}
+                        </h1>
+                        <p class="text-gray-600 mt-1">
+                            {% if object %}
+                                Actualizar información de {{ object.name }}
+                            {% else %}
+                                Configurar un nuevo horario de trabajo para los empleados
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button type="submit" form="schedule-form" 
+                            class="bg-primary-600 text-gray-600 px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors">
+                        <i class="fas fa-save mr-2"></i>
+                        {% if object %}Actualizar{% else %}Crear{% endif %} Horario
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <form id="schedule-form" method="post" class="space-y-8">
+            {% csrf_token %}
+            
+            <!-- Mensajes de error -->
+            {% if form.errors %}
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-exclamation-circle text-red-400 text-lg"></i>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-red-800">
+                                Se encontraron errores en el formulario
+                            </h3>
+                            <div class="mt-2 text-sm text-red-700">
+                                <ul class="list-disc list-inside space-y-1">
+                                    {% for field, errors in form.errors.items %}
+                                        {% for error in errors %}
+                                            <li>{{ field }}: {{ error }}</li>
+                                        {% endfor %}
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Información Principal -->
+                <div class="lg:col-span-2 space-y-6">
+                    <!-- Información Básica -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center mb-6">
+                            <div class="bg-blue-100 p-2 rounded-lg mr-3">
+                                <i class="fas fa-clock text-blue-600"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900">Información Básica</h3>
+                        </div>
+                        
+                        <div class="space-y-6">
+                            <!-- Nombre -->
+                            <div>
+                                <label for="{{ form.name.id_for_label }}" 
+                                       class="block text-sm font-medium text-gray-700 mb-2">
+                                    Nombre del Horario *
+                                </label>
+                                {{ form.name }}
+                                {% if form.name.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.name.errors.0 }}</p>
+                                {% endif %}
+                                <p class="mt-1 text-xs text-gray-500">
+                                    Ingresa el nombre del horario (ej: Horario Administrativo Mañana)
+                                </p>
+                            </div>
+
+                            <!-- Tipo de Horario -->
+                            <div>
+                                <label for="{{ form.schedule_type.id_for_label }}" 
+                                       class="block text-sm font-medium text-gray-700 mb-2">
+                                    Tipo de Horario *
+                                </label>
+                                {{ form.schedule_type }}
+                                {% if form.schedule_type.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.schedule_type.errors.0 }}</p>
+                                {% endif %}
+                                <p class="mt-1 text-xs text-gray-500">
+                                    Selecciona el tipo de horario según la modalidad de trabajo
+                                </p>
+                            </div>
+
+                            <!-- Horarios de Trabajo -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <!-- Hora de Inicio -->
+                                <div>
+                                    <label for="{{ form.start_time.id_for_label }}" 
+                                           class="block text-sm font-medium text-gray-700 mb-2">
+                                        Hora de Inicio *
+                                    </label>
+                                    {{ form.start_time }}
+                                    {% if form.start_time.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ form.start_time.errors.0 }}</p>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Hora de Fin -->
+                                <div>
+                                    <label for="{{ form.end_time.id_for_label }}" 
+                                           class="block text-sm font-medium text-gray-700 mb-2">
+                                        Hora de Fin *
+                                    </label>
+                                    {{ form.end_time }}
+                                    {% if form.end_time.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ form.end_time.errors.0 }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Duración del Descanso -->
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    Duración del Descanso
+                                </label>
+                                <div class="flex items-center space-x-3">
+                                    <div class="flex items-center space-x-2">
+                                        {{ form.break_hours }}
+                                        <span class="text-sm text-gray-500">horas</span>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        {{ form.break_minutes }}
+                                        <span class="text-sm text-gray-500">minutos</span>
+                                    </div>
+                                </div>
+                                {% if form.break_hours.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.break_hours.errors.0 }}</p>
+                                {% endif %}
+                                <p class="mt-1 text-xs text-gray-500">
+                                    Tiempo total de descanso durante la jornada laboral
+                                </p>
+                            </div>
+
+                            <!-- Configuración Adicional -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <!-- Horas Semanales -->
+                                <div>
+                                    <label for="{{ form.weekly_hours.id_for_label }}" 
+                                           class="block text-sm font-medium text-gray-700 mb-2">
+                                        Horas Semanales *
+                                    </label>
+                                    {{ form.weekly_hours }}
+                                    {% if form.weekly_hours.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ form.weekly_hours.errors.0 }}</p>
+                                    {% endif %}
+                                    <p class="mt-1 text-xs text-gray-500">
+                                        Total de horas laborales por semana
+                                    </p>
+                                </div>
+
+                                <!-- Tolerancia de Tardanza -->
+                                <div>
+                                    <label for="{{ form.late_tolerance.id_for_label }}" 
+                                           class="block text-sm font-medium text-gray-700 mb-2">
+                                        Tolerancia de Tardanza (minutos)
+                                    </label>
+                                    {{ form.late_tolerance }}
+                                    {% if form.late_tolerance.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ form.late_tolerance.errors.0 }}</p>
+                                    {% endif %}
+                                    <p class="mt-1 text-xs text-gray-500">
+                                        Minutos de tolerancia antes de marcar tardanza
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Días Laborales -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center mb-6">
+                            <div class="bg-green-100 p-2 rounded-lg mr-3">
+                                <i class="fas fa-calendar-week text-green-600"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900">Días Laborales</h3>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            <p class="text-sm text-gray-600">
+                                Selecciona los días de la semana en los que aplica este horario:
+                            </p>
+                            
+                            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+                                <!-- Lunes -->
+                                <div class="flex items-center">
+                                    <div class="flex items-center h-5">
+                                        {{ form.monday }}
+                                    </div>
+                                    <div class="ml-3">
+                                        <label for="{{ form.monday.id_for_label }}" 
+                                               class="text-sm font-medium text-gray-700">
+                                            Lunes
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Martes -->
+                                <div class="flex items-center">
+                                    <div class="flex items-center h-5">
+                                        {{ form.tuesday }}
+                                    </div>
+                                    <div class="ml-3">
+                                        <label for="{{ form.tuesday.id_for_label }}" 
+                                               class="text-sm font-medium text-gray-700">
+                                            Martes
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Miércoles -->
+                                <div class="flex items-center">
+                                    <div class="flex items-center h-5">
+                                        {{ form.wednesday }}
+                                    </div>
+                                    <div class="ml-3">
+                                        <label for="{{ form.wednesday.id_for_label }}" 
+                                               class="text-sm font-medium text-gray-700">
+                                            Miércoles
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Jueves -->
+                                <div class="flex items-center">
+                                    <div class="flex items-center h-5">
+                                        {{ form.thursday }}
+                                    </div>
+                                    <div class="ml-3">
+                                        <label for="{{ form.thursday.id_for_label }}" 
+                                               class="text-sm font-medium text-gray-700">
+                                            Jueves
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Viernes -->
+                                <div class="flex items-center">
+                                    <div class="flex items-center h-5">
+                                        {{ form.friday }}
+                                    </div>
+                                    <div class="ml-3">
+                                        <label for="{{ form.friday.id_for_label }}" 
+                                               class="text-sm font-medium text-gray-700">
+                                            Viernes
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Sábado -->
+                                <div class="flex items-center">
+                                    <div class="flex items-center h-5">
+                                        {{ form.saturday }}
+                                    </div>
+                                    <div class="ml-3">
+                                        <label for="{{ form.saturday.id_for_label }}" 
+                                               class="text-sm font-medium text-gray-700">
+                                            Sábado
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Domingo -->
+                                <div class="flex items-center">
+                                    <div class="flex items-center h-5">
+                                        {{ form.sunday }}
+                                    </div>
+                                    <div class="ml-3">
+                                        <label for="{{ form.sunday.id_for_label }}" 
+                                               class="text-sm font-medium text-gray-700">
+                                            Domingo
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Acciones rápidas para días -->
+                            <div class="flex flex-wrap gap-2 pt-4">
+                                <button type="button" onclick="selectWeekdays()" 
+                                        class="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
+                                    Lunes a Viernes
+                                </button>
+                                <button type="button" onclick="selectWeekend()" 
+                                        class="px-3 py-1 text-xs bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors">
+                                    Fin de Semana
+                                </button>
+                                <button type="button" onclick="selectAllDays()" 
+                                        class="px-3 py-1 text-xs bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors">
+                                    Todos los Días
+                                </button>
+                                <button type="button" onclick="clearAllDays()" 
+                                        class="px-3 py-1 text-xs bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors">
+                                    Limpiar Todo
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Estado -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center mb-6">
+                            <div class="bg-gray-100 p-2 rounded-lg mr-3">
+                                <i class="fas fa-toggle-on text-gray-600"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900">Estado del Horario</h3>
+                        </div>
+                        
+                        <div class="flex items-start">
+                            <div class="flex items-center h-5">
+                                {{ form.is_active }}
+                            </div>
+                            <div class="ml-3">
+                                <label for="{{ form.is_active.id_for_label }}" 
+                                       class="text-sm font-medium text-gray-700">
+                                    Horario Activo
+                                </label>
+                                <p class="text-xs text-gray-500 mt-1">
+                                    {% if object %}
+                                        Desmarcar para desactivar este horario de trabajo
+                                    {% else %}
+                                        Este horario estará disponible para asignar a empleados
+                                    {% endif %}
+                                </p>
+                            </div>
+                        </div>
+                        {% if form.is_active.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.is_active.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Panel Lateral -->
+                <div class="space-y-6">
+                    <!-- Vista Previa del Horario -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Vista Previa</h3>
+                        
+                        <div class="space-y-4">
+                            <!-- Horario -->
+                            <div>
+                                <p class="text-sm font-medium text-gray-700 mb-2">Horario de Trabajo:</p>
+                                <div class="bg-gray-50 p-3 rounded-lg">
+                                    <div class="flex items-center text-sm">
+                                        <i class="fas fa-clock text-blue-500 mr-2"></i>
+                                        <span id="schedule-preview">08:00 - 17:00</span>
+                                    </div>
+                                    <div class="flex items-center text-xs text-gray-500 mt-1">
+                                        <i class="fas fa-coffee text-orange-500 mr-2"></i>
+                                        <span id="break-preview">Descanso: 1h 0m</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Días Laborales Preview -->
+                            <div>
+                                <p class="text-sm font-medium text-gray-700 mb-2">Días Laborales:</p>
+                                <div id="days-preview" class="flex flex-wrap gap-1">
+                                    <span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">L</span>
+                                    <span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">M</span>
+                                    <span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">X</span>
+                                    <span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">J</span>
+                                    <span class="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">V</span>
+                                </div>
+                            </div>
+
+                            <!-- Horas Calculadas -->
+                            <div>
+                                <p class="text-sm font-medium text-gray-700 mb-2">Cálculos:</p>
+                                <div class="space-y-2 text-sm">
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Horas diarias:</span>
+                                        <span id="daily-hours" class="font-medium">8h</span>
+                                    </div>
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Horas semanales:</span>
+                                        <span id="weekly-hours-calc" class="font-medium">40h</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Estadísticas (solo para edición) -->
+                    {% if object %}
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Estadísticas de Uso</h3>
+                            
+                            <div class="space-y-4">
+                                <!-- Empleados Asignados -->
+                                <div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                                    <div class="flex items-center">
+                                        <div class="bg-blue-100 p-2 rounded-lg mr-3">
+                                            <i class="fas fa-users text-blue-600 text-sm"></i>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900">Empleados Asignados</p>
+                                            <p class="text-xs text-gray-500">Actualmente activos</p>
+                                        </div>
+                                    </div>
+                                    <span class="text-lg font-bold text-blue-600">
+                                        {{ total_employees|default:0 }}
+                                    </span>
+                                </div>
+
+                                <!-- Estado -->
+                                <div class="flex items-center justify-between p-3 {% if object.is_active %}bg-green-50{% else %}bg-red-50{% endif %} rounded-lg">
+                                    <div class="flex items-center">
+                                        <div class="{% if object.is_active %}bg-green-100{% else %}bg-red-100{% endif %} p-2 rounded-lg mr-3">
+                                            <i class="fas fa-{% if object.is_active %}check-circle{% else %}times-circle{% endif %} {% if object.is_active %}text-green-600{% else %}text-red-600{% endif %} text-sm"></i>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900">Estado</p>
+                                            <p class="text-xs text-gray-500">Actual</p>
+                                        </div>
+                                    </div>
+                                    <span class="text-sm font-bold {% if object.is_active %}text-green-600{% else %}text-red-600{% endif %}">
+                                        {% if object.is_active %}Activo{% else %}Inactivo{% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <!-- Información del Sistema -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                            {% if object %}Información del Sistema{% else %}Guía de Creación{% endif %}
+                        </h3>
+                        
+                        {% if object %}
+                            <div class="space-y-3 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Creado:</span>
+                                    <span class="font-medium">{{ object.created_at|date:"d/m/Y" }}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Última actualización:</span>
+                                    <span class="font-medium">{{ object.updated_at|date:"d/m/Y" }}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Tipo:</span>
+                                    <span class="font-medium">{{ object.get_schedule_type_display }}</span>
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="space-y-3">
+                                <div class="flex items-start">
+                                    <div class="flex-shrink-0">
+                                        <i class="fas fa-info-circle text-blue-500 mt-0.5"></i>
+                                    </div>
+                                    <div class="ml-2">
+                                        <p class="text-sm text-gray-600">
+                                            Un horario de trabajo define las horas laborales, días de trabajo y configuraciones de asistencia.
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-start">
+                                    <div class="flex-shrink-0">
+                                        <i class="fas fa-lightbulb text-yellow-500 mt-0.5"></i>
+                                    </div>
+                                    <div class="ml-2">
+                                        <p class="text-sm text-gray-600">
+                                            Asegúrate de configurar correctamente los días laborales y las horas para una gestión efectiva de la asistencia.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Acciones Rápidas (solo para edición) -->
+                    {% if object %}
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Acciones Rápidas</h3>
+                            
+                            <div class="space-y-3">
+                                <a href="{% url 'attendance:employee_schedule_list' %}?schedule={{ object.id }}" 
+                                   class="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center">
+                                    <i class="fas fa-users mr-2"></i>
+                                    Ver Empleados Asignados
+                                </a>
+                                
+                                <a href="{% url 'attendance:employee_schedule_list' %}?schedule={{ object.id }}" 
+                                   class="w-full bg-purple-50 hover:bg-purple-100 text-purple-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center">
+                                    <i class="fas fa-calendar mr-2"></i>
+                                    Ver Asignaciones
+                                </a>
+                                
+                                {% comment %}
+                                <!-- Comentado temporalmente hasta que tengas la vista de registros -->
+                                <a href="{% url 'attendance:attendance_records_list' %}?schedule={{ object.id }}" 
+                                   class="w-full bg-yellow-50 hover:bg-yellow-100 text-yellow-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center">
+                                    <i class="fas fa-clock mr-2"></i>
+                                    Ver Registros de Asistencia
+                                </a>
+                                {% endcomment %}
+
+                                {% if object.is_active %}
+                                    <button type="button" 
+                                            onclick="toggleScheduleStatus({{ object.id }})"
+                                            class="w-full bg-red-50 hover:bg-red-100 text-red-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center">
+                                        <i class="fas fa-pause mr-2"></i>
+                                        Desactivar
+                                    </button>
+                                {% else %}
+                                    <button type="button" 
+                                            onclick="toggleScheduleStatus({{ object.id }})"
+                                            class="w-full bg-green-50 hover:bg-green-100 text-green-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center">
+                                        <i class="fas fa-play mr-2"></i>
+                                        Activar
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Botones de acción (móvil) -->
+            <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-200 lg:hidden">
+                <button type="submit" 
+                        class="w-full bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors">
+                    <i class="fas fa-save mr-2"></i>
+                    {% if object %}Actualizar{% else %}Crear{% endif %} Horario
+                </button>
+                <a href="{% url 'attendance:work_schedule_list' %}" 
+                   class="w-full bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors text-center">
+                    <i class="fas fa-times mr-2"></i>Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal de Confirmación -->
+<div id="confirmModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen">
+        <div class="bg-white rounded-xl shadow-lg p-6 m-4 max-w-md w-full">
+            <div class="flex items-center mb-4">
+                <div class="bg-yellow-100 p-2 rounded-full mr-3">
+                    <i class="fas fa-exclamation-triangle text-yellow-600"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900">Confirmar Acción</h3>
+            </div>
+            <p class="text-gray-600 mb-6">¿Estás seguro de que quieres cambiar el estado de este horario?</p>
+            <div class="flex justify-end space-x-3">
+                <button type="button" onclick="closeModal()" 
+                        class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors">
+                    Cancelar
+                </button>
+                <button type="button" onclick="confirmAction()" 
+                        class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors">
+                    Confirmar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-focus en el primer campo
+    const firstField = document.querySelector('input[name="name"]');
+    if (firstField) {
+        firstField.focus();
+    }
+
+    // Actualizar vista previa en tiempo real
+    updatePreview();
+    
+    // Event listeners para actualizar preview
+    const fields = ['start_time', 'end_time', 'break_hours', 'break_minutes', 'weekly_hours'];
+    fields.forEach(fieldName => {
+        const field = document.querySelector(`input[name="${fieldName}"]`);
+        if (field) {
+            field.addEventListener('input', updatePreview);
+            field.addEventListener('change', updatePreview);
+        }
+    });
+
+    // Event listeners para días de la semana
+    const dayFields = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    dayFields.forEach(dayName => {
+        const field = document.querySelector(`input[name="${dayName}"]`);
+        if (field) {
+            field.addEventListener('change', updateDaysPreview);
+        }
+    });
+
+    // Validación de formulario
+    const form = document.getElementById('schedule-form');
+    form.addEventListener('submit', function(e) {
+        if (!validateForm()) {
+            e.preventDefault();
+        }
+    });
+});
+
+function updatePreview() {
+    const startTime = document.querySelector('input[name="start_time"]').value;
+    const endTime = document.querySelector('input[name="end_time"]').value;
+    const breakHours = parseInt(document.querySelector('input[name="break_hours"]').value) || 0;
+    const breakMinutes = parseInt(document.querySelector('input[name="break_minutes"]').value) || 0;
+    const weeklyHours = parseFloat(document.querySelector('input[name="weekly_hours"]').value) || 0;
+
+    // Actualizar horario
+    const schedulePreview = document.getElementById('schedule-preview');
+    if (startTime && endTime) {
+        schedulePreview.textContent = `${startTime} - ${endTime}`;
+    }
+
+    // Actualizar descanso
+    const breakPreview = document.getElementById('break-preview');
+    breakPreview.textContent = `Descanso: ${breakHours}h ${breakMinutes}m`;
+
+    // Calcular horas diarias
+    if (startTime && endTime) {
+        const start = new Date(`2000-01-01T${startTime}`);
+        const end = new Date(`2000-01-01T${endTime}`);
+        let dailyMs = end - start;
+        
+        // Si es turno nocturno
+        if (dailyMs < 0) {
+            dailyMs += 24 * 60 * 60 * 1000;
+        }
+        
+        // Restar descanso
+        const breakMs = (breakHours * 60 + breakMinutes) * 60 * 1000;
+        dailyMs -= breakMs;
+        
+        const dailyHours = Math.max(0, dailyMs / (1000 * 60 * 60));
+        document.getElementById('daily-hours').textContent = `${dailyHours.toFixed(1)}h`;
+    }
+
+    // Actualizar horas semanales
+    document.getElementById('weekly-hours-calc').textContent = `${weeklyHours}h`;
+
+    updateDaysPreview();
+}
+
+function updateDaysPreview() {
+    const daysContainer = document.getElementById('days-preview');
+    const dayNames = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+    const dayFields = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    
+    daysContainer.innerHTML = '';
+    
+    dayFields.forEach((fieldName, index) => {
+        const field = document.querySelector(`input[name="${fieldName}"]`);
+        if (field && field.checked) {
+            const span = document.createElement('span');
+            span.className = 'px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded';
+            span.textContent = dayNames[index];
+            daysContainer.appendChild(span);
+        }
+    });
+    
+    if (daysContainer.children.length === 0) {
+        daysContainer.innerHTML = '<span class="text-xs text-gray-500">Ningún día seleccionado</span>';
+    }
+}
+
+function validateForm() {
+    let isValid = true;
+    const errors = [];
+
+    // Validar nombre
+    const name = document.querySelector('input[name="name"]').value.trim();
+    if (!name) {
+        errors.push('El nombre del horario es obligatorio');
+        isValid = false;
+    }
+
+    // Validar horarios
+    const startTime = document.querySelector('input[name="start_time"]').value;
+    const endTime = document.querySelector('input[name="end_time"]').value;
+    if (!startTime || !endTime) {
+        errors.push('Las horas de inicio y fin son obligatorias');
+        isValid = false;
+    }
+
+    // Validar días seleccionados
+    const dayFields = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    const hasSelectedDays = dayFields.some(fieldName => {
+        const field = document.querySelector(`input[name="${fieldName}"]`);
+        return field && field.checked;
+    });
+    
+    if (!hasSelectedDays) {
+        errors.push('Debe seleccionar al menos un día laboral');
+        isValid = false;
+    }
+
+    // Mostrar errores
+    if (!isValid) {
+        showNotification(errors.join('. '), 'error');
+    }
+
+    return isValid;
+}
+
+// Funciones para selección rápida de días
+function selectWeekdays() {
+    const weekdays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+    weekdays.forEach(day => {
+        const field = document.querySelector(`input[name="${day}"]`);
+        if (field) field.checked = true;
+    });
+    
+    const weekend = ['saturday', 'sunday'];
+    weekend.forEach(day => {
+        const field = document.querySelector(`input[name="${day}"]`);
+        if (field) field.checked = false;
+    });
+    
+    updateDaysPreview();
+}
+
+function selectWeekend() {
+    const weekdays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday'];
+    weekdays.forEach(day => {
+        const field = document.querySelector(`input[name="${day}"]`);
+        if (field) field.checked = false;
+    });
+    
+    const weekend = ['saturday', 'sunday'];
+    weekend.forEach(day => {
+        const field = document.querySelector(`input[name="${day}"]`);
+        if (field) field.checked = true;
+    });
+    
+    updateDaysPreview();
+}
+
+function selectAllDays() {
+    const allDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    allDays.forEach(day => {
+        const field = document.querySelector(`input[name="${day}"]`);
+        if (field) field.checked = true;
+    });
+    
+    updateDaysPreview();
+}
+
+function clearAllDays() {
+    const allDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    allDays.forEach(day => {
+        const field = document.querySelector(`input[name="${day}"]`);
+        if (field) field.checked = false;
+    });
+    
+    updateDaysPreview();
+}
+
+// Función para mostrar notificaciones
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm ${
+        type === 'success' ? 'bg-green-100 border border-green-400 text-green-700' :
+        type === 'error' ? 'bg-red-100 border border-red-400 text-red-700' :
+        type === 'warning' ? 'bg-yellow-100 border border-yellow-400 text-yellow-700' :
+        'bg-blue-100 border border-blue-400 text-blue-700'
+    }`;
+    
+    notification.innerHTML = `
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                <i class="fas fa-${
+                    type === 'success' ? 'check-circle' :
+                    type === 'error' ? 'exclamation-circle' :
+                    type === 'warning' ? 'exclamation-triangle' :
+                    'info-circle'
+                } ${
+                    type === 'success' ? 'text-green-400' :
+                    type === 'error' ? 'text-red-400' :
+                    type === 'warning' ? 'text-yellow-400' :
+                    'text-blue-400'
+                }"></i>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm font-medium">${message}</p>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 5000);
+}
+
+// Funciones para el modal
+let currentAction = null;
+let currentId = null;
+
+function toggleScheduleStatus(scheduleId) {
+    currentId = scheduleId;
+    currentAction = 'toggle';
+    document.getElementById('confirmModal').classList.remove('hidden');
+}
+
+function closeModal() {
+    document.getElementById('confirmModal').classList.add('hidden');
+    currentAction = null;
+    currentId = null;
+}
+
+function confirmAction() {
+    if (currentAction === 'toggle' && currentId) {
+        // Construir la URL para el toggle
+        const toggleUrl = window.location.origin + '/attendance/schedules/' + currentId + '/toggle-status/';
+        
+        fetch(toggleUrl, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('Estado del horario actualizado correctamente', 'success');
+                window.location.reload();
+            } else {
+                showNotification('Error al actualizar el estado del horario', 'error');
+            }
+        })
+        .catch(error => {
+            showNotification('Error de conexión', 'error');
+        });
+    }
+    closeModal();
+}
+
+// Cerrar modal con ESC
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeModal();
+    }
+});
+</script>
+{% endblock %}

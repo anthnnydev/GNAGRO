@@ -1,0 +1,293 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}Mi Perfil - Portal Empleado{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">Mi Perfil</h1>
+                    <p class="text-gray-600 mt-1">Información personal y laboral</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'employees:employee_dashboard' %}" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i>
+                        Volver al Dashboard
+                    </a>
+                    <a href="{% url 'employees:employee_settings' %}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-edit mr-2"></i>
+                        Editar Información
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Información Personal -->
+            <div class="lg:col-span-2 space-y-8">
+                <!-- Información Básica -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                        <h3 class="text-lg font-semibold text-gray-900">Información Personal</h3>
+                    </div>
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-1">Nombre Completo</label>
+                                <p class="text-lg font-semibold text-gray-900">{{ employee.user.get_full_name }}</p>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-1">Cédula/DNI</label>
+                                <p class="text-lg text-gray-900">{{ employee.national_id }}</p>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-1">Correo Electrónico</label>
+                                <p class="text-lg text-gray-900">{{ employee.user.email }}</p>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-1">Teléfono</label>
+                                <p class="text-lg text-gray-900">{{ employee.user.phone_number|default:"No especificado" }}</p>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-1">Fecha de Nacimiento</label>
+                                <p class="text-lg text-gray-900">{{ employee.birth_date|date:"d F Y" }}</p>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-1">Género</label>
+                                <p class="text-lg text-gray-900">{{ employee.get_gender_display }}</p>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-1">Estado Civil</label>
+                                <p class="text-lg text-gray-900">{{ employee.get_marital_status_display }}</p>
+                            </div>
+                            
+                            <div class="md:col-span-2">
+                                <label class="block text-sm font-medium text-gray-600 mb-1">Dirección</label>
+                                <p class="text-lg text-gray-900">{{ employee.address }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Información Laboral -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                        <h3 class="text-lg font-semibold text-gray-900">Información Laboral</h3>
+                    </div>
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-1">Número de Empleado</label>
+                                <p class="text-lg font-semibold text-blue-600">{{ employee.employee_number }}</p>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-1">Estado</label>
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium 
+                                    {% if employee.status == 'active' %}bg-green-100 text-green-800
+                                    {% elif employee.status == 'inactive' %}bg-red-100 text-red-800
+                                    {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                                    <i class="fas fa-circle mr-2 text-xs"></i>
+                                    {{ employee.get_status_display }}
+                                </span>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-1">Departamento</label>
+                                <p class="text-lg text-gray-900">{{ employee.department.name }}</p>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-1">Cargo</label>
+                                <p class="text-lg text-gray-900">{{ employee.position.title }}</p>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-1">Fecha de Ingreso</label>
+                                <p class="text-lg text-gray-900">{{ employee.hire_date|date:"d F Y" }}</p>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-1">Tipo de Contrato</label>
+                                <p class="text-lg text-gray-900">{{ employee.get_contract_type_display }}</p>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-1">Años de Servicio</label>
+                                <p class="text-lg font-semibold text-purple-600">{{ employee.years_of_service }} años</p>
+                            </div>
+                            
+                            {% if employee.supervisor %}
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-1">Supervisor</label>
+                                <p class="text-lg text-gray-900">{{ employee.supervisor.user.get_full_name }}</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contacto de Emergencia -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                        <h3 class="text-lg font-semibold text-gray-900">Contacto de Emergencia</h3>
+                    </div>
+                    <div class="p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-1">Nombre</label>
+                                <p class="text-lg text-gray-900">{{ employee.emergency_contact_name }}</p>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-1">Teléfono</label>
+                                <p class="text-lg text-gray-900">{{ employee.emergency_contact_phone }}</p>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-600 mb-1">Parentesco</label>
+                                <p class="text-lg text-gray-900">{{ employee.emergency_contact_relationship }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="space-y-8">
+                <!-- Foto de Perfil -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div class="text-center">
+                        <div class="mx-auto h-32 w-32 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center mb-4">
+                            {% if employee.user.profile_picture %}
+                            <img src="{{ employee.user.profile_picture.url }}" alt="{{ employee.user.get_full_name }}" class="h-32 w-32 rounded-full object-cover">
+                            {% else %}
+                            <span class="text-4xl font-bold text-white">{{ employee.user.first_name|first|upper }}{{ employee.user.last_name|first|upper }}</span>
+                            {% endif %}
+                        </div>
+                        <h3 class="text-xl font-semibold text-gray-900">{{ employee.user.get_full_name }}</h3>
+                        <p class="text-gray-600">{{ employee.position.title }}</p>
+                        <p class="text-sm text-gray-500 mt-1">{{ employee.department.name }}</p>
+                        
+                        <div class="mt-4 pt-4 border-t border-gray-200">
+                            <div class="flex justify-center space-x-6 text-sm">
+                                <div class="text-center">
+                                    <p class="font-semibold text-gray-900">{{ employee.years_of_service }}</p>
+                                    <p class="text-gray-500">Años</p>
+                                </div>
+                                <div class="text-center">
+                                    <p class="font-semibold text-gray-900">{{ employee.department.employees.count }}</p>
+                                    <p class="text-gray-500">Colegas</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mi Equipo (si tiene subordinados) -->
+                {% if subordinates %}
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Mi Equipo</h3>
+                    <div class="space-y-3">
+                        {% for subordinate in subordinates %}
+                        <div class="flex items-center space-x-3">
+                            <img src="https://via.placeholder.com/32x32/3b82f6/ffffff?text={{ subordinate.user.first_name|first|upper }}" 
+                                 alt="{{ subordinate.user.get_full_name }}" 
+                                 class="h-8 w-8 rounded-full">
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-900 truncate">
+                                    {{ subordinate.user.get_full_name }}
+                                </p>
+                                <p class="text-xs text-gray-500">{{ subordinate.position.title }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Información del Departamento -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Mi Departamento</h3>
+                    <div class="space-y-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="bg-blue-100 p-2 rounded-lg">
+                                <i class="fas fa-building text-blue-600"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-900">{{ department_info.name }}</p>
+                                <p class="text-sm text-gray-500">{{ department_info.employees.count }} empleados</p>
+                            </div>
+                        </div>
+                        
+                        {% if department_info.manager %}
+                        <div class="flex items-center space-x-3">
+                            <div class="bg-green-100 p-2 rounded-lg">
+                                <i class="fas fa-user-tie text-green-600"></i>
+                            </div>
+                            <div>
+                                <p class="font-medium text-gray-900">{{ department_info.manager.get_full_name }}</p>
+                                <p class="text-sm text-gray-500">Jefe de Departamento</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Acciones Rápidas -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Acciones</h3>
+                    <div class="space-y-3">
+                        <a href="{% url 'employees:employee_settings' %}" class="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-center block">
+                            <i class="fas fa-edit mr-2"></i>
+                            Editar Perfil
+                        </a>
+                        
+                        <a href="{% url 'employees:employee_change_password' %}" class="w-full bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors text-center block">
+                            <i class="fas fa-key mr-2"></i>
+                            Cambiar Contraseña
+                        </a>
+                        
+                        <a href="{% url 'employees:employee_documents' %}" class="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors text-center block">
+                            <i class="fas fa-folder mr-2"></i>
+                            Ver Documentos
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Animación de entrada para las secciones
+        const sections = document.querySelectorAll('.bg-white');
+        sections.forEach((section, index) => {
+            setTimeout(() => {
+                section.style.opacity = '0';
+                section.style.transform = 'translateY(20px)';
+                section.style.transition = 'all 0.5s ease';
+                
+                requestAnimationFrame(() => {
+                    section.style.opacity = '1';
+                    section.style.transform = 'translateY(0)';
+                });
+            }, index * 100);
+        });
+    });
+</script>
+{% endblock %}

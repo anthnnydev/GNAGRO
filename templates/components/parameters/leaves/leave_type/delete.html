@@ -1,0 +1,438 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}Confirmar Eliminación - {{ leave_type.name }} - Sistema de Licencias{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'leaves:leave_type_list' %}" 
+                       class="text-primary-600 hover:text-primary-700 transition-colors">
+                        <i class="fas fa-arrow-left text-lg"></i>
+                    </a>
+                    <div>
+                        <h1 class="text-2xl font-bold text-red-600">Confirmar Eliminación</h1>
+                        <p class="text-gray-600 mt-1">Esta acción eliminará permanentemente el tipo de licencia</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Advertencia Principal -->
+        <div class="bg-red-50 border border-red-200 rounded-xl p-6 mb-8">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-exclamation-triangle text-red-400 text-2xl"></i>
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-lg font-medium text-red-800">
+                        ¿Estás seguro de que deseas eliminar este tipo de licencia?
+                    </h3>
+                    <div class="mt-2 text-sm text-red-700">
+                        <p><strong>ADVERTENCIA:</strong> Esta es una acción permanente que realizará los siguientes cambios:</p>
+                        <ul class="list-disc list-inside mt-2 space-y-1">
+                            <li>El tipo de licencia será eliminado completamente del sistema</li>
+                            <li>Se perderán todos los datos asociados al tipo de licencia</li>
+                            <li>Las solicitudes de licencia existentes mantendrán la referencia histórica</li>
+                            <li>Esta acción NO se puede deshacer</li>
+                        </ul>
+                    </div>
+                    
+                    {% if has_active_requests %}
+                    <div class="mt-4 p-3 bg-red-100 border border-red-300 rounded-lg">
+                        <p class="text-sm font-medium text-red-900">
+                            <i class="fas fa-ban mr-2"></i>
+                            <strong>No se puede eliminar este tipo de licencia:</strong>
+                        </p>
+                        <ul class="list-disc list-inside mt-2 text-sm text-red-800">
+                            <li>Tiene solicitudes de licencia activas o pendientes</li>
+                            <li>Existen balances de licencia asociados con días disponibles</li>
+                        </ul>
+                        <p class="mt-2 text-sm text-red-800">
+                            Para eliminar este tipo de licencia, primero debes procesar o cancelar todas las solicitudes activas.
+                        </p>
+                    </div>
+                    {% elif has_balances %}
+                    <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <p class="text-sm font-medium text-yellow-800">
+                            <i class="fas fa-exclamation-circle mr-2"></i>
+                            <strong>Precaución:</strong> Este tipo de licencia tiene balances históricos asociados.
+                        </p>
+                        <p class="mt-1 text-sm text-yellow-700">
+                            Los datos históricos se mantendrán para referencia, pero no se podrán crear nuevas solicitudes.
+                        </p>
+                    </div>
+                    {% else %}
+                    <div class="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                        <p class="text-sm font-medium text-green-800">
+                            <i class="fas fa-check-circle mr-2"></i>
+                            El tipo de licencia no tiene solicitudes activas ni balances. Es seguro eliminarlo.
+                        </p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Información del Tipo de Licencia -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-8">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">Información del Tipo de Licencia</h3>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Información básica -->
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex items-center mb-3">
+                                <div class="w-8 h-8 rounded-full flex items-center justify-center mr-3" 
+                                     style="background-color: {{ leave_type.color }}20; border: 2px solid {{ leave_type.color }};">
+                                    <i class="fas fa-calendar-day" style="color: {{ leave_type.color }};"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-xl font-bold text-gray-900">{{ leave_type.name }}</h4>
+                                    <p class="text-sm text-gray-500">Código: <span class="font-mono font-medium">{{ leave_type.code }}</span></p>
+                                </div>
+                            </div>
+                            {% if leave_type.description %}
+                                <p class="text-gray-600 leading-relaxed">{{ leave_type.description }}</p>
+                            {% else %}
+                                <p class="text-gray-400 italic">Sin descripción</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="flex items-center">
+                            <i class="fas fa-toggle-{% if leave_type.is_active %}on text-green-500{% else %}off text-red-500{% endif %} mr-2"></i>
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full 
+                                       {% if leave_type.is_active %}bg-green-100 text-green-800{% else %}bg-red-100 text-red-800{% endif %}">
+                                {% if leave_type.is_active %}Activo{% else %}Inactivo{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    
+                    <!-- Configuración y estadísticas -->
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="bg-blue-50 p-4 rounded-lg">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-medium text-blue-800">Días Permitidos</p>
+                                        <p class="text-2xl font-bold text-blue-600">{{ leave_type.days_allowed }}</p>
+                                    </div>
+                                    <i class="fas fa-calendar-check text-blue-400 text-xl"></i>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-{{ leave_type.is_paid|yesno:'green,red' }}-50 p-4 rounded-lg">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <p class="text-sm font-medium text-{{ leave_type.is_paid|yesno:'green,red' }}-800">Tipo</p>
+                                        <p class="text-sm font-bold text-{{ leave_type.is_paid|yesno:'green,red' }}-600">
+                                            {% if leave_type.is_paid %}Pagada{% else %}No Pagada{% endif %}
+                                        </p>
+                                    </div>
+                                    <i class="fas fa-{{ leave_type.is_paid|yesno:'dollar-sign,ban' }} text-{{ leave_type.is_paid|yesno:'green,red' }}-400 text-xl"></i>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <span class="text-sm font-medium text-gray-700">Requiere Aprobación</span>
+                                <span class="flex items-center">
+                                    <i class="fas fa-{{ leave_type.requires_approval|yesno:'check,times' }} text-{{ leave_type.requires_approval|yesno:'green,red' }}-500 mr-2"></i>
+                                    <span class="text-sm font-medium text-{{ leave_type.requires_approval|yesno:'green,red' }}-600">
+                                        {{ leave_type.requires_approval|yesno:'Sí,No' }}
+                                    </span>
+                                </span>
+                            </div>
+                            
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <span class="text-sm font-medium text-gray-700">Permite Transferencia</span>
+                                <span class="flex items-center">
+                                    <i class="fas fa-{{ leave_type.carry_forward|yesno:'check,times' }} text-{{ leave_type.carry_forward|yesno:'green,red' }}-500 mr-2"></i>
+                                    <span class="text-sm font-medium text-{{ leave_type.carry_forward|yesno:'green,red' }}-600">
+                                        {{ leave_type.carry_forward|yesno:'Sí,No' }}
+                                    </span>
+                                </span>
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h5 class="text-sm font-medium text-gray-700 mb-2">Fechas</h5>
+                            <div class="space-y-1 text-sm text-gray-600">
+                                <div class="flex items-center">
+                                    <i class="fas fa-calendar-plus text-gray-400 mr-2"></i>
+                                    <span>Creado: {{ leave_type.created_at|date:"d/m/Y H:i" }}</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <i class="fas fa-calendar-edit text-gray-400 mr-2"></i>
+                                    <span>Modificado: {{ leave_type.updated_at|date:"d/m/Y H:i" }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Estadísticas de Uso -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-8">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">Estadísticas de Uso</h3>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div class="text-center">
+                        <div class="bg-blue-50 rounded-lg p-6">
+                            <i class="fas fa-file-alt text-blue-600 text-3xl mb-3"></i>
+                            <p class="text-3xl font-bold text-blue-600">{{ total_requests|default:0 }}</p>
+                            <p class="text-sm text-gray-600">Solicitudes</p>
+                            <p class="text-sm text-gray-600">totales</p>
+                        </div>
+                    </div>
+                    <div class="text-center">
+                        <div class="bg-orange-50 rounded-lg p-6">
+                            <i class="fas fa-clock text-orange-600 text-3xl mb-3"></i>
+                            <p class="text-3xl font-bold text-orange-600">{{ pending_requests|default:0 }}</p>
+                            <p class="text-sm text-gray-600">Solicitudes</p>
+                            <p class="text-sm text-gray-600">pendientes</p>
+                            {% if pending_requests > 0 %}
+                                <p class="text-xs text-red-500 mt-1">
+                                    <i class="fas fa-exclamation-circle mr-1"></i>
+                                    Impide eliminación
+                                </p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="text-center">
+                        <div class="bg-green-50 rounded-lg p-6">
+                            <i class="fas fa-users text-green-600 text-3xl mb-3"></i>
+                            <p class="text-3xl font-bold text-green-600">{{ employees_with_balance|default:0 }}</p>
+                            <p class="text-sm text-gray-600">Empleados</p>
+                            <p class="text-sm text-gray-600">con balance</p>
+                        </div>
+                    </div>
+                    <div class="text-center">
+                        <div class="bg-purple-50 rounded-lg p-6">
+                            <i class="fas fa-calendar-day text-purple-600 text-3xl mb-3"></i>
+                            <p class="text-3xl font-bold text-purple-600">{{ total_days_used|default:0 }}</p>
+                            <p class="text-sm text-gray-600">Días</p>
+                            <p class="text-sm text-gray-600">utilizados</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Solicitudes Pendientes (si las hay) -->
+        {% if pending_requests > 0 and recent_pending_requests %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-8">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">
+                    Solicitudes Pendientes ({{ pending_requests }})
+                </h3>
+            </div>
+            <div class="p-6">
+                <div class="space-y-3">
+                    {% for request in recent_pending_requests|slice:":5" %}
+                    <div class="flex items-center justify-between p-3 bg-orange-50 rounded-lg border border-orange-200">
+                        <div class="flex items-center space-x-3">
+                            {% if request.employee.user.profile_picture %}
+                                <img src="{{ request.employee.user.profile_picture.url }}" 
+                                     alt="{{ request.employee.user.get_full_name }}"
+                                     class="w-8 h-8 rounded-full object-cover">
+                            {% else %}
+                                <div class="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-user text-gray-400 text-sm"></i>
+                                </div>
+                            {% endif %}
+                            <div>
+                                <p class="font-medium text-gray-900">{{ request.employee.user.get_full_name }}</p>
+                                <p class="text-sm text-gray-500">{{ request.start_date|date:"d/m/Y" }} - {{ request.end_date|date:"d/m/Y" }}</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">
+                                {{ request.days_requested }} día{{ request.days_requested|pluralize }}
+                            </span>
+                            <p class="text-xs text-gray-500 mt-1">
+                                Solicitado: {{ request.created_at|date:"d/m/Y" }}
+                            </p>
+                        </div>
+                    </div>
+                    {% endfor %}
+                    
+                    {% if pending_requests > 5 %}
+                    <div class="text-center pt-3">
+                        <p class="text-sm text-gray-500">
+                            ... y {{ pending_requests|add:"-5" }} solicitud{{ pending_requests|add:"-5"|pluralize:"es" }} más
+                        </p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Formulario de confirmación -->
+        {% if not has_active_requests %}
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+            
+            <!-- Confirmación de eliminación -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Confirmación Final</h3>
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <label class="flex items-start space-x-3">
+                        <input type="checkbox" id="confirm_deletion" name="confirm_deletion" required
+                               class="mt-0.5 h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded">
+                        <span class="text-sm text-gray-700">
+                            <strong>Confirmo que entiendo que esta acción es permanente e irreversible.</strong>
+                            Al marcar esta casilla y hacer clic en "Eliminar Tipo de Licencia", 
+                            acepto que el tipo de licencia "{{ leave_type.name }}" será eliminado 
+                            permanentemente del sistema y no podrá ser recuperado.
+                        </span>
+                    </label>
+                </div>
+                
+                {% if has_balances %}
+                <div class="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <label class="flex items-start space-x-3">
+                        <input type="checkbox" id="confirm_historical" name="confirm_historical" required
+                               class="mt-0.5 h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded">
+                        <span class="text-sm text-yellow-700">
+                            <strong>Entiendo que existen datos históricos asociados</strong> y que estos se mantendrán 
+                            para propósitos de auditoría, pero no se podrán crear nuevas solicitudes de este tipo.
+                        </span>
+                    </label>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Botones de acción -->
+            <div class="flex flex-col sm:flex-row gap-4 justify-end">
+                <a href="{% url 'leaves:leave_type_list' %}" 
+                   class="inline-flex justify-center items-center px-6 py-3 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                    <i class="fas fa-times mr-2"></i>
+                    Cancelar
+                </a>
+                <button type="submit" id="delete_button" disabled
+                        class="inline-flex justify-center items-center px-6 py-3 border border-transparent text-sm font-medium rounded-lg text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    <i class="fas fa-trash mr-2"></i>
+                    Eliminar Tipo de Licencia
+                </button>
+            </div>
+        </form>
+        {% else %}
+        <!-- Botones cuando no se puede eliminar -->
+        <div class="flex flex-col sm:flex-row gap-4 justify-end">
+            <a href="{% url 'leaves:leave_type_list' %}" 
+               class="inline-flex justify-center items-center px-6 py-3 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                <i class="fas fa-arrow-left mr-2"></i>
+                Volver a la Lista
+            </a>
+            <a href="{% url 'leaves:leave_request_list' %}?leave_type={{ leave_type.id }}" 
+               class="inline-flex justify-center items-center px-6 py-3 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors">
+                <i class="fas fa-file-alt mr-2"></i>
+                Ver Solicitudes
+            </a>
+        </div>
+        {% endif %}
+
+        <!-- Información adicional -->
+        <div class="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-lightbulb text-blue-400"></i>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-sm font-medium text-blue-800">
+                        ¿Necesitas ayuda?
+                    </h3>
+                    <div class="mt-2 text-sm text-blue-700">
+                        <p>
+                            Si tienes dudas sobre este proceso o necesitas gestionar las solicitudes pendientes, 
+                            contacta al administrador del sistema o revisa la documentación sobre gestión de licencias.
+                        </p>
+                        {% if has_active_requests %}
+                        <p class="mt-2 font-medium">
+                            <strong>Sugerencia:</strong> Considera desactivar temporalmente el tipo de licencia 
+                            en lugar de eliminarlo si planeas usarlo en el futuro.
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const confirmCheckbox = document.getElementById('confirm_deletion');
+    const confirmHistoricalCheckbox = document.getElementById('confirm_historical');
+    const deleteButton = document.getElementById('delete_button');
+    const form = document.querySelector('form');
+    
+    // Función para verificar si todos los checkboxes están marcados
+    function checkAllConfirmations() {
+        if (!deleteButton) return;
+        
+        let allChecked = confirmCheckbox && confirmCheckbox.checked;
+        
+        // Si existe el checkbox de datos históricos, también debe estar marcado
+        if (confirmHistoricalCheckbox) {
+            allChecked = allChecked && confirmHistoricalCheckbox.checked;
+        }
+        
+        deleteButton.disabled = !allChecked;
+    }
+    
+    // Habilitar/deshabilitar botón según checkboxes
+    if (confirmCheckbox) {
+        confirmCheckbox.addEventListener('change', checkAllConfirmations);
+    }
+    
+    if (confirmHistoricalCheckbox) {
+        confirmHistoricalCheckbox.addEventListener('change', checkAllConfirmations);
+    }
+    
+    // Confirmación adicional al enviar el formulario
+    if (form && deleteButton) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Mostrar confirmación final
+            const leaveTypeName = '{{ leave_type.name|escapejs }}';
+            const confirmationMessage = `¿Estás absolutamente seguro de que deseas eliminar el tipo de licencia "${leaveTypeName}"?\n\nEsta acción es PERMANENTE y NO se puede deshacer.\n\nEscribe "ELIMINAR" para confirmar:`;
+            
+            const userInput = prompt(confirmationMessage);
+            
+            if (userInput === 'ELIMINAR') {
+                // Deshabilitar el botón para evitar múltiples envíos
+                deleteButton.disabled = true;
+                deleteButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Eliminando...';
+                
+                // Enviar el formulario
+                form.submit();
+            } else if (userInput !== null) {
+                alert('Confirmación incorrecta. El tipo de licencia no ha sido eliminado.');
+            }
+        });
+    }
+    
+    // Foco automático en el primer checkbox si existe
+    if (confirmCheckbox) {
+        confirmCheckbox.focus();
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,504 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}
+    {% if object %}
+        Editar Departamento - {{ object.name }}
+    {% else %}
+        Nuevo Departamento
+    {% endif %} - Sistema de Empleados
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'employees:department_list' %}" 
+                       class="text-primary-600 hover:text-primary-700 transition-colors">
+                        <i class="fas fa-arrow-left text-lg"></i>
+                    </a>
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">
+                            {% if object %}
+                                Editar Departamento
+                            {% else %}
+                                Nuevo Departamento
+                            {% endif %}
+                        </h1>
+                        <p class="text-gray-600 mt-1">
+                            {% if object %}
+                                Actualizar información de {{ object.name }}
+                            {% else %}
+                                Completar la información del nuevo departamento
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    {% if object %}
+                    {% endif %}
+                    <button type="submit" form="department-form" 
+                            class="bg-primary-600 text-gray-600 px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors">
+                        <i class="fas fa-save mr-2"></i>
+                        {% if object %}Actualizar{% else %}Crear{% endif %} Departamento
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <form id="department-form" method="post" class="space-y-8">
+            {% csrf_token %}
+            
+            <!-- Mensajes de error -->
+            {% if form.errors %}
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-exclamation-circle text-red-400 text-lg"></i>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-red-800">
+                                Se encontraron errores en el formulario
+                            </h3>
+                            <div class="mt-2 text-sm text-red-700">
+                                <ul class="list-disc list-inside space-y-1">
+                                    {% for field, errors in form.errors.items %}
+                                        {% for error in errors %}
+                                            <li>{{ field }}: {{ error }}</li>
+                                        {% endfor %}
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Información Principal -->
+                <div class="lg:col-span-2 space-y-6">
+                    <!-- Información Básica -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center mb-6">
+                            <div class="bg-blue-100 p-2 rounded-lg mr-3">
+                                <i class="fas fa-building text-blue-600"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900">Información Básica</h3>
+                        </div>
+                        
+                        <div class="space-y-6">
+                            <!-- Nombre del Departamento -->
+                            <div>
+                                <label for="{{ form.name.id_for_label }}" 
+                                       class="block text-sm font-medium text-gray-700 mb-2">
+                                    Nombre del Departamento *
+                                </label>
+                                {{ form.name }}
+                                {% if form.name.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.name.errors.0 }}</p>
+                                {% endif %}
+                                <p class="mt-1 text-xs text-gray-500">
+                                    Ingresa el nombre del departamento (ej: Recursos Humanos, Ventas, IT)
+                                </p>
+                            </div>
+
+                            <!-- Descripción -->
+                            <div>
+                                <label for="{{ form.description.id_for_label }}" 
+                                       class="block text-sm font-medium text-gray-700 mb-2">
+                                    Descripción
+                                </label>
+                                {{ form.description }}
+                                {% if form.description.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.description.errors.0 }}</p>
+                                {% endif %}
+                                <p class="mt-1 text-xs text-gray-500">
+                                    Describe las funciones y responsabilidades del departamento
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Administración -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center mb-6">
+                            <div class="bg-green-100 p-2 rounded-lg mr-3">
+                                <i class="fas fa-users-cog text-green-600"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900">Administración</h3>
+                        </div>
+                        
+                        <div class="space-y-6">
+                            <!-- Jefe de Departamento -->
+                            <div>
+                                <label for="{{ form.manager.id_for_label }}" 
+                                       class="block text-sm font-medium text-gray-700 mb-2">
+                                    Jefe de Departamento
+                                </label>
+                                {{ form.manager }}
+                                {% if form.manager.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.manager.errors.0 }}</p>
+                                {% endif %}
+                                <p class="mt-1 text-xs text-gray-500">
+                                    Selecciona el empleado que será el jefe de este departamento
+                                </p>
+                            </div>
+
+                            <!-- Estado Activo -->
+                            <div>
+                                <div class="flex items-start">
+                                    <div class="flex items-center h-5">
+                                        {{ form.is_active }}
+                                    </div>
+                                    <div class="ml-3">
+                                        <label for="{{ form.is_active.id_for_label }}" 
+                                               class="text-sm font-medium text-gray-700">
+                                            {{ form.is_active.label }}
+                                        </label>
+                                        <p class="text-xs text-gray-500 mt-1">
+                                            {% if object %}
+                                                Desmarcar para desactivar el departamento (no se podrán asignar nuevos empleados)
+                                            {% else %}
+                                                Marca esta opción para que el departamento esté disponible para asignar empleados
+                                            {% endif %}
+                                        </p>
+                                    </div>
+                                </div>
+                                {% if form.is_active.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.is_active.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel Lateral -->
+                <div class="space-y-6">
+                    <!-- Estadísticas (solo para edición) -->
+                    {% if object %}
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Estadísticas</h3>
+                            
+                            <div class="space-y-4">
+                                <!-- Empleados -->
+                                <div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                                    <div class="flex items-center">
+                                        <div class="bg-blue-100 p-2 rounded-lg mr-3">
+                                            <i class="fas fa-users text-blue-600 text-sm"></i>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900">Empleados</p>
+                                            <p class="text-xs text-gray-500">Asignados</p>
+                                        </div>
+                                    </div>
+                                    <span class="text-lg font-bold text-blue-600">{{ object.employees.count }}</span>
+                                </div>
+
+                                <!-- Cargos -->
+                                <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                                    <div class="flex items-center">
+                                        <div class="bg-green-100 p-2 rounded-lg mr-3">
+                                            <i class="fas fa-briefcase text-green-600 text-sm"></i>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900">Cargos</p>
+                                            <p class="text-xs text-gray-500">Disponibles</p>
+                                        </div>
+                                    </div>
+                                    <span class="text-lg font-bold text-green-600">{{ object.positions.count }}</span>
+                                </div>
+
+                                <!-- Estado -->
+                                <div class="flex items-center justify-between p-3 {% if object.is_active %}bg-green-50{% else %}bg-red-50{% endif %} rounded-lg">
+                                    <div class="flex items-center">
+                                        <div class="{% if object.is_active %}bg-green-100{% else %}bg-red-100{% endif %} p-2 rounded-lg mr-3">
+                                            <i class="fas fa-{% if object.is_active %}check-circle{% else %}times-circle{% endif %} {% if object.is_active %}text-green-600{% else %}text-red-600{% endif %} text-sm"></i>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900">Estado</p>
+                                            <p class="text-xs text-gray-500">Actual</p>
+                                        </div>
+                                    </div>
+                                    <span class="text-sm font-bold {% if object.is_active %}text-green-600{% else %}text-red-600{% endif %}">
+                                        {% if object.is_active %}Activo{% else %}Inactivo{% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <!-- Información del Sistema -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                            {% if object %}Información del Sistema{% else %}Guía de Creación{% endif %}
+                        </h3>
+                        
+                        {% if object %}
+                            <div class="space-y-3 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Creado:</span>
+                                    <span class="font-medium">{{ object.created_at|date:"d/m/Y" }}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Última actualización:</span>
+                                    <span class="font-medium">{{ object.updated_at|date:"d/m/Y" }}</span>
+                                </div>
+                                {% if object.manager %}
+                                    <div class="flex justify-between">
+                                        <span class="text-gray-600">Jefe actual:</span>
+                                        <span class="font-medium">{{ object.manager.user.get_full_name }}</span>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% else %}
+                            <div class="space-y-3">
+                                <div class="flex items-start">
+                                    <div class="flex-shrink-0">
+                                        <i class="fas fa-info-circle text-blue-500 mt-0.5"></i>
+                                    </div>
+                                    <div class="ml-2">
+                                        <p class="text-sm text-gray-600">
+                                            Un departamento es una unidad organizacional que agrupa empleados con funciones similares.
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-start">
+                                    <div class="flex-shrink-0">
+                                        <i class="fas fa-lightbulb text-yellow-500 mt-0.5"></i>
+                                    </div>
+                                    <div class="ml-2">
+                                        <p class="text-sm text-gray-600">
+                                            Puedes asignar un jefe de departamento después de crear empleados.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Acciones Rápidas -->
+                    {% if object %}
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Acciones Rápidas</h3>
+                            
+                            <div class="space-y-3">
+                                <a href="{% url 'employees:employee_list' %}?department={{ object.id }}" 
+                                   class="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center">
+                                    <i class="fas fa-users mr-2"></i>
+                                    Ver Empleados
+                                </a>
+                                
+                                <a href="{% url 'employees:position_list' %}?department={{ object.id }}" 
+                                   class="w-full bg-green-50 hover:bg-green-100 text-green-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center">
+                                    <i class="fas fa-briefcase mr-2"></i>
+                                    Gestionar Cargos
+                                </a>
+                                
+                                {% if object.is_active %}
+                                    <button type="button" 
+                                            onclick="toggleDepartmentStatus({{ object.id }})"
+                                            class="w-full bg-red-50 hover:bg-red-100 text-red-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center">
+                                        <i class="fas fa-pause mr-2"></i>
+                                        Desactivar
+                                    </button>
+                                {% else %}
+                                    <button type="button" 
+                                            onclick="toggleDepartmentStatus({{ object.id }})"
+                                            class="w-full bg-green-50 hover:bg-green-100 text-green-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center">
+                                        <i class="fas fa-play mr-2"></i>
+                                        Activar
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Botones de acción (móvil) -->
+            <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-200 lg:hidden">
+                <button type="submit" 
+                        class="w-full bg-primary-600 text-gray-600 px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors">
+                    <i class="fas fa-save mr-2"></i>
+                    {% if object %}Actualizar{% else %}Crear{% endif %} Departamento
+                </button>
+                <a href="{% url 'employees:department_list' %}" 
+                   class="w-full bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors text-center">
+                    <i class="fas fa-times mr-2"></i>Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal de Confirmación -->
+<div id="confirmModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen">
+        <div class="bg-white rounded-xl shadow-lg p-6 m-4 max-w-md w-full">
+            <div class="flex items-center mb-4">
+                <div class="bg-yellow-100 p-2 rounded-full mr-3">
+                    <i class="fas fa-exclamation-triangle text-yellow-600"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900">Confirmar Acción</h3>
+            </div>
+            <p class="text-gray-600 mb-6">¿Estás seguro de que quieres cambiar el estado de este departamento?</p>
+            <div class="flex justify-end space-x-3">
+                <button type="button" onclick="closeModal()" 
+                        class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors">
+                    Cancelar
+                </button>
+                <button type="button" onclick="confirmAction()" 
+                        class="bg-primary-600 text-gray-600 px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors">
+                    Confirmar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Agregar clases CSS a los campos del formulario
+    const formFields = document.querySelectorAll('input, select, textarea');
+    formFields.forEach(field => {
+        if (field.type === 'checkbox') {
+            field.classList.add('h-4', 'w-4', 'text-primary-600', 'focus:ring-primary-500', 'border-gray-300', 'rounded');
+        } else if (field.tagName === 'SELECT') {
+            field.classList.add('block', 'w-full', 'px-3', 'py-2', 'border', 'border-gray-300', 'rounded-lg', 'shadow-sm', 'focus:outline-none', 'focus:ring-primary-500', 'focus:border-primary-500');
+        } else if (field.tagName === 'TEXTAREA') {
+            field.classList.add('block', 'w-full', 'px-3', 'py-2', 'border', 'border-gray-300', 'rounded-lg', 'shadow-sm', 'focus:outline-none', 'focus:ring-primary-500', 'focus:border-primary-500', 'resize-vertical');
+            field.rows = 4;
+        } else if (field.type !== 'hidden') {
+            field.classList.add('block', 'w-full', 'px-3', 'py-2', 'border', 'border-gray-300', 'rounded-lg', 'shadow-sm', 'focus:outline-none', 'focus:ring-primary-500', 'focus:border-primary-500');
+        }
+    });
+
+    // Validación en tiempo real
+    const requiredFields = document.querySelectorAll('input[required], select[required]');
+    requiredFields.forEach(field => {
+        field.addEventListener('blur', function() {
+            if (!this.value.trim()) {
+                this.classList.add('border-red-300', 'focus:border-red-500', 'focus:ring-red-500');
+                this.classList.remove('border-gray-300', 'focus:border-primary-500', 'focus:ring-primary-500');
+            } else {
+                this.classList.remove('border-red-300', 'focus:border-red-500', 'focus:ring-red-500');
+                this.classList.add('border-gray-300', 'focus:border-primary-500', 'focus:ring-primary-500');
+            }
+        });
+    });
+
+    // Auto-focus en el primer campo
+    const firstField = document.querySelector('input[name="name"]');
+    if (firstField) {
+        firstField.focus();
+    }
+
+    // Validación de formulario antes de enviar
+    const form = document.getElementById('department-form');
+    form.addEventListener('submit', function(e) {
+        const nameField = document.querySelector('input[name="name"]');
+        if (!nameField.value.trim()) {
+            e.preventDefault();
+            nameField.focus();
+            showNotification('El nombre del departamento es obligatorio', 'error');
+        }
+    });
+});
+
+// Función para mostrar notificaciones
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm ${
+        type === 'success' ? 'bg-green-100 border border-green-400 text-green-700' :
+        type === 'error' ? 'bg-red-100 border border-red-400 text-red-700' :
+        type === 'warning' ? 'bg-yellow-100 border border-yellow-400 text-yellow-700' :
+        'bg-blue-100 border border-blue-400 text-blue-700'
+    }`;
+    
+    notification.innerHTML = `
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                <i class="fas fa-${
+                    type === 'success' ? 'check-circle' :
+                    type === 'error' ? 'exclamation-circle' :
+                    type === 'warning' ? 'exclamation-triangle' :
+                    'info-circle'
+                } ${
+                    type === 'success' ? 'text-green-400' :
+                    type === 'error' ? 'text-red-400' :
+                    type === 'warning' ? 'text-yellow-400' :
+                    'text-blue-400'
+                }"></i>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm font-medium">${message}</p>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 5000);
+}
+
+// Funciones para el modal
+let currentAction = null;
+let currentId = null;
+
+function toggleDepartmentStatus(departmentId) {
+    currentId = departmentId;
+    currentAction = 'toggle';
+    document.getElementById('confirmModal').classList.remove('hidden');
+}
+
+function closeModal() {
+    document.getElementById('confirmModal').classList.add('hidden');
+    currentAction = null;
+    currentId = null;
+}
+
+function confirmAction() {
+    if (currentAction === 'toggle' && currentId) {
+        // Aquí iría la lógica para cambiar el estado del departamento
+        // Por ejemplo, una petición AJAX
+        fetch(`/departments/${currentId}/toggle-status/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('Estado del departamento actualizado correctamente', 'success');
+                // Recargar la página para actualizar la información
+                window.location.reload();
+            } else {
+                showNotification('Error al actualizar el estado del departamento', 'error');
+            }
+        })
+        .catch(error => {
+            showNotification('Error de conexión', 'error');
+        });
+    }
+    closeModal();
+}
+
+// Cerrar modal con ESC
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeModal();
+    }
+});
+</script>
+{% endblock %}

@@ -7,6 +7,8 @@
     <title>{% block title %}Sistema de Gestión de Nómina{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'dist/styles.css' %}">
     
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
     <!-- Font Awesome para iconos -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
@@ -20,9 +22,9 @@
                 <div class="flex items-center">
                     <div class="flex-shrink-0 flex items-center">
                         <i class="fas fa-users text-primary-600 text-2xl mr-3"></i>
-                        <h1 class="text-xl font-bold text-gray-900">
-                            <span class="text-primary-600">GN</span>Agro
-                        </h1>
+                        <a href="{% url 'users:dashboard' %}" class="text-xl font-bold text-gray-900">
+                            <span class="text-primary-600">GN</span>AGRO
+                        </a>
                     </div>
                 </div>
 
@@ -40,6 +42,9 @@
                     </a>
                     <a href="#" class="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
                         <i class="fas fa-chart-bar mr-2"></i>Reportes
+                    </a>
+                    <a href="{% url 'users:parameters' %}" class="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                        <i class="fa-solid fa-gears mr-2"></i>Parametros
                     </a>
                 </nav>
                 {% endif %}
@@ -131,6 +136,9 @@
                     <a href="#" class="block px-3 py-2 text-gray-700 hover:text-primary-600 font-medium">
                         <i class="fas fa-chart-bar mr-2"></i>Reportes
                     </a>
+                    <a href="{% url 'users:parameters' %}" class="block px-3 py-2 text-gray-700 hover:text-primary-600 font-medium">
+                        <i class="fa-solid fa-gears mr-2"></i>Parametros
+                    </a>
                     <div class="border-t border-gray-200 pt-2">
                         <a href="#" class="block px-3 py-2 text-gray-700 hover:text-primary-600 font-medium">
                             <i class="fas fa-user mr-2"></i>Mi Perfil
@@ -200,7 +208,7 @@
             <div class="border-t border-gray-700 mt-8 pt-6">
                 <div class="flex flex-col md:flex-row justify-between items-center">
                     <p class="text-sm text-gray-400">
-                        © 2025 GNAgro. Todos los derechos reservados.
+                        © 2025 GNAGRO. Todos los derechos reservados.
                     </p>
                     <div class="flex space-x-6 mt-4 md:mt-0">
                         <a href="#" class="text-gray-400 hover:text-primary-400 transition-colors">

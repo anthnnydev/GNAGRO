@@ -1,0 +1,21 @@
+ERROR 2025-06-06 10:52:07,332 utils 22100 11424 Error enviando credenciales a zanthonygg@gmail.com: (450, b'The tu-dominio.com domain is not verified. Please, add and verify your domain on https://resend.com/domains')
+ERROR 2025-06-06 10:55:37,144 utils 19628 21832 Error enviando credenciales a zanthonygg@gmail.com: (450, b'The tu-dominio.com domain is not verified. Please, add and verify your domain on https://resend.com/domains')
+ERROR 2025-06-06 10:58:21,340 utils 9616 10500 Error enviando credenciales a zanthonygg@gmail.com: (450, b'The tu-dominio.com domain is not verified. Please, add and verify your domain on https://resend.com/domains')
+ERROR 2025-06-06 11:00:17,625 utils 9616 10500 Error enviando credenciales a zanthonygg@gmail.com: (450, b'The tu-dominio.com domain is not verified. Please, add and verify your domain on https://resend.com/domains')
+ERROR 2025-06-06 11:01:54,959 utils 9616 10500 Error enviando credenciales a zanthonygg@gmail.com: (450, b'The tu-dominio.com domain is not verified. Please, add and verify your domain on https://resend.com/domains')
+ERROR 2025-06-06 11:03:18,655 utils 9616 10500 Error enviando credenciales a zanthonygg@gmail.com: (450, b'The tu-dominio.com domain is not verified. Please, add and verify your domain on https://resend.com/domains')
+INFO 2025-06-06 11:07:08,172 utils 8136 3196 Enviando email desde: Sistema de Nómina <onboarding@resend.dev>
+INFO 2025-06-06 11:07:08,172 utils 8136 3196 Support email configurado: onboarding@resend.dev
+INFO 2025-06-06 11:07:10,072 utils 8136 3196 Credenciales enviadas por email a: zanthonygg@gmail.com
+INFO 2025-06-06 11:17:00,311 utils 17308 1220 Enviando email desde: Sistema de Nómina <onboarding@resend.dev>
+INFO 2025-06-06 11:17:00,311 utils 17308 1220 Support email configurado: onboarding@resend.dev
+INFO 2025-06-06 11:17:02,067 utils 17308 1220 Credenciales enviadas por email a: zanthonygg@gmail.com
+INFO 2025-06-07 11:17:05,893 utils 17732 17124 Enviando email desde: Sistema de Nómina <onboarding@resend.dev>
+INFO 2025-06-07 11:17:05,900 utils 17732 17124 Support email configurado: onboarding@resend.dev
+ERROR 2025-06-07 11:17:07,504 utils 17732 17124 Error enviando credenciales a alopezm6@unemi.edu.ec: (450, b'You can only send testing emails to your own email address (zanthonygg@gmail.com). To send emails to other recipients, please verify a domain at resend.com/domains, and change the `from` address to an email using this domain.')
+INFO 2025-06-16 14:03:56,430 utils 8268 18220 Enviando email desde: Sistema de Nómina <onboarding@resend.dev>
+INFO 2025-06-16 14:03:56,438 utils 8268 18220 Support email configurado: onboarding@resend.dev
+INFO 2025-06-16 14:03:58,267 utils 8268 18220 Credenciales enviadas por email a: zanthonygg@gmail.com
+INFO 2025-06-18 15:33:54,596 utils 15980 15984 Enviando email desde: Sistema de Nómina <onboarding@resend.dev>
+INFO 2025-06-18 15:33:54,611 utils 15980 15984 Support email configurado: onboarding@resend.dev
+INFO 2025-06-18 15:33:56,381 utils 15980 15984 Credenciales enviadas por email a: zanthonygg@gmail.com

@@ -1,0 +1,169 @@
+<!-- components/parameters/attendance/rule/list.html -->
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block title %}Reglas de Asistencia - Sistema de Asistencia{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">Reglas de Asistencia</h1>
+                    <p class="text-gray-600 mt-1">Configuración de políticas y reglas de asistencia</p>
+                </div>
+                
+                <div class="flex items-center space-x-3">
+                    <a href="{% url 'attendance:attendance_rule_create' %}" 
+                       class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                        <i class="fas fa-plus mr-2"></i>Nueva Regla
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Lista de Reglas -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {% if attendance_rules %}
+                {% for rule in attendance_rules %}
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-start justify-between mb-4">
+                            <div class="flex items-center">
+                                <div class="bg-purple-100 p-3 rounded-lg mr-4">
+                                    <i class="fas fa-gavel text-purple-600 text-xl"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-semibold text-gray-900">{{ rule.name }}</h3>
+                                    <div class="flex items-center mt-1">
+                                        {% if rule.is_active %}
+                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                <svg class="w-1.5 h-1.5 mr-1.5" fill="currentColor" viewBox="0 0 8 8">
+                                                    <circle cx="4" cy="4" r="3"></circle>
+                                                </svg>
+                                                Activa
+                                            </span>
+                                        {% else %}
+                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                <svg class="w-1.5 h-1.5 mr-1.5" fill="currentColor" viewBox="0 0 8 8">
+                                                    <circle cx="4" cy="4" r="3"></circle>
+                                                </svg>
+                                                Inactiva
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex items-center space-x-2">
+                                <a href="{% url 'attendance:attendance_rule_edit' rule.pk %}" 
+                                   class="text-blue-600 hover:text-blue-700 transition-colors" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'attendance:attendance_rule_delete' rule.pk %}" 
+                                   class="text-red-600 hover:text-red-700 transition-colors" title="Eliminar">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div class="bg-gray-50 p-3 rounded-lg">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-gray-600">Tardanza máxima:</span>
+                                    <span class="font-semibold text-gray-900">{{ rule.late_threshold }} min</span>
+                                </div>
+                            </div>
+
+                            <div class="bg-gray-50 p-3 rounded-lg">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-gray-600">Límite horas extra:</span>
+                                    <span class="font-semibold text-gray-900">{{ rule.overtime_threshold }}h</span>
+                                </div>
+                            </div>
+
+                            <div class="bg-gray-50 p-3 rounded-lg">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-gray-600">Multiplicador extra:</span>
+                                    <span class="font-semibold text-gray-900">{{ rule.overtime_multiplier }}x</span>
+                                </div>
+                            </div>
+
+                            <div class="bg-gray-50 p-3 rounded-lg">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-gray-600">Faltas máximas:</span>
+                                    <span class="font-semibold text-gray-900">{{ rule.max_consecutive_absences }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-4 pt-4 border-t border-gray-200">
+                            <div class="flex items-center">
+                                <i class="fas fa-{% if rule.require_justification %}check-circle text-green-500{% else %}times-circle text-red-500{% endif %} mr-2"></i>
+                                <span class="text-sm text-gray-600">
+                                    {% if rule.require_justification %}
+                                        Requiere justificación para faltas
+                                    {% else %}
+                                        No requiere justificación para faltas
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <div class="col-span-2">
+                    <div class="text-center py-12">
+                        <div class="bg-gray-100 p-6 rounded-full w-24 h-24 mx-auto mb-4 flex items-center justify-center">
+                            <i class="fas fa-gavel text-gray-400 text-3xl"></i>
+                        </div>
+                        <h3 class="text-lg font-medium text-gray-900 mb-2">No hay reglas configuradas</h3>
+                        <p class="text-gray-600 mb-6">No se encontraron reglas de asistencia configuradas.</p>
+                        <a href="{% url 'attendance:attendance_rule_create' %}" 
+                           class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+                            <i class="fas fa-plus mr-2"></i>Crear Primera Regla
+                        </a>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Paginación -->
+        {% if is_paginated %}
+            <div class="mt-8 flex justify-center">
+                <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                    {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}" 
+                           class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                            <i class="fas fa-chevron-left"></i>
+                        </a>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-blue-50 text-sm font-medium text-blue-600">
+                                {{ num }}
+                            </span>
+                        {% else %}
+                            <a href="?page={{ num }}" 
+                               class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">
+                                {{ num }}
+                            </a>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}" 
+                           class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                            <i class="fas fa-chevron-right"></i>
+                        </a>
+                    {% endif %}
+                </nav>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

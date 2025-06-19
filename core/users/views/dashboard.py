@@ -1,3 +1,5 @@
+# core/users/views/dashboard.py (actualizar la función home_redirect)
+
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Sum
@@ -7,15 +9,51 @@ from datetime import datetime, timedelta
 try:
     from core.employees.models import Employee, Department
 except ImportError:
-    # En caso de que aún no hayas creado los modelos
     Employee = None
     Department = None
+
+def home_redirect(request):
+    """
+    Redirige según el estado de autenticación y tipo de usuario
+    """
+    if not request.user.is_authenticated:
+        return redirect('users:login')
+    
+    user = request.user
+    
+    # Verificar si necesita cambiar contraseña temporal
+    if getattr(user, 'needs_password_change', False):
+        return redirect('employees:employee_change_password')
+    
+    # Redirección basada en el tipo de usuario
+    if hasattr(user, 'employee_profile'):
+        # Es un empleado regular
+        return redirect('employees:employee_dashboard')
+    
+    elif (user.is_superuser or user.is_staff or 
+          getattr(user, 'user_type', '') in ['admin', 'hr', 'supervisor']):
+        # Es administrador/staff
+        return redirect('users:dashboard')
+    
+    else:
+        # Usuario sin perfil específico
+        return redirect('users:login')
+
 
 @login_required
 def dashboard_view(request):
     """
-    Vista principal del dashboard con estadísticas y datos resumidos
+    Vista principal del dashboard ADMINISTRATIVO con estadísticas y datos resumidos
     """
+    # Verificar que el usuario tenga permisos administrativos
+    if (not request.user.is_superuser and not request.user.is_staff and 
+        getattr(request.user, 'user_type', '') not in ['admin', 'hr', 'supervisor']):
+        # Si es un empleado regular, redirigir a su dashboard
+        if hasattr(request.user, 'employee_profile'):
+            return redirect('employees:employee_dashboard')
+        else:
+            return redirect('users:login')
+    
     context = {
         'user': request.user,
     }
@@ -94,17 +132,10 @@ def dashboard_view(request):
 @login_required
 def profile_view(request):
     """
-    Vista del perfil del usuario
+    Vista del perfil del usuario (administrativa)
     """
+    # Si es empleado, redirigir a su perfil específico
+    if hasattr(request.user, 'employee_profile'):
+        return redirect('employees:employee_profile')
+    
     return render(request, 'profile.html', {'user': request.user})
-
-
-# Vista para redirigir la página principal al dashboard si está autenticado
-def home_redirect(request):
-    """
-    Redirige a dashboard si está autenticado, sino al login
-    """
-    if request.user.is_authenticated:
-        return redirect('users:dashboard')
-    else:
-        return redirect('users:login')

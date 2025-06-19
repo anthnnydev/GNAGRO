@@ -195,7 +195,7 @@ class LeaveBalance(models.Model):
         verbose_name_plural = 'Balances de Licencias'
         db_table = 'leaves_balance'
         unique_together = ['employee', 'leave_type', 'year']
-        ordering = ['-year', 'employee__first_name']
+        ordering = ['-year', 'employee__employee_number']
     
     def __str__(self):
         return f"{self.employee.full_name} - {self.leave_type.name} ({self.year})"

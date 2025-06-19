@@ -1,0 +1,576 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block title %}{{ work_schedule.name }} - Detalle de Horario - Sistema de Asistencia{% endblock %}
+
+{% block extra_head %}
+<meta name="csrf-token" content="{{ csrf_token }}">
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'attendance:work_schedule_list' %}" 
+                       class="text-primary-600 hover:text-primary-700 transition-colors">
+                        <i class="fas fa-arrow-left text-lg"></i>
+                    </a>
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">{{ work_schedule.name }}</h1>
+                        <p class="text-gray-600 mt-1">
+                            Horario {{ work_schedule.get_schedule_type_display|lower }} - 
+                            {{ work_schedule.start_time|time:"H:i" }} a {{ work_schedule.end_time|time:"H:i" }}
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-3">
+                    {% if work_schedule.is_active %}
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                            <svg class="w-1.5 h-1.5 mr-1.5" fill="currentColor" viewBox="0 0 8 8">
+                                <circle cx="4" cy="4" r="3"></circle>
+                            </svg>
+                            Activo
+                        </span>
+                    {% else %}
+                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                            <svg class="w-1.5 h-1.5 mr-1.5" fill="currentColor" viewBox="0 0 8 8">
+                                <circle cx="4" cy="4" r="3"></circle>
+                            </svg>
+                            Inactivo
+                        </span>
+                    {% endif %}
+                    
+                    <a href="{% url 'attendance:work_schedule_edit' work_schedule.pk %}" 
+                       class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                        <i class="fas fa-edit mr-2"></i>Editar Horario
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Información Principal -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Información del Horario -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div class="flex items-center mb-6">
+                        <div class="bg-blue-100 p-3 rounded-lg mr-4">
+                            <i class="fas fa-clock text-blue-600 text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900">Información del Horario</h3>
+                            <p class="text-sm text-gray-600">Detalles de configuración y horarios</p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Horarios de Trabajo -->
+                        <div class="space-y-4">
+                            <div>
+                                <label class="text-sm font-medium text-gray-700">Hora de Inicio</label>
+                                <div class="mt-1 flex items-center">
+                                    <i class="fas fa-clock text-green-500 mr-2"></i>
+                                    <span class="text-lg font-semibold text-gray-900">{{ work_schedule.start_time|time:"H:i" }}</span>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="text-sm font-medium text-gray-700">Hora de Fin</label>
+                                <div class="mt-1 flex items-center">
+                                    <i class="fas fa-clock text-red-500 mr-2"></i>
+                                    <span class="text-lg font-semibold text-gray-900">{{ work_schedule.end_time|time:"H:i" }}</span>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="text-sm font-medium text-gray-700">Duración del Descanso</label>
+                                <div class="mt-1 flex items-center">
+                                    <i class="fas fa-coffee text-orange-500 mr-2"></i>
+                                    <span class="text-lg font-semibold text-gray-900">{{ work_schedule.break_duration }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Configuración -->
+                        <div class="space-y-4">
+                            <div>
+                                <label class="text-sm font-medium text-gray-700">Tipo de Horario</label>
+                                <div class="mt-1">
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium 
+                                        {% if work_schedule.schedule_type == 'fixed' %}bg-blue-100 text-blue-800{% elif work_schedule.schedule_type == 'flexible' %}bg-green-100 text-green-800{% elif work_schedule.schedule_type == 'shift' %}bg-purple-100 text-purple-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        {{ work_schedule.get_schedule_type_display }}
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="text-sm font-medium text-gray-700">Horas Semanales</label>
+                                <div class="mt-1 flex items-center">
+                                    <i class="fas fa-calendar-week text-purple-500 mr-2"></i>
+                                    <span class="text-lg font-semibold text-gray-900">{{ work_schedule.weekly_hours }} horas</span>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="text-sm font-medium text-gray-700">Tolerancia de Tardanza</label>
+                                <div class="mt-1 flex items-center">
+                                    <i class="fas fa-exclamation-triangle text-yellow-500 mr-2"></i>
+                                    <span class="text-lg font-semibold text-gray-900">{{ work_schedule.late_tolerance }} minutos</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Días Laborales -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div class="flex items-center mb-6">
+                        <div class="bg-green-100 p-3 rounded-lg mr-4">
+                            <i class="fas fa-calendar-week text-green-600 text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900">Días Laborales</h3>
+                            <p class="text-sm text-gray-600">Días de la semana en los que aplica este horario</p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+                        <!-- Lunes -->
+                        <div class="text-center p-4 rounded-lg {% if work_schedule.monday %}bg-blue-50 border-2 border-blue-200{% else %}bg-gray-50 border-2 border-gray-200{% endif %}">
+                            <div class="text-lg font-bold {% if work_schedule.monday %}text-blue-600{% else %}text-gray-400{% endif %}">L</div>
+                            <div class="text-xs {% if work_schedule.monday %}text-blue-600{% else %}text-gray-400{% endif %}">Lunes</div>
+                            {% if work_schedule.monday %}
+                                <i class="fas fa-check text-blue-600 text-xs mt-1"></i>
+                            {% endif %}
+                        </div>
+
+                        <!-- Martes -->
+                        <div class="text-center p-4 rounded-lg {% if work_schedule.tuesday %}bg-blue-50 border-2 border-blue-200{% else %}bg-gray-50 border-2 border-gray-200{% endif %}">
+                            <div class="text-lg font-bold {% if work_schedule.tuesday %}text-blue-600{% else %}text-gray-400{% endif %}">M</div>
+                            <div class="text-xs {% if work_schedule.tuesday %}text-blue-600{% else %}text-gray-400{% endif %}">Martes</div>
+                            {% if work_schedule.tuesday %}
+                                <i class="fas fa-check text-blue-600 text-xs mt-1"></i>
+                            {% endif %}
+                        </div>
+
+                        <!-- Miércoles -->
+                        <div class="text-center p-4 rounded-lg {% if work_schedule.wednesday %}bg-blue-50 border-2 border-blue-200{% else %}bg-gray-50 border-2 border-gray-200{% endif %}">
+                            <div class="text-lg font-bold {% if work_schedule.wednesday %}text-blue-600{% else %}text-gray-400{% endif %}">X</div>
+                            <div class="text-xs {% if work_schedule.wednesday %}text-blue-600{% else %}text-gray-400{% endif %}">Miércoles</div>
+                            {% if work_schedule.wednesday %}
+                                <i class="fas fa-check text-blue-600 text-xs mt-1"></i>
+                            {% endif %}
+                        </div>
+
+                        <!-- Jueves -->
+                        <div class="text-center p-4 rounded-lg {% if work_schedule.thursday %}bg-blue-50 border-2 border-blue-200{% else %}bg-gray-50 border-2 border-gray-200{% endif %}">
+                            <div class="text-lg font-bold {% if work_schedule.thursday %}text-blue-600{% else %}text-gray-400{% endif %}">J</div>
+                            <div class="text-xs {% if work_schedule.thursday %}text-blue-600{% else %}text-gray-400{% endif %}">Jueves</div>
+                            {% if work_schedule.thursday %}
+                                <i class="fas fa-check text-blue-600 text-xs mt-1"></i>
+                            {% endif %}
+                        </div>
+
+                        <!-- Viernes -->
+                        <div class="text-center p-4 rounded-lg {% if work_schedule.friday %}bg-blue-50 border-2 border-blue-200{% else %}bg-gray-50 border-2 border-gray-200{% endif %}">
+                            <div class="text-lg font-bold {% if work_schedule.friday %}text-blue-600{% else %}text-gray-400{% endif %}">V</div>
+                            <div class="text-xs {% if work_schedule.friday %}text-blue-600{% else %}text-gray-400{% endif %}">Viernes</div>
+                            {% if work_schedule.friday %}
+                                <i class="fas fa-check text-blue-600 text-xs mt-1"></i>
+                            {% endif %}
+                        </div>
+
+                        <!-- Sábado -->
+                        <div class="text-center p-4 rounded-lg {% if work_schedule.saturday %}bg-blue-50 border-2 border-blue-200{% else %}bg-gray-50 border-2 border-gray-200{% endif %}">
+                            <div class="text-lg font-bold {% if work_schedule.saturday %}text-blue-600{% else %}text-gray-400{% endif %}">S</div>
+                            <div class="text-xs {% if work_schedule.saturday %}text-blue-600{% else %}text-gray-400{% endif %}">Sábado</div>
+                            {% if work_schedule.saturday %}
+                                <i class="fas fa-check text-blue-600 text-xs mt-1"></i>
+                            {% endif %}
+                        </div>
+
+                        <!-- Domingo -->
+                        <div class="text-center p-4 rounded-lg {% if work_schedule.sunday %}bg-blue-50 border-2 border-blue-200{% else %}bg-gray-50 border-2 border-gray-200{% endif %}">
+                            <div class="text-lg font-bold {% if work_schedule.sunday %}text-blue-600{% else %}text-gray-400{% endif %}">D</div>
+                            <div class="text-xs {% if work_schedule.sunday %}text-blue-600{% else %}text-gray-400{% endif %}">Domingo</div>
+                            {% if work_schedule.sunday %}
+                                <i class="fas fa-check text-blue-600 text-xs mt-1"></i>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mt-6 p-4 bg-gray-50 rounded-lg">
+                        <div class="flex items-center">
+                            <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+                            <span class="text-sm text-gray-700">
+                                Días laborales: <strong>{{ work_schedule.working_days|join:", " }}</strong>
+                            </span>
+                        </div>
+                        <div class="flex items-center mt-2">
+                            <i class="fas fa-calculator text-green-500 mr-2"></i>
+                            <span class="text-sm text-gray-700">
+                                Horas diarias promedio: <strong>{{ work_schedule.daily_hours|floatformat:1 }} horas</strong>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Empleados Asignados -->
+                {% if employee_assignments %}
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <div class="flex items-center">
+                                <div class="bg-purple-100 p-3 rounded-lg mr-4">
+                                    <i class="fas fa-users text-purple-600 text-xl"></i>
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-semibold text-gray-900">Empleados Asignados</h3>
+                                    <p class="text-sm text-gray-600">Personal que utiliza este horario</p>
+                                </div>
+                            </div>
+                            <a href="{% url 'attendance:employee_schedule_list' %}?schedule={{ work_schedule.id }}" 
+                               class="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                                Ver todos ({{ total_employees }})
+                            </a>
+                        </div>
+                        
+                        <div class="space-y-3">
+                            {% for assignment in employee_assignments %}
+                                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                                    <div class="flex items-center">
+                                        <div class="bg-blue-100 p-2 rounded-full mr-3">
+                                            <i class="fas fa-user text-blue-600"></i>
+                                        </div>
+                                        <div>
+                                            <div class="text-sm font-medium text-gray-900">{{ assignment.employee.full_name }}</div>
+                                            <div class="text-xs text-gray-500">
+                                                Desde: {{ assignment.start_date|date:"d/m/Y" }}
+                                                {% if assignment.end_date %} - Hasta: {{ assignment.end_date|date:"d/m/Y" }}{% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        {% if assignment.is_active %}
+                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                Activo
+                                            </span>
+                                        {% else %}
+                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                Inactivo
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Panel Lateral -->
+            <div class="space-y-6">
+                <!-- Resumen -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Resumen del Horario</h3>
+                    
+                    <div class="space-y-4">
+                        <!-- Total de empleados -->
+                        <div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="bg-blue-100 p-2 rounded-lg mr-3">
+                                    <i class="fas fa-users text-blue-600 text-sm"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-900">Empleados Asignados</p>
+                                    <p class="text-xs text-gray-500">Total activos</p>
+                                </div>
+                            </div>
+                            <span class="text-lg font-bold text-blue-600">{{ total_employees }}</span>
+                        </div>
+
+                        <!-- Horas por día -->
+                        <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="bg-green-100 p-2 rounded-lg mr-3">
+                                    <i class="fas fa-clock text-green-600 text-sm"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-900">Horas por Día</p>
+                                    <p class="text-xs text-gray-500">Promedio</p>
+                                </div>
+                            </div>
+                            <span class="text-lg font-bold text-green-600">{{ work_schedule.daily_hours|floatformat:1 }}h</span>
+                        </div>
+
+                        <!-- Días laborales -->
+                        <div class="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="bg-purple-100 p-2 rounded-lg mr-3">
+                                    <i class="fas fa-calendar-week text-purple-600 text-sm"></i>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-900">Días Laborales</p>
+                                    <p class="text-xs text-gray-500">Por semana</p>
+                                </div>
+                            </div>
+                            <span class="text-lg font-bold text-purple-600">{{ work_schedule.working_days|length }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Información del Sistema -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Información del Sistema</h3>
+                    
+                    <div class="space-y-3 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Creado:</span>
+                            <span class="font-medium">{{ work_schedule.created_at|date:"d/m/Y H:i" }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Última actualización:</span>
+                            <span class="font-medium">{{ work_schedule.updated_at|date:"d/m/Y H:i" }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Estado:</span>
+                            <span class="font-medium {% if work_schedule.is_active %}text-green-600{% else %}text-red-600{% endif %}">
+                                {% if work_schedule.is_active %}Activo{% else %}Inactivo{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Acciones Rápidas -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Acciones</h3>
+                    
+                    <div class="space-y-3">
+                        <a href="{% url 'attendance:work_schedule_edit' work_schedule.pk %}" 
+                           class="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 px-4 py-3 rounded-lg text-sm font-medium transition-colors flex items-center">
+                            <i class="fas fa-edit mr-3"></i>
+                            Editar Horario
+                        </a>
+                        
+                        <a href="{% url 'attendance:employee_schedule_create' %}?schedule={{ work_schedule.id }}" 
+                           class="w-full bg-green-50 hover:bg-green-100 text-green-700 px-4 py-3 rounded-lg text-sm font-medium transition-colors flex items-center">
+                            <i class="fas fa-user-plus mr-3"></i>
+                            Asignar Empleado
+                        </a>
+                        
+                        <a href="{% url 'attendance:employee_schedule_list' %}?schedule={{ work_schedule.id }}" 
+                           class="w-full bg-purple-50 hover:bg-purple-100 text-purple-700 px-4 py-3 rounded-lg text-sm font-medium transition-colors flex items-center">
+                            <i class="fas fa-users mr-3"></i>
+                            Ver Asignaciones
+                        </a>
+                        
+                        <hr class="my-4">
+                        
+                        {% if work_schedule.is_active %}
+                            <button type="button" 
+                                    onclick="toggleScheduleStatus({{ work_schedule.id }})"
+                                    class="w-full bg-red-50 hover:bg-red-100 text-red-700 px-4 py-3 rounded-lg text-sm font-medium transition-colors flex items-center">
+                                <i class="fas fa-pause mr-3"></i>
+                                Desactivar Horario
+                            </button>
+                        {% else %}
+                            <button type="button" 
+                                    onclick="toggleScheduleStatus({{ work_schedule.id }})"
+                                    class="w-full bg-green-50 hover:bg-green-100 text-green-700 px-4 py-3 rounded-lg text-sm font-medium transition-colors flex items-center">
+                                <i class="fas fa-play mr-3"></i>
+                                Activar Horario
+                            </button>
+                        {% endif %}
+                        
+                        <a href="{% url 'attendance:work_schedule_delete' work_schedule.pk %}" 
+                           class="w-full bg-red-50 hover:bg-red-100 text-red-700 px-4 py-3 rounded-lg text-sm font-medium transition-colors flex items-center">
+                            <i class="fas fa-trash mr-3"></i>
+                            Eliminar Horario
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmación -->
+<div id="confirmModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen">
+        <div class="bg-white rounded-xl shadow-lg p-6 m-4 max-w-md w-full">
+            <div class="flex items-center mb-4">
+                <div class="bg-yellow-100 p-2 rounded-full mr-3">
+                    <i class="fas fa-exclamation-triangle text-yellow-600"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900">Confirmar Acción</h3>
+            </div>
+            <p class="text-gray-600 mb-6">¿Estás seguro de que quieres cambiar el estado de este horario?</p>
+            <div class="flex justify-end space-x-3">
+                <button type="button" onclick="closeModal()" 
+                        class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors">
+                    Cancelar
+                </button>
+                <button type="button" onclick="confirmAction()" 
+                        class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors">
+                    Confirmar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Messages (si tienes mensajes) -->
+{% if messages %}
+    <div class="fixed top-4 right-4 z-50">
+        {% for message in messages %}
+            <div class="mb-4 p-4 rounded-lg shadow-lg max-w-sm {% if message.tags == 'success' %}bg-green-100 border border-green-400 text-green-700{% elif message.tags == 'error' %}bg-red-100 border border-red-400 text-red-700{% elif message.tags == 'warning' %}bg-yellow-100 border border-yellow-400 text-yellow-700{% else %}bg-blue-100 border border-blue-400 text-blue-700{% endif %}">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        {% if message.tags == 'success' %}
+                            <svg class="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                            </svg>
+                        {% elif message.tags == 'error' %}
+                            <svg class="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>
+                            </svg>
+                        {% endif %}
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium">{{ message }}</p>
+                    </div>
+                    <div class="ml-auto pl-3">
+                        <div class="-mx-1.5 -my-1.5">
+                            <button type="button" class="inline-flex rounded-md p-1.5 focus:outline-none focus:ring-2 focus:ring-offset-2" onclick="this.closest('.mb-4').remove()">
+                                <span class="sr-only">Cerrar</span>
+                                <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Funciones para el modal
+let currentAction = null;
+let currentId = null;
+
+function toggleScheduleStatus(scheduleId) {
+    currentId = scheduleId;
+    currentAction = 'toggle';
+    document.getElementById('confirmModal').classList.remove('hidden');
+}
+
+function closeModal() {
+    document.getElementById('confirmModal').classList.add('hidden');
+    currentAction = null;
+    currentId = null;
+}
+
+function confirmAction() {
+    if (currentAction === 'toggle' && currentId) {
+        // Obtener el token CSRF de varias fuentes posibles
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || 
+                         document.querySelector('[name=csrfmiddlewaretoken]')?.value ||
+                         getCookie('csrftoken');
+        
+        // Construir la URL para el toggle
+        const toggleUrl = window.location.origin + '/attendance/schedules/' + currentId + '/toggle-status/';
+        
+        fetch(toggleUrl, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('Estado del horario actualizado correctamente', 'success');
+                window.location.reload();
+            } else {
+                showNotification('Error al actualizar el estado del horario', 'error');
+            }
+        })
+        .catch(error => {
+            showNotification('Error de conexión', 'error');
+        });
+    }
+    closeModal();
+}
+
+// Función para obtener cookie CSRF
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Función para mostrar notificaciones
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm ${
+        type === 'success' ? 'bg-green-100 border border-green-400 text-green-700' :
+        type === 'error' ? 'bg-red-100 border border-red-400 text-red-700' :
+        type === 'warning' ? 'bg-yellow-100 border border-yellow-400 text-yellow-700' :
+        'bg-blue-100 border border-blue-400 text-blue-700'
+    }`;
+    
+    notification.innerHTML = `
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                <i class="fas fa-${
+                    type === 'success' ? 'check-circle' :
+                    type === 'error' ? 'exclamation-circle' :
+                    type === 'warning' ? 'exclamation-triangle' :
+                    'info-circle'
+                } ${
+                    type === 'success' ? 'text-green-400' :
+                    type === 'error' ? 'text-red-400' :
+                    type === 'warning' ? 'text-yellow-400' :
+                    'text-blue-400'
+                }"></i>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm font-medium">${message}</p>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 5000);
+}
+
+// Cerrar modal con ESC
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeModal();
+    }
+});
+</script>
+{% endblock %}

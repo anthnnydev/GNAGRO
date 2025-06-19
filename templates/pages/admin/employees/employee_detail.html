@@ -52,7 +52,7 @@
                     {% endif %}
                     {% if perms.employees.delete_employee %}
                         <a href="{% url 'employees:employee_delete' employee.pk %}" 
-                           class="bg-red-600 text-black px-4 py-2 rounded-lg hover:bg-red-700 transition-colors">
+                           class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors">
                             <i class="fas fa-trash mr-2"></i>Eliminar
                         </a>
                     {% endif %}

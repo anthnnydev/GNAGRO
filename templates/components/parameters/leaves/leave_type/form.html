@@ -1,0 +1,673 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}
+    {% if object %}
+        Editar Tipo de Licencia - {{ object.name }}
+    {% else %}
+        Nuevo Tipo de Licencia
+    {% endif %} - Sistema de Licencias
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'leaves:leave_type_list' %}" 
+                       class="text-primary-600 hover:text-primary-700 transition-colors">
+                        <i class="fas fa-arrow-left text-lg"></i>
+                    </a>
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">
+                            {% if object %}
+                                Editar Tipo de Licencia
+                            {% else %}
+                                Nuevo Tipo de Licencia
+                            {% endif %}
+                        </h1>
+                        <p class="text-gray-600 mt-1">
+                            {% if object %}
+                                Actualizar información de {{ object.name }}
+                            {% else %}
+                                Completar la información del nuevo tipo de licencia
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <button type="submit" form="leave-type-form" 
+                            class="bg-primary-600 text-gray-600 px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors">
+                        <i class="fas fa-save mr-2"></i>
+                        {% if object %}Actualizar{% else %}Crear{% endif %} Tipo
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <form id="leave-type-form" method="post" class="space-y-8">
+            {% csrf_token %}
+            
+            <!-- Mensajes de error -->
+            {% if form.errors %}
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-exclamation-circle text-red-400 text-lg"></i>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-red-800">
+                                Se encontraron errores en el formulario
+                            </h3>
+                            <div class="mt-2 text-sm text-red-700">
+                                <ul class="list-disc list-inside space-y-1">
+                                    {% for field, errors in form.errors.items %}
+                                        {% for error in errors %}
+                                            <li>{{ field }}: {{ error }}</li>
+                                        {% endfor %}
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Información Principal -->
+                <div class="lg:col-span-2 space-y-6">
+                    <!-- Información Básica -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center mb-6">
+                            <div class="bg-blue-100 p-2 rounded-lg mr-3">
+                                <i class="fas fa-calendar-alt text-blue-600"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900">Información Básica</h3>
+                        </div>
+                        
+                        <div class="space-y-6">
+                            <!-- Nombre -->
+                            <div>
+                                <label for="{{ form.name.id_for_label }}" 
+                                       class="block text-sm font-medium text-gray-700 mb-2">
+                                    Nombre del Tipo *
+                                </label>
+                                {{ form.name }}
+                                {% if form.name.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.name.errors.0 }}</p>
+                                {% endif %}
+                                <p class="mt-1 text-xs text-gray-500">
+                                    Ingresa el nombre del tipo de licencia (ej: Vacaciones Anuales, Licencia Médica)
+                                </p>
+                            </div>
+
+                            <!-- Código -->
+                            <div>
+                                <label for="{{ form.code.id_for_label }}" 
+                                       class="block text-sm font-medium text-gray-700 mb-2">
+                                    Código *
+                                </label>
+                                {{ form.code }}
+                                {% if form.code.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.code.errors.0 }}</p>
+                                {% endif %}
+                                <p class="mt-1 text-xs text-gray-500">
+                                    Código único de identificación (máximo 10 caracteres, ej: VAC, MED)
+                                </p>
+                            </div>
+
+                            <!-- Color -->
+                            <div>
+                                <label for="{{ form.color.id_for_label }}" 
+                                       class="block text-sm font-medium text-gray-700 mb-2">
+                                    Color de Identificación
+                                </label>
+                                <div class="flex items-center space-x-3">
+                                    {{ form.color }}
+                                    <span class="text-sm text-gray-500">
+                                        Color para mostrar en calendarios y reportes
+                                    </span>
+                                </div>
+                                {% if form.color.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.color.errors.0 }}</p>
+                                {% endif %}
+                            </div>
+
+                            <!-- Descripción -->
+                            <div>
+                                <label for="{{ form.description.id_for_label }}" 
+                                       class="block text-sm font-medium text-gray-700 mb-2">
+                                    Descripción
+                                </label>
+                                {{ form.description }}
+                                {% if form.description.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.description.errors.0 }}</p>
+                                {% endif %}
+                                <p class="mt-1 text-xs text-gray-500">
+                                    Descripción detallada del tipo de licencia y sus condiciones
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Configuración de Política -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <div class="flex items-center mb-6">
+                            <div class="bg-green-100 p-2 rounded-lg mr-3">
+                                <i class="fas fa-cogs text-green-600"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900">Configuración de Política</h3>
+                        </div>
+                        
+                        <div class="space-y-6">
+                            <!-- Días Permitidos -->
+                            <div>
+                                <label for="{{ form.days_allowed.id_for_label }}" 
+                                       class="block text-sm font-medium text-gray-700 mb-2">
+                                    Días Permitidos por Año *
+                                </label>
+                                {{ form.days_allowed }}
+                                {% if form.days_allowed.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.days_allowed.errors.0 }}</p>
+                                {% endif %}
+                                <p class="mt-1 text-xs text-gray-500">
+                                    Número máximo de días que se pueden tomar por año para este tipo de licencia
+                                </p>
+                            </div>
+
+                            <!-- Opciones de Configuración -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <!-- Requiere Aprobación -->
+                                <div>
+                                    <div class="flex items-start">
+                                        <div class="flex items-center h-5">
+                                            {{ form.requires_approval }}
+                                        </div>
+                                        <div class="ml-3">
+                                            <label for="{{ form.requires_approval.id_for_label }}" 
+                                                   class="text-sm font-medium text-gray-700">
+                                                Requiere Aprobación
+                                            </label>
+                                            <p class="text-xs text-gray-500 mt-1">
+                                                Las solicitudes de este tipo requieren aprobación gerencial
+                                            </p>
+                                        </div>
+                                    </div>
+                                    {% if form.requires_approval.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ form.requires_approval.errors.0 }}</p>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Es Remunerada -->
+                                <div>
+                                    <div class="flex items-start">
+                                        <div class="flex items-center h-5">
+                                            {{ form.is_paid }}
+                                        </div>
+                                        <div class="ml-3">
+                                            <label for="{{ form.is_paid.id_for_label }}" 
+                                                   class="text-sm font-medium text-gray-700">
+                                                Es Remunerada
+                                            </label>
+                                            <p class="text-xs text-gray-500 mt-1">
+                                                El empleado recibe pago durante esta licencia
+                                            </p>
+                                        </div>
+                                    </div>
+                                    {% if form.is_paid.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ form.is_paid.errors.0 }}</p>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Acumulable -->
+                                <div>
+                                    <div class="flex items-start">
+                                        <div class="flex items-center h-5">
+                                            {{ form.carry_forward }}
+                                        </div>
+                                        <div class="ml-3">
+                                            <label for="{{ form.carry_forward.id_for_label }}" 
+                                                   class="text-sm font-medium text-gray-700">
+                                                Acumulable
+                                            </label>
+                                            <p class="text-xs text-gray-500 mt-1">
+                                                Los días no utilizados se transfieren al siguiente año
+                                            </p>
+                                        </div>
+                                    </div>
+                                    {% if form.carry_forward.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ form.carry_forward.errors.0 }}</p>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Estado Activo -->
+                                <div>
+                                    <div class="flex items-start">
+                                        <div class="flex items-center h-5">
+                                            {{ form.is_active }}
+                                        </div>
+                                        <div class="ml-3">
+                                            <label for="{{ form.is_active.id_for_label }}" 
+                                                   class="text-sm font-medium text-gray-700">
+                                                Activo
+                                            </label>
+                                            <p class="text-xs text-gray-500 mt-1">
+                                                {% if object %}
+                                                    Desmarcar para desactivar este tipo de licencia
+                                                {% else %}
+                                                    Este tipo de licencia estará disponible para solicitudes
+                                                {% endif %}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    {% if form.is_active.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ form.is_active.errors.0 }}</p>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel Lateral -->
+                <div class="space-y-6">
+                    <!-- Vista Previa del Color -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Vista Previa</h3>
+                        
+                        <div class="space-y-4">
+                            <!-- Ejemplo de Badge -->
+                            <div>
+                                <p class="text-sm font-medium text-gray-700 mb-2">Apariencia en Sistema:</p>
+                                <div class="flex items-center space-x-2">
+                                    <div id="color-preview" 
+                                         class="w-4 h-4 rounded-full border border-gray-300"
+                                         style="background-color: {{ form.color.value|default:'#3B82F6' }}"></div>
+                                    <span id="name-preview" class="text-sm font-medium">
+                                        {{ form.name.value|default:'Nombre del Tipo' }}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Código Preview -->
+                            <div>
+                                <p class="text-sm font-medium text-gray-700 mb-2">Código de Identificación:</p>
+                                <span id="code-preview" 
+                                      class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                    {{ form.code.value|default:'CÓDIGO' }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Estadísticas (solo para edición) -->
+                    {% if object %}
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Estadísticas de Uso</h3>
+                            
+                            <div class="space-y-4">
+                                <!-- Solicitudes Activas -->
+                                <div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                                    <div class="flex items-center">
+                                        <div class="bg-blue-100 p-2 rounded-lg mr-3">
+                                            <i class="fas fa-clock text-blue-600 text-sm"></i>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900">Solicitudes Pendientes</p>
+                                            <p class="text-xs text-gray-500">En proceso</p>
+                                        </div>
+                                    </div>
+                                    <span class="text-lg font-bold text-blue-600">
+                                        {{ pending_requests_count|default:0 }}
+                                    </span>
+                                </div>
+
+                                <!-- Total Solicitudes -->
+                                <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                                    <div class="flex items-center">
+                                        <div class="bg-green-100 p-2 rounded-lg mr-3">
+                                            <i class="fas fa-calendar-check text-green-600 text-sm"></i>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900">Total Solicitudes</p>
+                                            <p class="text-xs text-gray-500">Este año</p>
+                                        </div>
+                                    </div>
+                                    <span class="text-lg font-bold text-green-600">
+                                        {{ object.requests.count }}
+                                    </span>
+                                </div>
+
+                                <!-- Estado -->
+                                <div class="flex items-center justify-between p-3 {% if object.is_active %}bg-green-50{% else %}bg-red-50{% endif %} rounded-lg">
+                                    <div class="flex items-center">
+                                        <div class="{% if object.is_active %}bg-green-100{% else %}bg-red-100{% endif %} p-2 rounded-lg mr-3">
+                                            <i class="fas fa-{% if object.is_active %}check-circle{% else %}times-circle{% endif %} {% if object.is_active %}text-green-600{% else %}text-red-600{% endif %} text-sm"></i>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900">Estado</p>
+                                            <p class="text-xs text-gray-500">Actual</p>
+                                        </div>
+                                    </div>
+                                    <span class="text-sm font-bold {% if object.is_active %}text-green-600{% else %}text-red-600{% endif %}">
+                                        {% if object.is_active %}Activo{% else %}Inactivo{% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+
+                    <!-- Información del Sistema -->
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                            {% if object %}Información del Sistema{% else %}Guía de Creación{% endif %}
+                        </h3>
+                        
+                        {% if object %}
+                            <div class="space-y-3 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Creado:</span>
+                                    <span class="font-medium">{{ object.created_at|date:"d/m/Y" }}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Última actualización:</span>
+                                    <span class="font-medium">{{ object.updated_at|date:"d/m/Y" }}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Días permitidos:</span>
+                                    <span class="font-medium">{{ object.days_allowed }} días/año</span>
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="space-y-3">
+                                <div class="flex items-start">
+                                    <div class="flex-shrink-0">
+                                        <i class="fas fa-info-circle text-blue-500 mt-0.5"></i>
+                                    </div>
+                                    <div class="ml-2">
+                                        <p class="text-sm text-gray-600">
+                                            Un tipo de licencia define las reglas y políticas para un tipo específico de ausencia laboral.
+                                        </p>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-start">
+                                    <div class="flex-shrink-0">
+                                        <i class="fas fa-lightbulb text-yellow-500 mt-0.5"></i>
+                                    </div>
+                                    <div class="ml-2">
+                                        <p class="text-sm text-gray-600">
+                                            Define claramente los días permitidos y las políticas de aprobación según las necesidades de tu empresa.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Acciones Rápidas (solo para edición) -->
+                    {% if object %}
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Acciones Rápidas</h3>
+                            
+                            <div class="space-y-3">
+                                <a href="{% url 'leaves:leave_request_list' %}?leave_type={{ object.id }}" 
+                                   class="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center">
+                                    <i class="fas fa-calendar mr-2"></i>
+                                    Ver Solicitudes
+                                </a>
+                                
+                                <a href="{% url 'leaves:leave_balance_list' %}?leave_type={{ object.id }}" 
+                                   class="w-full bg-purple-50 hover:bg-purple-100 text-purple-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center">
+                                    <i class="fas fa-balance-scale mr-2"></i>
+                                    Ver Balances
+                                </a>
+                                
+                                {% if object.is_active %}
+                                    <button type="button" 
+                                            onclick="toggleLeaveTypeStatus({{ object.id }})"
+                                            class="w-full bg-red-50 hover:bg-red-100 text-red-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center">
+                                        <i class="fas fa-pause mr-2"></i>
+                                        Desactivar
+                                    </button>
+                                {% else %}
+                                    <button type="button" 
+                                            onclick="toggleLeaveTypeStatus({{ object.id }})"
+                                            class="w-full bg-green-50 hover:bg-green-100 text-green-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center">
+                                        <i class="fas fa-play mr-2"></i>
+                                        Activar
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Botones de acción (móvil) -->
+            <div class="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-200 lg:hidden">
+                <button type="submit" 
+                        class="w-full bg-primary-600 text-gray-600 px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors">
+                    <i class="fas fa-save mr-2"></i>
+                    {% if object %}Actualizar{% else %}Crear{% endif %} Tipo
+                </button>
+                <a href="{% url 'leaves:leave_type_list' %}" 
+                   class="w-full bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors text-center">
+                    <i class="fas fa-times mr-2"></i>Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal de Confirmación -->
+<div id="confirmModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen">
+        <div class="bg-white rounded-xl shadow-lg p-6 m-4 max-w-md w-full">
+            <div class="flex items-center mb-4">
+                <div class="bg-yellow-100 p-2 rounded-full mr-3">
+                    <i class="fas fa-exclamation-triangle text-yellow-600"></i>
+                </div>
+                <h3 class="text-lg font-semibold text-gray-900">Confirmar Acción</h3>
+            </div>
+            <p class="text-gray-600 mb-6">¿Estás seguro de que quieres cambiar el estado de este tipo de licencia?</p>
+            <div class="flex justify-end space-x-3">
+                <button type="button" onclick="closeModal()" 
+                        class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors">
+                    Cancelar
+                </button>
+                <button type="button" onclick="confirmAction()" 
+                        class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors">
+                    Confirmar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-focus en el primer campo
+    const firstField = document.querySelector('input[name="name"]');
+    if (firstField) {
+        firstField.focus();
+    }
+
+    // Actualizar vista previa en tiempo real
+    const nameField = document.querySelector('input[name="name"]');
+    const codeField = document.querySelector('input[name="code"]');
+    const colorField = document.querySelector('input[name="color"]');
+    
+    const namePreview = document.getElementById('name-preview');
+    const codePreview = document.getElementById('code-preview');
+    const colorPreview = document.getElementById('color-preview');
+
+    if (nameField && namePreview) {
+        nameField.addEventListener('input', function() {
+            namePreview.textContent = this.value || 'Nombre del Tipo';
+        });
+    }
+
+    if (codeField && codePreview) {
+        codeField.addEventListener('input', function() {
+            codePreview.textContent = this.value.toUpperCase() || 'CÓDIGO';
+        });
+    }
+
+    if (colorField && colorPreview) {
+        colorField.addEventListener('input', function() {
+            colorPreview.style.backgroundColor = this.value;
+        });
+    }
+
+    // Auto-mayúsculas para el código
+    if (codeField) {
+        codeField.addEventListener('input', function() {
+            this.value = this.value.toUpperCase();
+        });
+    }
+
+    // Validación de formulario
+    const form = document.getElementById('leave-type-form');
+    form.addEventListener('submit', function(e) {
+        let hasErrors = false;
+
+        // Validar campos requeridos
+        const requiredFields = [
+            {field: nameField, name: 'Nombre'},
+            {field: codeField, name: 'Código'},
+            {field: document.querySelector('input[name="days_allowed"]'), name: 'Días permitidos'}
+        ];
+
+        requiredFields.forEach(({field, name}) => {
+            if (field && !field.value.trim()) {
+                field.classList.add('border-red-300', 'focus:border-red-500', 'focus:ring-red-500');
+                showNotification(`El campo ${name} es obligatorio`, 'error');
+                hasErrors = true;
+            } else if (field) {
+                field.classList.remove('border-red-300', 'focus:border-red-500', 'focus:ring-red-500');
+                field.classList.add('border-gray-300', 'focus:border-primary-500', 'focus:ring-primary-500');
+            }
+        });
+
+        // Validar días permitidos
+        const daysField = document.querySelector('input[name="days_allowed"]');
+        if (daysField && (daysField.value < 0 || !daysField.value)) {
+            daysField.classList.add('border-red-300', 'focus:border-red-500', 'focus:ring-red-500');
+            showNotification('Los días permitidos deben ser mayor o igual a 0', 'error');
+            hasErrors = true;
+        }
+
+        if (hasErrors) {
+            e.preventDefault();
+            firstField.focus();
+        }
+    });
+
+    // Validación en tiempo real
+    const requiredFields = document.querySelectorAll('input[required]');
+    requiredFields.forEach(field => {
+        field.addEventListener('blur', function() {
+            if (!this.value.trim()) {
+                this.classList.add('border-red-300', 'focus:border-red-500', 'focus:ring-red-500');
+                this.classList.remove('border-gray-300', 'focus:border-primary-500', 'focus:ring-primary-500');
+            } else {
+                this.classList.remove('border-red-300', 'focus:border-red-500', 'focus:ring-red-500');
+                this.classList.add('border-gray-300', 'focus:border-primary-500', 'focus:ring-primary-500');
+            }
+        });
+    });
+});
+
+// Función para mostrar notificaciones
+function showNotification(message, type = 'info') {
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg max-w-sm ${
+        type === 'success' ? 'bg-green-100 border border-green-400 text-green-700' :
+        type === 'error' ? 'bg-red-100 border border-red-400 text-red-700' :
+        type === 'warning' ? 'bg-yellow-100 border border-yellow-400 text-yellow-700' :
+        'bg-blue-100 border border-blue-400 text-blue-700'
+    }`;
+    
+    notification.innerHTML = `
+        <div class="flex items-center">
+            <div class="flex-shrink-0">
+                <i class="fas fa-${
+                    type === 'success' ? 'check-circle' :
+                    type === 'error' ? 'exclamation-circle' :
+                    type === 'warning' ? 'exclamation-triangle' :
+                    'info-circle'
+                } ${
+                    type === 'success' ? 'text-green-400' :
+                    type === 'error' ? 'text-red-400' :
+                    type === 'warning' ? 'text-yellow-400' :
+                    'text-blue-400'
+                }"></i>
+                </div>
+            <div class="ml-3">
+                <p class="text-sm font-medium">${message}</p>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(notification);
+    
+    setTimeout(() => {
+        notification.remove();
+    }, 5000);
+}
+
+// Funciones para el modal
+let currentAction = null;
+let currentId = null;
+
+function toggleLeaveTypeStatus(leaveTypeId) {
+    currentId = leaveTypeId;
+    currentAction = 'toggle';
+    document.getElementById('confirmModal').classList.remove('hidden');
+}
+
+function closeModal() {
+    document.getElementById('confirmModal').classList.add('hidden');
+    currentAction = null;
+    currentId = null;
+}
+
+function confirmAction() {
+    if (currentAction === 'toggle' && currentId) {
+        fetch(`/leave-types/${currentId}/toggle-status/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showNotification('Estado del tipo de licencia actualizado correctamente', 'success');
+                window.location.reload();
+            } else {
+                showNotification('Error al actualizar el estado del tipo de licencia', 'error');
+            }
+        })
+        .catch(error => {
+            showNotification('Error de conexión', 'error');
+        });
+    }
+    closeModal();
+}
+
+// Cerrar modal con ESC
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeModal();
+    }
+});
+</script>
+{% endblock %}

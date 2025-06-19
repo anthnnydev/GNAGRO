@@ -11,8 +11,9 @@ from django.db.models import Q
 from django.http import JsonResponse
 from django.views import View
 
+from core.employees.utils import send_employee_credentials_email
 from core.employees.models import Employee, Department, Position, EmployeeDocument
-from core.employees.forms import EmployeeForm, UserEmployeeForm, EmployeeDocumentForm
+from core.employees.forms.EmployeeForm import EmployeeForm, UserEmployeeForm, EmployeeDocumentForm
 
 User = get_user_model()
 
@@ -72,10 +73,9 @@ class EmployeeCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         if self.request.POST:
-            # CORREGIDO: Pasar request.FILES para manejar archivos
             context['user_form'] = UserEmployeeForm(
                 self.request.POST, 
-                self.request.FILES,  # ← AGREGADO
+                self.request.FILES,
                 is_new_employee=True
             )
         else:
@@ -93,6 +93,11 @@ class EmployeeCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView
                     user = user_form.save(commit=False)
                     user.user_type = 'employee'
                     user.is_active = True
+                    
+                    # NUEVO: Marcar que necesita cambiar contraseña si se generó una temporal
+                    if hasattr(user, '_generated_password'):
+                        user.needs_password_change = True
+                    
                     user.save()
                     
                     # Crear el empleado
@@ -100,11 +105,30 @@ class EmployeeCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView
                     employee.user = user
                     employee.save()
                     
-                    messages.success(
-                        self.request, 
-                        f'Empleado {employee.user.get_full_name()} creado exitosamente.'
-                    )
+                    # Enviar credenciales por email si el usuario tiene contraseña generada
+                    if hasattr(user, '_generated_password'):
+                        email_sent = send_employee_credentials_email(user, user._generated_password)
+                        if email_sent:
+                            messages.success(
+                                self.request, 
+                                f'Empleado {employee.user.get_full_name()} creado exitosamente. '
+                                f'Las credenciales de acceso han sido enviadas a {user.email}.'
+                            )
+                        else:
+                            messages.warning(
+                                self.request, 
+                                f'Empleado {employee.user.get_full_name()} creado exitosamente. '
+                                f'Sin embargo, hubo un problema enviando las credenciales por email. '
+                                f'Contraseña temporal: {user._generated_password}'
+                            )
+                    else:
+                        messages.success(
+                            self.request, 
+                            f'Empleado {employee.user.get_full_name()} creado exitosamente.'
+                        )
+                    
                     return redirect(self.success_url)
+                    
             except Exception as e:
                 messages.error(self.request, f'Error al crear el empleado: {str(e)}')
                 return self.form_invalid(form)
@@ -114,7 +138,6 @@ class EmployeeCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView
     def form_invalid(self, form):
         messages.error(self.request, 'Por favor corrige los errores en el formulario.')
         return super().form_invalid(form)
-
 
 class EmployeeUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):
     """Vista para actualizar un empleado"""
