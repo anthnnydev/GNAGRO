@@ -1,0 +1,675 @@
+{% extends 'layouts/base_employee.html' %}
+
+{% block title %}Mis Documentos - Portal Empleado{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header de la página -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900 flex items-center">
+                        <i class="fas fa-folder text-blue-600 mr-3"></i>
+                        Mis Documentos
+                    </h1>
+                    <p class="text-gray-600 mt-1">Gestiona y consulta tus documentos personales y laborales</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="text-sm text-gray-500">
+                        <i class="fas fa-file-alt mr-2"></i>
+                        {{ documents.count|default:0 }} documento{{ documents.count|pluralize }}
+                    </div>
+                    <button class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors" onclick="openUploadModal()">
+                        <i class="fas fa-upload mr-2"></i>Subir Documento
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Estadísticas de documentos -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <!-- Total de documentos -->
+            <div class="bg-white rounded-xl shadow-lg border-l-4 border-blue-500 p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Total Documentos</p>
+                        <p class="text-3xl font-bold text-blue-600">{{ documents.count|default:0 }}</p>
+                        <p class="text-sm text-blue-600 mt-1">
+                            <i class="fas fa-file-alt mr-1"></i>
+                            Archivos
+                        </p>
+                    </div>
+                    <div class="bg-blue-100 p-3 rounded-full">
+                        <i class="fas fa-folder text-blue-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Documentos personales -->
+            <div class="bg-white rounded-xl shadow-lg border-l-4 border-green-500 p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Personales</p>
+                        <p class="text-3xl font-bold text-green-600">
+                            {{ documents_by_type.Personales|length|default:0 }}
+                        </p>
+                        <p class="text-sm text-green-600 mt-1">
+                            <i class="fas fa-user mr-1"></i>
+                            ID, CV, etc.
+                        </p>
+                    </div>
+                    <div class="bg-green-100 p-3 rounded-full">
+                        <i class="fas fa-id-card text-green-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Documentos laborales -->
+            <div class="bg-white rounded-xl shadow-lg border-l-4 border-purple-500 p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Laborales</p>
+                        <p class="text-3xl font-bold text-purple-600">
+                            {{ documents_by_type.Laborales|length|default:0 }}
+                        </p>
+                        <p class="text-sm text-purple-600 mt-1">
+                            <i class="fas fa-briefcase mr-1"></i>
+                            Contratos, etc.
+                        </p>
+                    </div>
+                    <div class="bg-purple-100 p-3 rounded-full">
+                        <i class="fas fa-file-contract text-purple-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Documentos médicos -->
+            <div class="bg-white rounded-xl shadow-lg border-l-4 border-red-500 p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Médicos</p>
+                        <p class="text-3xl font-bold text-red-600">
+                            {{ documents_by_type.Médicos|length|default:0 }}
+                        </p>
+                        <p class="text-sm text-red-600 mt-1">
+                            <i class="fas fa-heartbeat mr-1"></i>
+                            Certificados
+                        </p>
+                    </div>
+                    <div class="bg-red-100 p-3 rounded-full">
+                        <i class="fas fa-file-medical text-red-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filtros y búsqueda -->
+        <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6 mb-8">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+                <div class="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4">
+                    <!-- Búsqueda -->
+                    <div class="relative">
+                        <input type="text" 
+                               id="searchInput"
+                               placeholder="Buscar documentos..."
+                               class="w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    </div>
+                    
+                    <!-- Filtro por tipo -->
+                    <select id="typeFilter" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Todos los tipos</option>
+                        <option value="personal">Documentos Personales</option>
+                        <option value="laboral">Documentos Laborales</option>
+                        <option value="medico">Documentos Médicos</option>
+                        <option value="academico">Documentos Académicos</option>
+                        <option value="otro">Otros</option>
+                    </select>
+                </div>
+                
+                <!-- Opciones de vista -->
+                <div class="flex items-center space-x-2">
+                    <button id="gridViewBtn" class="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200 transition-colors" title="Vista de cuadrícula">
+                        <i class="fas fa-th-large"></i>
+                    </button>
+                    <button id="listViewBtn" class="p-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors" title="Vista de lista">
+                        <i class="fas fa-list"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lista de documentos -->
+        {% if documents %}
+        <!-- Vista de cuadrícula (por defecto) -->
+        <div id="gridView" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            {% for document in documents %}
+            <div class="document-card bg-white rounded-xl shadow-lg border border-gray-200 p-6 hover:shadow-xl transition-all" data-name="{{ document.name|lower }}" data-type="{{ document.document_type }}">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex items-center space-x-3">
+                        <!-- Icono según tipo de archivo -->
+                        <div class="flex-shrink-0">
+                            {% if document.file.url|slice:"-4:" == ".pdf" %}
+                            <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-file-pdf text-red-600 text-xl"></i>
+                            </div>
+                            {% elif document.file.url|slice:"-5:" == ".docx" or document.file.url|slice:"-4:" == ".doc" %}
+                            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-file-word text-blue-600 text-xl"></i>
+                            </div>
+                            {% elif document.file.url|slice:"-4:" == ".jpg" or document.file.url|slice:"-4:" == ".png" or document.file.url|slice:"-5:" == ".jpeg" %}
+                            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-file-image text-green-600 text-xl"></i>
+                            </div>
+                            {% else %}
+                            <div class="w-12 h-12 bg-gray-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-file text-gray-600 text-xl"></i>
+                            </div>
+                            {% endif %}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h3 class="text-lg font-medium text-gray-900 truncate">{{ document.name }}</h3>
+                            <p class="text-sm text-gray-500">{{ document.get_document_type_display }}</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Menú de acciones -->
+                    <div class="relative">
+                        <button class="text-gray-400 hover:text-gray-600" onclick="toggleDropdown({{ document.id }})">
+                            <i class="fas fa-ellipsis-v"></i>
+                        </button>
+                        <div id="dropdown-{{ document.id }}" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 hidden z-10">
+                            <div class="py-1">
+                                <a href="{% url 'employees:employee_download_document' document.id %}" 
+                                   class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <i class="fas fa-download mr-2"></i>Descargar
+                                </a>
+                                <button onclick="viewDocument('{{ document.file.url }}', '{{ document.name }}')" 
+                                        class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <i class="fas fa-eye mr-2"></i>Ver
+                                </button>
+                                <button onclick="deleteDocument({{ document.id }}, '{{ document.name }}')" 
+                                        class="block w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-50">
+                                    <i class="fas fa-trash mr-2"></i>Eliminar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Información del documento -->
+                <div class="space-y-2 mb-4">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-500">Subido:</span>
+                        <span class="text-gray-700">{{ document.upload_date|date:"d/m/Y" }}</span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-500">Tamaño:</span>
+                        <span class="text-gray-700">{{ document.file.size|filesizeformat|default:"N/A" }}</span>
+                    </div>
+                    {% if document.description %}
+                    <div class="text-sm">
+                        <span class="text-gray-500">Descripción:</span>
+                        <p class="text-gray-700 mt-1">{{ document.description|truncatechars:60 }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Acciones rápidas -->
+                <div class="flex space-x-2">
+                    <button onclick="viewDocument('{{ document.file.url }}', '{{ document.name }}')" 
+                            class="flex-1 bg-blue-100 text-blue-700 px-3 py-2 rounded text-sm hover:bg-blue-200 transition-colors">
+                        <i class="fas fa-eye mr-1"></i>Ver
+                    </button>
+                    <a href="{% url 'employees:employee_download_document' document.id %}" 
+                       class="flex-1 bg-green-100 text-green-700 px-3 py-2 rounded text-sm hover:bg-green-200 transition-colors text-center">
+                        <i class="fas fa-download mr-1"></i>Descargar
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Vista de lista (oculta por defecto) -->
+        <div id="listView" class="bg-white rounded-xl shadow-lg border border-gray-200 hidden">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Documento
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Tipo
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Fecha de subida
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Tamaño
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Acciones
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for document in documents %}
+                        <tr class="document-row hover:bg-gray-50" data-name="{{ document.name|lower }}" data-type="{{ document.document_type }}">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="flex-shrink-0 h-8 w-8">
+                                        {% if document.file.url|slice:"-4:" == ".pdf" %}
+                                        <i class="fas fa-file-pdf text-red-600 text-lg"></i>
+                                        {% elif document.file.url|slice:"-5:" == ".docx" or document.file.url|slice:"-4:" == ".doc" %}
+                                        <i class="fas fa-file-word text-blue-600 text-lg"></i>
+                                        {% elif document.file.url|slice:"-4:" == ".jpg" or document.file.url|slice:"-4:" == ".png" or document.file.url|slice:"-5:" == ".jpeg" %}
+                                        <i class="fas fa-file-image text-green-600 text-lg"></i>
+                                        {% else %}
+                                        <i class="fas fa-file text-gray-600 text-lg"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div class="ml-4">
+                                        <div class="text-sm font-medium text-gray-900">{{ document.name }}</div>
+                                        {% if document.description %}
+                                        <div class="text-sm text-gray-500">{{ document.description|truncatechars:50 }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {{ document.get_document_type_display }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {{ document.upload_date|date:"d/m/Y H:i" }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {{ document.file.size|filesizeformat|default:"N/A" }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <div class="flex space-x-2">
+                                    <button onclick="viewDocument('{{ document.file.url }}', '{{ document.name }}')" 
+                                            class="text-blue-600 hover:text-blue-900">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <a href="{% url 'employees:employee_download_document' document.id %}" 
+                                       class="text-green-600 hover:text-green-900">
+                                        <i class="fas fa-download"></i>
+                                    </a>
+                                    <button onclick="deleteDocument({{ document.id }}, '{{ document.name }}')" 
+                                            class="text-red-600 hover:text-red-900">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        {% else %}
+        <!-- Estado vacío -->
+        <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-12 text-center">
+            <div class="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                <i class="fas fa-folder-open text-gray-400 text-3xl"></i>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">No tienes documentos</h3>
+            <p class="text-gray-600 mb-6">Comienza subiendo tus documentos personales y laborales.</p>
+            <button onclick="openUploadModal()" 
+                    class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors">
+                <i class="fas fa-upload mr-2"></i>Subir mi primer documento
+            </button>
+        </div>
+        {% endif %}
+
+        <!-- Información sobre tipos de documentos -->
+        <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6 mt-8">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <i class="fas fa-info-circle text-blue-500 mr-2"></i>
+                Tipos de Documentos Aceptados
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="text-center">
+                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-id-card text-green-600 text-xl"></i>
+                    </div>
+                    <h4 class="font-medium text-gray-900 mb-2">Documentos Personales</h4>
+                    <p class="text-sm text-gray-600">Cédula, pasaporte, certificados de nacimiento</p>
+                </div>
+                
+                <div class="text-center">
+                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-file-contract text-blue-600 text-xl"></i>
+                    </div>
+                    <h4 class="font-medium text-gray-900 mb-2">Documentos Laborales</h4>
+                    <p class="text-sm text-gray-600">Contratos, cartas de recomendación, certificaciones</p>
+                </div>
+                
+                <div class="text-center">
+                    <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-file-medical text-red-600 text-xl"></i>
+                    </div>
+                    <h4 class="font-medium text-gray-900 mb-2">Documentos Médicos</h4>
+                    <p class="text-sm text-gray-600">Certificados médicos, exámenes de salud</p>
+                </div>
+                
+                <div class="text-center">
+                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center mx-auto mb-3">
+                        <i class="fas fa-graduation-cap text-purple-600 text-xl"></i>
+                    </div>
+                    <h4 class="font-medium text-gray-900 mb-2">Documentos Académicos</h4>
+                    <p class="text-sm text-gray-600">Diplomas, títulos, certificados de cursos</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para subir documento -->
+<div id="uploadModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4">
+        <div class="p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">Subir Documento</h3>
+                <button onclick="closeUploadModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <form id="uploadForm" class="space-y-4" enctype="multipart/form-data">
+                <!-- Tipo de documento -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de documento</label>
+                    <select name="document_type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" required>
+                        <option value="">Seleccionar tipo</option>
+                        {% for value, label in document_types %}
+                        <option value="{{ value }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Nombre del documento -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Nombre del documento</label>
+                    <input type="text" name="name" 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                           placeholder="Ej: Cédula de Identidad" required>
+                </div>
+
+                <!-- Archivo -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Archivo</label>
+                    <div class="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-gray-400 transition-colors">
+                        <div class="space-y-1 text-center">
+                            <i class="fas fa-cloud-upload-alt text-gray-400 text-3xl mb-3"></i>
+                            <div class="flex text-sm text-gray-600">
+                                <label for="file-upload" class="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+                                    <span>Seleccionar archivo</span>
+                                    <input id="file-upload" name="file" type="file" class="sr-only" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" required>
+                                </label>
+                                <p class="pl-1">o arrastra y suelta</p>
+                            </div>
+                            <p class="text-xs text-gray-500">
+                                PDF, DOC, DOCX, JPG, PNG hasta 10MB
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Descripción -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Descripción (opcional)</label>
+                    <textarea name="description" rows="3" 
+                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                              placeholder="Descripción adicional del documento..."></textarea>
+                </div>
+
+                <!-- Botones -->
+                <div class="flex space-x-3 pt-4">
+                    <button type="button" onclick="closeUploadModal()" 
+                            class="flex-1 bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors">
+                        Cancelar
+                    </button>
+                    <button type="submit" 
+                            class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        Subir Documento
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para ver documento -->
+<div id="viewModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 hidden">
+    <div class="max-w-4xl max-h-full p-4 w-full">
+        <div class="bg-white rounded-lg overflow-hidden">
+            <div class="flex items-center justify-between p-4 border-b">
+                <h3 id="viewModalTitle" class="text-lg font-semibold text-gray-900"></h3>
+                <button onclick="closeViewModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            <div class="p-4">
+                <iframe id="documentViewer" src="" class="w-full h-96 border-0"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Funcionalidad de búsqueda
+        const searchInput = document.getElementById('searchInput');
+        const typeFilter = document.getElementById('typeFilter');
+
+        function filterDocuments() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const selectedType = typeFilter.value;
+            const documentCards = document.querySelectorAll('.document-card, .document-row');
+
+            documentCards.forEach(card => {
+                const name = card.getAttribute('data-name');
+                const type = card.getAttribute('data-type');
+                
+                const matchesSearch = name.includes(searchTerm);
+                const matchesType = !selectedType || type === selectedType;
+                
+                if (matchesSearch && matchesType) {
+                    card.style.display = '';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        searchInput.addEventListener('input', filterDocuments);
+        typeFilter.addEventListener('change', filterDocuments);
+
+        // Cambio de vista
+        const gridViewBtn = document.getElementById('gridViewBtn');
+        const listViewBtn = document.getElementById('listViewBtn');
+        const gridView = document.getElementById('gridView');
+        const listView = document.getElementById('listView');
+
+        gridViewBtn.addEventListener('click', function() {
+            gridView.classList.remove('hidden');
+            listView.classList.add('hidden');
+            
+            gridViewBtn.classList.add('bg-blue-100', 'text-blue-600');
+            gridViewBtn.classList.remove('bg-gray-100', 'text-gray-600');
+            
+            listViewBtn.classList.add('bg-gray-100', 'text-gray-600');
+            listViewBtn.classList.remove('bg-blue-100', 'text-blue-600');
+        });
+
+        listViewBtn.addEventListener('click', function() {
+            listView.classList.remove('hidden');
+            gridView.classList.add('hidden');
+            
+            listViewBtn.classList.add('bg-blue-100', 'text-blue-600');
+            listViewBtn.classList.remove('bg-gray-100', 'text-gray-600');
+            
+            gridViewBtn.classList.add('bg-gray-100', 'text-gray-600');
+            gridViewBtn.classList.remove('bg-blue-100', 'text-blue-600');
+        });
+
+        // Manejo del formulario de subida
+        document.getElementById('uploadForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            uploadDocument();
+        });
+
+        // Drag and drop
+        const dropZone = document.querySelector('[for="file-upload"]').closest('.border-dashed');
+        const fileInput = document.getElementById('file-upload');
+
+        dropZone.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('border-blue-400', 'bg-blue-50');
+        });
+
+        dropZone.addEventListener('dragleave', function(e) {
+            e.preventDefault();
+            this.classList.remove('border-blue-400', 'bg-blue-50');
+        });
+
+        dropZone.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('border-blue-400', 'bg-blue-50');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                updateFileName(files[0].name);
+            }
+        });
+
+        fileInput.addEventListener('change', function() {
+            if (this.files.length > 0) {
+                updateFileName(this.files[0].name);
+            }
+        });
+
+        function updateFileName(fileName) {
+            const dropZoneText = dropZone.querySelector('p');
+            dropZoneText.textContent = `Archivo seleccionado: ${fileName}`;
+        }
+
+        // Animaciones para las tarjetas
+        const cards = document.querySelectorAll('.document-card');
+        cards.forEach((card, index) => {
+            setTimeout(() => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                card.style.transition = 'all 0.5s ease';
+                
+                requestAnimationFrame(() => {
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                });
+            }, index * 100);
+        });
+    });
+
+    function openUploadModal() {
+        document.getElementById('uploadModal').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeUploadModal() {
+        document.getElementById('uploadModal').classList.add('hidden');
+        document.body.style.overflow = 'auto';
+        document.getElementById('uploadForm').reset();
+    }
+
+    function uploadDocument() {
+        const formData = new FormData(document.getElementById('uploadForm'));
+        
+        // Validaciones básicas
+        const file = formData.get('file');
+        if (!file || file.size === 0) {
+            alert('Por favor selecciona un archivo');
+            return;
+        }
+
+        if (file.size > 10 * 1024 * 1024) { // 10MB
+            alert('El archivo es demasiado grande. Máximo 10MB');
+            return;
+        }
+
+        // Simulación de subida
+        console.log('Subiendo documento:', Object.fromEntries(formData));
+        
+        // Aquí iría la llamada real al backend
+        // fetch('/employees/documents/upload/', { method: 'POST', body: formData })
+        
+        alert('Documento subido exitosamente');
+        closeUploadModal();
+        location.reload();
+    }
+
+    function viewDocument(url, name) {
+        document.getElementById('viewModalTitle').textContent = name;
+        document.getElementById('documentViewer').src = url;
+        document.getElementById('viewModal').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeViewModal() {
+        document.getElementById('viewModal').classList.add('hidden');
+        document.getElementById('documentViewer').src = '';
+        document.body.style.overflow = 'auto';
+    }
+
+    function toggleDropdown(documentId) {
+        const dropdown = document.getElementById(`dropdown-${documentId}`);
+        const allDropdowns = document.querySelectorAll('[id^="dropdown-"]');
+        
+        // Cerrar otros dropdowns
+        allDropdowns.forEach(d => {
+            if (d.id !== `dropdown-${documentId}`) {
+                d.classList.add('hidden');
+            }
+        });
+        
+        dropdown.classList.toggle('hidden');
+    }
+
+    function deleteDocument(documentId, documentName) {
+        if (confirm(`¿Estás seguro de que quieres eliminar "${documentName}"?`)) {
+            console.log('Eliminando documento:', documentId);
+            
+            // Aquí iría la llamada al backend
+            // fetch(`/employees/documents/${documentId}/delete/`, { method: 'DELETE' })
+            
+            alert('Documento eliminado exitosamente');
+            location.reload();
+        }
+    }
+
+    // Cerrar dropdowns al hacer click fuera
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.relative')) {
+            const allDropdowns = document.querySelectorAll('[id^="dropdown-"]');
+            allDropdowns.forEach(d => d.classList.add('hidden'));
+        }
+    });
+
+    // Cerrar modales con Escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeUploadModal();
+            closeViewModal();
+        }
+    });
+</script>
+{% endblock %}

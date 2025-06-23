@@ -1,4 +1,4 @@
-# core/leaves/views.py
+# core/leaves/views.py - CORREGIDO
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.views.decorators.http import require_POST
@@ -11,7 +11,7 @@ from django.views.generic import (
 from django.db.models import Q
 from django.http import JsonResponse
 from datetime import datetime
-
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 
 from ..models import LeaveType, LeaveRequest, LeaveBalance
@@ -121,7 +121,8 @@ class LeaveRequestListView(LoginRequiredMixin, ListView):
         # Filtrar por empleado si no es supervisor
         if not self.request.user.has_perm('leaves.view_all_leaverequest'):
             try:
-                from employees.models import Employee
+                # CORRECCIÓN: Importar Employee correctamente
+                from core.employees.models import Employee
                 employee = Employee.objects.get(user=self.request.user)
                 queryset = queryset.filter(employee=employee)
             except Employee.DoesNotExist:
@@ -163,7 +164,8 @@ class LeaveRequestDetailView(LoginRequiredMixin, DetailView):
         # Solo mostrar propias solicitudes si no es supervisor
         if not self.request.user.has_perm('leaves.view_all_leaverequest'):
             try:
-                from employees.models import Employee
+                # CORRECCIÓN: Importar Employee correctamente
+                from core.employees.models import Employee
                 employee = Employee.objects.get(user=self.request.user)
                 queryset = queryset.filter(employee=employee)
             except Employee.DoesNotExist:
@@ -184,6 +186,16 @@ class LeaveRequestCreateView(LoginRequiredMixin, CreateView):
         return kwargs
 
     def form_valid(self, form):
+        # CORRECCIÓN: Asegurar que el empleado esté asignado
+        if not form.instance.employee:
+            try:
+                from core.employees.models import Employee
+                employee = Employee.objects.get(user=self.request.user)
+                form.instance.employee = employee
+            except Employee.DoesNotExist:
+                messages.error(self.request, 'Error: No se pudo encontrar el perfil de empleado.')
+                return self.form_invalid(form)
+        
         messages.success(self.request, 'Solicitud de licencia creada exitosamente.')
         return super().form_valid(form)
 
@@ -209,7 +221,8 @@ class LeaveRequestUpdateView(LoginRequiredMixin, UpdateView):
         # Solo permitir editar propias solicitudes pendientes
         if not self.request.user.has_perm('leaves.change_all_leaverequest'):
             try:
-                from employees.models import Employee
+                # CORRECCIÓN: Importar Employee correctamente
+                from core.employees.models import Employee
                 employee = Employee.objects.get(user=self.request.user)
                 queryset = queryset.filter(employee=employee, status='pending')
             except Employee.DoesNotExist:
@@ -248,7 +261,8 @@ class LeaveRequestDeleteView(LoginRequiredMixin, DeleteView):
         # Solo permitir eliminar propias solicitudes pendientes
         if not self.request.user.has_perm('leaves.delete_all_leaverequest'):
             try:
-                from employees.models import Employee
+                # CORRECCIÓN: Importar Employee correctamente
+                from core.employees.models import Employee
                 employee = Employee.objects.get(user=self.request.user)
                 queryset = queryset.filter(employee=employee, status='pending')
             except Employee.DoesNotExist:
@@ -272,8 +286,15 @@ class LeaveRequestApprovalView(LoginRequiredMixin, PermissionRequiredMixin, Upda
         return LeaveRequest.objects.filter(status='pending')
 
     def form_valid(self, form):
-        # Establecer quien aprobó y cuándo
-        form.instance.approved_by = self.request.user.employee
+        # CORRECCIÓN: Asegurar que approved_by sea asignado correctamente
+        try:
+            from core.employees.models import Employee
+            approver = Employee.objects.get(user=self.request.user)
+            form.instance.approved_by = approver
+        except Employee.DoesNotExist:
+            messages.error(self.request, 'Error: No se pudo encontrar el perfil de empleado aprobador.')
+            return self.form_invalid(form)
+        
         form.instance.approved_date = datetime.now()
         
         # Actualizar balance si se aprueba
@@ -372,6 +393,12 @@ class LeaveBalanceCreateView(LoginRequiredMixin, PermissionRequiredMixin, Create
     success_url = reverse_lazy('leaves:leave_balance_list')
 
     def form_valid(self, form):
+        # CORRECCIÓN: Calcular remaining_days automáticamente
+        allocated = form.cleaned_data.get('allocated_days', 0)
+        used = form.cleaned_data.get('used_days', 0)
+        carried = form.cleaned_data.get('carried_forward', 0)
+        form.instance.remaining_days = allocated + carried - used
+        
         messages.success(self.request, 'Balance de licencia creado exitosamente.')
         return super().form_valid(form)
 
@@ -391,6 +418,12 @@ class LeaveBalanceUpdateView(LoginRequiredMixin, PermissionRequiredMixin, Update
     success_url = reverse_lazy('leaves:leave_balance_list')
 
     def form_valid(self, form):
+        # CORRECCIÓN: Calcular remaining_days automáticamente
+        allocated = form.cleaned_data.get('allocated_days', 0)
+        used = form.cleaned_data.get('used_days', 0)
+        carried = form.cleaned_data.get('carried_forward', 0)
+        form.instance.remaining_days = allocated + carried - used
+        
         messages.success(self.request, 'Balance de licencia actualizado exitosamente.')
         return super().form_valid(form)
 
@@ -415,9 +448,10 @@ class LeaveBalanceDeleteView(LoginRequiredMixin, PermissionRequiredMixin, Delete
 
 # ==================== AJAX VIEWS ====================
 
+@login_required
 def get_employee_balance(request):
     """Vista AJAX para obtener el balance de un empleado"""
-    if request.is_ajax():
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         employee_id = request.GET.get('employee_id')
         leave_type_id = request.GET.get('leave_type_id')
         year = request.GET.get('year', datetime.now().year)
@@ -449,9 +483,10 @@ def get_employee_balance(request):
     return JsonResponse({'success': False})
 
 
+@login_required
 def calculate_leave_days(request):
     """Vista AJAX para calcular días de licencia"""
-    if request.is_ajax():
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         start_date = request.GET.get('start_date')
         end_date = request.GET.get('end_date')
         
@@ -481,7 +516,6 @@ def calculate_leave_days(request):
     return JsonResponse({'success': False})
 
 
-
 @login_required
 @permission_required('leaves.change_leavetype')
 @require_POST
@@ -507,3 +541,365 @@ def leave_type_toggle_status(request, pk):
             'success': False,
             'message': f'Error al cambiar el estado: {str(e)}'
         }, status=400)
+        
+        
+        
+@login_required
+def approve_leave_request(request, pk):
+    """API para aprobar solicitud de licencia - CON VERIFICACIÓN DE PERMISOS"""
+    
+    # 1. Verificar autenticación y perfil
+    if not hasattr(request.user, 'employee_profile'):
+        return JsonResponse({
+            'success': False,
+            'error': 'No tienes un perfil de empleado asociado.',
+            'error_type': 'no_profile'
+        }, status=403)
+    
+    # 2. Verificar permiso específico para cambiar solicitudes de licencia
+    if not request.user.has_perm('leaves.change_leaverequest'):
+        return JsonResponse({
+            'success': False,
+            'error': 'No tienes permisos para aprobar solicitudes de licencia.',
+            'error_type': 'permission_denied',
+            'required_permission': 'leaves.change_leaverequest',
+            'user_groups': list(request.user.groups.values_list('name', flat=True)),
+            'user_type': getattr(request.user, 'user_type', 'unknown')
+        }, status=403)
+    
+    # 3. Verificar que es supervisor por tipo o grupo
+    user_type = getattr(request.user, 'user_type', 'employee')
+    is_supervisor = (
+        user_type in ['supervisor', 'admin'] or
+        request.user.groups.filter(name__in=['Supervisores', 'Administradores']).exists()
+    )
+    
+    if not is_supervisor:
+        return JsonResponse({
+            'success': False,
+            'error': 'Solo supervisores pueden aprobar licencias.',
+            'error_type': 'role_denied'
+        }, status=403)
+    
+    # 4. Obtener y validar la solicitud
+    try:
+        leave_request = get_object_or_404(LeaveRequest, pk=pk)
+    except LeaveRequest.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Solicitud de licencia no encontrada.',
+            'error_type': 'not_found'
+        }, status=404)
+    
+    # 5. Verificar que la solicitud esté pendiente
+    if leave_request.status != 'pending':
+        return JsonResponse({
+            'success': False,
+            'error': f'Esta solicitud ya ha sido {leave_request.get_status_display().lower()}.',
+            'error_type': 'invalid_status',
+            'current_status': leave_request.status
+        }, status=400)
+    
+    # 6. Verificar que el supervisor puede aprobar esta solicitud (empleado bajo su supervisión)
+    from core.employees.models import Employee
+    supervisor = request.user.employee_profile
+    
+    # Obtener empleados bajo supervisión
+    subordinates = Employee.objects.filter(
+        Q(supervisor=supervisor) |
+        Q(department=supervisor.department, user__user_type='employee')
+    ).filter(status='active')
+    
+    if leave_request.employee not in subordinates:
+        return JsonResponse({
+            'success': False,
+            'error': 'No tienes permisos para aprobar esta solicitud. El empleado no está bajo tu supervisión.',
+            'error_type': 'not_supervisor'
+        }, status=403)
+    
+    # 7. Verificar balance de días disponibles
+    try:
+        balance = LeaveBalance.objects.get(
+            employee=leave_request.employee,
+            leave_type=leave_request.leave_type,
+            year=leave_request.start_date.year
+        )
+        
+        if balance.remaining_days < leave_request.days_requested:
+            return JsonResponse({
+                'success': False,
+                'error': f'El empleado no tiene suficientes días disponibles. Disponibles: {balance.remaining_days}, Solicitados: {leave_request.days_requested}',
+                'error_type': 'insufficient_balance',
+                'available_days': balance.remaining_days,
+                'requested_days': leave_request.days_requested
+            }, status=400)
+            
+    except LeaveBalance.DoesNotExist:
+        # Crear balance si no existe basado en el tipo de licencia
+        balance = LeaveBalance.objects.create(
+            employee=leave_request.employee,
+            leave_type=leave_request.leave_type,
+            year=leave_request.start_date.year,
+            allocated_days=leave_request.leave_type.days_allowed,
+            used_days=0,
+            remaining_days=leave_request.leave_type.days_allowed
+        )
+        
+        if balance.remaining_days < leave_request.days_requested:
+            return JsonResponse({
+                'success': False,
+                'error': f'El empleado no tiene suficientes días disponibles. Disponibles: {balance.remaining_days}, Solicitados: {leave_request.days_requested}',
+                'error_type': 'insufficient_balance'
+            }, status=400)
+    
+    # 8. Aprobar la solicitud
+    try:
+        leave_request.status = 'approved'
+        leave_request.approved_by = supervisor
+        leave_request.approved_date = timezone.now()
+        
+        # Obtener comentarios del supervisor si existen
+        supervisor_notes = request.POST.get('supervisor_notes', '')
+        if supervisor_notes:
+            leave_request.supervisor_notes = supervisor_notes
+        
+        leave_request.save()
+        
+        # 9. Actualizar balance
+        balance.used_days += leave_request.days_requested
+        balance.remaining_days = balance.allocated_days + balance.carried_forward - balance.used_days
+        balance.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Solicitud de {leave_request.employee.user.get_full_name()} aprobada exitosamente.',
+            'new_status': leave_request.get_status_display(),
+            'approved_by': supervisor.user.get_full_name(),
+            'approved_at': leave_request.approved_date.strftime('%d/%m/%Y %H:%M'),
+            'remaining_days': balance.remaining_days
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Error interno del servidor: {str(e)}',
+            'error_type': 'server_error'
+        }, status=500)
+
+
+@login_required
+def reject_leave_request(request, pk):
+    """API para rechazar solicitud de licencia"""
+    
+    # 1-3. Mismas verificaciones que approve_leave_request
+    if not hasattr(request.user, 'employee_profile'):
+        return JsonResponse({
+            'success': False,
+            'error': 'No tienes un perfil de empleado asociado.',
+            'error_type': 'no_profile'
+        }, status=403)
+    
+    if not request.user.has_perm('leaves.change_leaverequest'):
+        return JsonResponse({
+            'success': False,
+            'error': 'No tienes permisos para rechazar solicitudes de licencia.',
+            'error_type': 'permission_denied'
+        }, status=403)
+    
+    user_type = getattr(request.user, 'user_type', 'employee')
+    is_supervisor = (
+        user_type in ['supervisor', 'admin'] or
+        request.user.groups.filter(name__in=['Supervisores', 'Administradores']).exists()
+    )
+    
+    if not is_supervisor:
+        return JsonResponse({
+            'success': False,
+            'error': 'Solo supervisores pueden rechazar licencias.',
+            'error_type': 'role_denied'
+        }, status=403)
+    
+    # 4. Obtener solicitud
+    try:
+        leave_request = get_object_or_404(LeaveRequest, pk=pk)
+    except LeaveRequest.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Solicitud de licencia no encontrada.',
+            'error_type': 'not_found'
+        }, status=404)
+    
+    # 5. Verificar estado
+    if leave_request.status != 'pending':
+        return JsonResponse({
+            'success': False,
+            'error': f'Esta solicitud ya ha sido {leave_request.get_status_display().lower()}.',
+            'error_type': 'invalid_status'
+        }, status=400)
+    
+    # 6. Verificar supervisión
+    from core.employees.models import Employee
+    supervisor = request.user.employee_profile
+    
+    subordinates = Employee.objects.filter(
+        Q(supervisor=supervisor) |
+        Q(department=supervisor.department, user__user_type='employee')
+    ).filter(status='active')
+    
+    if leave_request.employee not in subordinates:
+        return JsonResponse({
+            'success': False,
+            'error': 'No tienes permisos para rechazar esta solicitud.',
+            'error_type': 'not_supervisor'
+        }, status=403)
+    
+    # 7. Obtener motivo del rechazo (requerido)
+    rejection_reason = request.POST.get('rejection_reason', '').strip()
+    if not rejection_reason:
+        return JsonResponse({
+            'success': False,
+            'error': 'Debe proporcionar un motivo para el rechazo.',
+            'error_type': 'missing_reason'
+        }, status=400)
+    
+    # 8. Rechazar la solicitud
+    try:
+        leave_request.status = 'rejected'
+        leave_request.approved_by = supervisor
+        leave_request.approved_date = timezone.now()
+        leave_request.supervisor_notes = rejection_reason
+        leave_request.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Solicitud de {leave_request.employee.user.get_full_name()} rechazada.',
+            'new_status': leave_request.get_status_display(),
+            'rejected_by': supervisor.user.get_full_name(),
+            'rejected_at': leave_request.approved_date.strftime('%d/%m/%Y %H:%M'),
+            'rejection_reason': rejection_reason
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'error': f'Error interno del servidor: {str(e)}',
+            'error_type': 'server_error'
+        }, status=500)
+
+
+@login_required
+def leave_request_bulk_actions(request):
+    """API para acciones masivas en solicitudes de licencia"""
+    if not hasattr(request.user, 'employee_profile'):
+        return JsonResponse({
+            'success': False,
+            'error': 'No tienes un perfil de empleado asociado.',
+            'error_type': 'no_profile'
+        }, status=403)
+    
+    if not request.user.has_perm('leaves.change_leaverequest'):
+        return JsonResponse({
+            'success': False,
+            'error': 'No tienes permisos para realizar acciones masivas.',
+            'error_type': 'permission_denied'
+        }, status=403)
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        request_ids = request.POST.getlist('request_ids')
+        
+        from core.employees.models import Employee
+        supervisor = request.user.employee_profile
+        
+        # Obtener empleados bajo supervisión
+        subordinates = Employee.objects.filter(
+            Q(supervisor=supervisor) |
+            Q(department=supervisor.department, user__user_type='employee')
+        ).filter(status='active')
+        
+        # Filtrar solicitudes que puede gestionar
+        leave_requests = LeaveRequest.objects.filter(
+            id__in=request_ids,
+            employee__in=subordinates,
+            status='pending'
+        )
+        
+        if action == 'approve_all':
+            approved_count = 0
+            errors = []
+            
+            for leave_request in leave_requests:
+                try:
+                    # Verificar/crear balance
+                    balance, created = LeaveBalance.objects.get_or_create(
+                        employee=leave_request.employee,
+                        leave_type=leave_request.leave_type,
+                        year=leave_request.start_date.year,
+                        defaults={
+                            'allocated_days': leave_request.leave_type.days_allowed,
+                            'used_days': 0,
+                            'remaining_days': leave_request.leave_type.days_allowed
+                        }
+                    )
+                    
+                    if balance.remaining_days >= leave_request.days_requested:
+                        leave_request.status = 'approved'
+                        leave_request.approved_by = supervisor
+                        leave_request.approved_date = timezone.now()
+                        leave_request.save()
+                        
+                        balance.used_days += leave_request.days_requested
+                        balance.remaining_days = balance.allocated_days + balance.carried_forward - balance.used_days
+                        balance.save()
+                        
+                        approved_count += 1
+                    else:
+                        errors.append(f'{leave_request.employee.user.get_full_name()}: días insuficientes')
+                        
+                except Exception as e:
+                    errors.append(f'{leave_request.employee.user.get_full_name()}: {str(e)}')
+            
+            message = f'{approved_count} solicitud(es) aprobada(s)'
+            if errors:
+                message += f'. Errores: {", ".join(errors)}'
+            
+            return JsonResponse({
+                'success': True,
+                'message': message,
+                'approved_count': approved_count,
+                'errors': errors
+            })
+        
+        elif action == 'reject_all':
+            rejection_reason = request.POST.get('rejection_reason', '').strip()
+            if not rejection_reason:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Debe proporcionar un motivo para el rechazo masivo.',
+                    'error_type': 'missing_reason'
+                }, status=400)
+            
+            rejected_count = leave_requests.update(
+                status='rejected',
+                approved_by=supervisor,
+                approved_date=timezone.now(),
+                supervisor_notes=rejection_reason
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'{rejected_count} solicitud(es) rechazada(s)',
+                'rejected_count': rejected_count
+            })
+        
+        return JsonResponse({
+            'success': False,
+            'error': 'Acción inválida',
+            'error_type': 'invalid_action'
+        }, status=400)
+    
+    return JsonResponse({
+        'success': False,
+        'error': 'Método no permitido',
+        'error_type': 'method_not_allowed'
+    }, status=405)

@@ -28,7 +28,7 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Filtros y Búsqueda -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-            <form method="get" class="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-4 lg:gap-4">
+            <form method="get" class="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-5 lg:gap-4">
                 <!-- Búsqueda -->
                 <div>
                     <label for="search" class="block text-sm font-medium text-gray-700 mb-2">Buscar</label>
@@ -75,6 +75,20 @@
                     </select>
                 </div>
 
+                <!-- NUEVO: Filtro por Tipo de Usuario -->
+                <div>
+                    <label for="user_type" class="block text-sm font-medium text-gray-700 mb-2">Tipo de Usuario</label>
+                    <select id="user_type" 
+                            name="user_type" 
+                            class="w-full py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        <option value="">Todos los tipos</option>
+                        <option value="employee" {% if selected_user_type == 'employee' %}selected{% endif %}>Empleado</option>
+                        <option value="supervisor" {% if selected_user_type == 'supervisor' %}selected{% endif %}>Supervisor</option>
+                        <option value="hr" {% if selected_user_type == 'hr' %}selected{% endif %}>Recursos Humanos</option>
+                        <option value="admin" {% if selected_user_type == 'admin' %}selected{% endif %}>Administrador</option>
+                    </select>
+                </div>
+
                 <!-- Botones -->
                 <div class="flex items-end space-x-2">
                     <button type="submit" 
@@ -89,6 +103,57 @@
                     </a>
                 </div>
             </form>
+        </div>
+
+        <!-- Estadísticas Rápidas -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center">
+                    <div class="bg-blue-100 p-3 rounded-full">
+                        <i class="fas fa-users text-blue-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Total Empleados</p>
+                        <p class="text-2xl font-bold text-blue-600">{{ total_employees|default:0 }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center">
+                    <div class="bg-green-100 p-3 rounded-full">
+                        <i class="fas fa-user-check text-green-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Empleados Activos</p>
+                        <p class="text-2xl font-bold text-green-600">{{ active_employees|default:0 }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center">
+                    <div class="bg-purple-100 p-3 rounded-full">
+                        <i class="fas fa-user-tie text-purple-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Supervisores</p>
+                        <p class="text-2xl font-bold text-purple-600">{{ supervisor_count|default:0 }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center">
+                    <div class="bg-orange-100 p-3 rounded-full">
+                        <i class="fas fa-crown text-orange-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Administradores</p>
+                        <p class="text-2xl font-bold text-orange-600">{{ admin_count|default:0 }}</p>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Tabla de Empleados -->
@@ -118,6 +183,9 @@
                             </th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Empleado
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Tipo de Usuario
                             </th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 Departamento
@@ -165,6 +233,30 @@
                                         </div>
                                     </div>
                                 </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <!-- NUEVO: Mostrar tipo de usuario con iconos y colores -->
+                                {% if employee.user.user_type == 'admin' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                        <i class="fas fa-crown mr-1.5"></i>
+                                        Administrador
+                                    </span>
+                                {% elif employee.user.user_type == 'hr' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                        <i class="fas fa-users-cog mr-1.5"></i>
+                                        Recursos Humanos
+                                    </span>
+                                {% elif employee.user.user_type == 'supervisor' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        <i class="fas fa-user-tie mr-1.5"></i>
+                                        Supervisor
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                        <i class="fas fa-user mr-1.5"></i>
+                                        Empleado
+                                    </span>
+                                {% endif %}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="text-sm text-gray-900">{{ employee.department.name }}</div>
@@ -237,11 +329,11 @@
                     </div>
                     <div class="flex items-center space-x-1">
                         {% if page_obj.has_previous %}
-                            <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.department %}department={{ request.GET.department }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}page=1" 
+                            <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.department %}department={{ request.GET.department }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.user_type %}user_type={{ request.GET.user_type }}&{% endif %}page=1" 
                                class="px-3 py-2 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50">
                                 Primera
                             </a>
-                            <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.department %}department={{ request.GET.department }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}page={{ page_obj.previous_page_number }}" 
+                            <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.department %}department={{ request.GET.department }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.user_type %}user_type={{ request.GET.user_type }}&{% endif %}page={{ page_obj.previous_page_number }}" 
                                class="px-3 py-2 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50">
                                 <i class="fas fa-chevron-left"></i>
                             </a>
@@ -252,11 +344,11 @@
                         </span>
                         
                         {% if page_obj.has_next %}
-                            <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.department %}department={{ request.GET.department }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}page={{ page_obj.next_page_number }}" 
+                            <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.department %}department={{ request.GET.department }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.user_type %}user_type={{ request.GET.user_type }}&{% endif %}page={{ page_obj.next_page_number }}" 
                                class="px-3 py-2 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50">
                                 <i class="fas fa-chevron-right"></i>
                             </a>
-                            <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.department %}department={{ request.GET.department }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}page={{ page_obj.paginator.num_pages }}" 
+                            <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.department %}department={{ request.GET.department }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.user_type %}user_type={{ request.GET.user_type }}&{% endif %}page={{ page_obj.paginator.num_pages }}" 
                                class="px-3 py-2 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50">
                                 Última
                             </a>
@@ -274,7 +366,7 @@
                 </div>
                 <h3 class="text-lg font-medium text-gray-900 mb-2">No hay empleados registrados</h3>
                 <p class="text-gray-500 mb-6">
-                    {% if search_query or selected_department or selected_status %}
+                    {% if search_query or selected_department or selected_status or selected_user_type %}
                         No se encontraron empleados que coincidan con los filtros aplicados.
                     {% else %}
                         Comienza agregando tu primer empleado al sistema.
@@ -311,6 +403,77 @@
 
     document.getElementById('status').addEventListener('change', function() {
         this.form.submit();
+    });
+
+    document.getElementById('user_type').addEventListener('change', function() {
+        this.form.submit();
+    });
+
+    // Efectos hover para las filas de la tabla
+    const tableRows = document.querySelectorAll('tbody tr');
+    tableRows.forEach(row => {
+        row.addEventListener('mouseenter', function() {
+            this.style.transform = 'scale(1.002)';
+            this.style.transition = 'transform 0.2s ease';
+        });
+        
+        row.addEventListener('mouseleave', function() {
+            this.style.transform = 'scale(1)';
+        });
+    });
+
+    // Tooltip para tipos de usuario
+    const userTypeBadges = document.querySelectorAll('[class*="bg-red-100"], [class*="bg-purple-100"], [class*="bg-green-100"], [class*="bg-blue-100"]');
+    userTypeBadges.forEach(badge => {
+        if (badge.textContent.includes('Administrador')) {
+            badge.title = 'Acceso completo al sistema y configuración';
+        } else if (badge.textContent.includes('Recursos Humanos')) {
+            badge.title = 'Gestión de empleados, nómina y documentos';
+        } else if (badge.textContent.includes('Supervisor')) {
+            badge.title = 'Gestión de tareas y supervisión de empleados';
+        } else if (badge.textContent.includes('Empleado')) {
+            badge.title = 'Acceso básico al portal de empleados';
+        }
+    });
+
+    // Búsqueda en tiempo real (opcional)
+    let searchTimeout;
+    const searchInput = document.getElementById('search');
+    
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            if (this.value.length >= 3 || this.value.length === 0) {
+                this.form.submit();
+            }
+        }, 500);
+    });
+
+    // Estadísticas en tiempo real
+    function updateStats() {
+        const rows = document.querySelectorAll('tbody tr');
+        const activeCount = document.querySelectorAll('[class*="bg-green-100"]:not([class*="text-green-800"])').length;
+        const supervisorCount = document.querySelectorAll('span:contains("Supervisor")').length;
+        const adminCount = document.querySelectorAll('span:contains("Administrador")').length;
+        
+        // Actualizar contadores si existen
+        const totalElement = document.querySelector('.text-blue-600');
+        if (totalElement) {
+            totalElement.textContent = rows.length;
+        }
+    }
+
+    // Animación de entrada para las tarjetas de estadísticas
+    const statCards = document.querySelectorAll('.grid > .bg-white');
+    statCards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+            card.style.transition = 'all 0.5s ease';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, index * 100);
     });
 </script>
 {% endblock %}

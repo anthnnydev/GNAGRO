@@ -1,0 +1,420 @@
+<!-- pages/supervisor/tasks/task_confirm_delete.html -->
+{% extends 'layouts/base_supervisor.html' %}
+{% load static %}
+
+{% block title %}Eliminar Tarea - {{ object.title }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header de la página -->
+    <div class="mb-8">
+        <nav class="flex mb-4" aria-label="Breadcrumb">
+            <ol class="inline-flex items-center space-x-1 md:space-x-3">
+                <li class="inline-flex items-center">
+                    <a href="{% url 'employees:supervisor_dashboard' %}" class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-home"></i>
+                    </a>
+                </li>
+                <li><i class="fas fa-chevron-right text-gray-400"></i></li>
+                <li class="inline-flex items-center">
+                    <a href="{% url 'tasks:task_list' %}" class="text-gray-500 hover:text-gray-700">Tareas</a>
+                </li>
+                <li><i class="fas fa-chevron-right text-gray-400"></i></li>
+                <li class="inline-flex items-center">
+                    <a href="{% url 'tasks:task_detail' object.pk %}" class="text-gray-500 hover:text-gray-700">{{ object.title|truncatechars:30 }}</a>
+                </li>
+                <li><i class="fas fa-chevron-right text-gray-400"></i></li>
+                <li class="text-gray-500" aria-current="page">Eliminar</li>
+            </ol>
+        </nav>
+        <h1 class="text-3xl font-bold text-gray-900 flex items-center">
+            <i class="fas fa-exclamation-triangle text-red-600 mr-3"></i>
+            Confirmar Eliminación
+        </h1>
+        <p class="mt-2 text-gray-600">
+            Esta acción no se puede deshacer. Por favor, revisa cuidadosamente antes de continuar.
+        </p>
+    </div>
+
+    <!-- Contenido principal -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <!-- Header del modal -->
+        <div class="bg-gradient-to-r from-red-50 to-pink-50 border-b border-red-200 px-6 py-4">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-trash-alt text-red-600 text-xl"></i>
+                    </div>
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-lg font-semibold text-gray-900">¿Estás seguro de eliminar esta tarea?</h3>
+                    <p class="text-sm text-gray-600">Esta acción eliminará permanentemente la tarea y todos sus datos asociados.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Información de la tarea -->
+        <div class="px-6 py-6">
+            <div class="bg-gray-50 rounded-lg p-6 mb-6">
+                <h4 class="text-lg font-semibold text-gray-900 mb-4">Información de la Tarea</h4>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-3">
+                        <div>
+                            <dt class="text-sm font-medium text-gray-600">Título:</dt>
+                            <dd class="text-base font-semibold text-gray-900">{{ object.title }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-600">Categoría:</dt>
+                            <dd class="text-sm text-gray-900">
+                                {% if object.category %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium" 
+                                          style="background-color: {{ object.category.color }}20; color: {{ object.category.color }};">
+                                        {{ object.category.name }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-gray-400">Sin categoría</span>
+                                {% endif %}
+                            </dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-600">Estado:</dt>
+                            <dd class="text-sm text-gray-900">
+                                {% if object.status == 'draft' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                        <i class="fas fa-edit mr-1"></i>Borrador
+                                    </span>
+                                {% elif object.status == 'assigned' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                        <i class="fas fa-clock mr-1"></i>Asignada
+                                    </span>
+                                {% elif object.status == 'in_progress' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                        <i class="fas fa-play mr-1"></i>En Progreso
+                                    </span>
+                                {% elif object.status == 'completed' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        <i class="fas fa-check mr-1"></i>Completada
+                                    </span>
+                                {% endif %}
+                            </dd>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-3">
+                        <div>
+                            <dt class="text-sm font-medium text-gray-600">Prioridad:</dt>
+                            <dd class="text-sm text-gray-900">
+                                {% if object.priority == 'urgent' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                        <i class="fas fa-exclamation-triangle mr-1"></i>Urgente
+                                    </span>
+                                {% elif object.priority == 'high' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                        <i class="fas fa-arrow-up mr-1"></i>Alta
+                                    </span>
+                                {% elif object.priority == 'medium' %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                        <i class="fas fa-minus mr-1"></i>Media
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                        <i class="fas fa-arrow-down mr-1"></i>Baja
+                                    </span>
+                                {% endif %}
+                            </dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-600">Empleados Asignados:</dt>
+                            <dd class="text-sm font-semibold text-gray-900">{{ object.assigned_employees.count }} empleado{{ object.assigned_employees.count|pluralize }}</dd>
+                        </div>
+                        <div>
+                            <dt class="text-sm font-medium text-gray-600">Fechas:</dt>
+                            <dd class="text-sm text-gray-900">{{ object.start_date|date:"d M Y" }} - {{ object.end_date|date:"d M Y" }}</dd>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if object.description %}
+                <div class="mt-4">
+                    <dt class="text-sm font-medium text-gray-600 mb-2">Descripción:</dt>
+                    <dd class="text-sm text-gray-900 bg-white rounded-lg p-3 border">{{ object.description|truncatechars:200 }}</dd>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Advertencias y consecuencias -->
+            <div class="space-y-4">
+                <!-- Advertencia principal -->
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-exclamation-triangle text-red-400 text-lg"></i>
+                        </div>
+                        <div class="ml-3">
+                            <h4 class="text-sm font-semibold text-red-800">¡Atención! Esta acción es irreversible</h4>
+                            <div class="mt-2 text-sm text-red-700">
+                                <p>Al eliminar esta tarea se perderán permanentemente:</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lista de consecuencias -->
+                <div class="bg-white border border-gray-200 rounded-lg p-4">
+                    <h4 class="text-sm font-semibold text-gray-900 mb-3">Datos que se eliminarán:</h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="space-y-2">
+                            <div class="flex items-center text-sm">
+                                <i class="fas fa-times-circle text-red-500 mr-2"></i>
+                                <span class="text-gray-700">Toda la información de la tarea</span>
+                            </div>
+                            <div class="flex items-center text-sm">
+                                <i class="fas fa-times-circle text-red-500 mr-2"></i>
+                                <span class="text-gray-700">Todas las asignaciones de empleados</span>
+                                <span class="ml-auto text-red-600 font-medium">({{ object.assigned_employees.count }})</span>
+                            </div>
+                            <div class="flex items-center text-sm">
+                                <i class="fas fa-times-circle text-red-500 mr-2"></i>
+                                <span class="text-gray-700">Registros de progreso</span>
+                            </div>
+                        </div>
+                        <div class="space-y-2">
+                            <div class="flex items-center text-sm">
+                                <i class="fas fa-times-circle text-red-500 mr-2"></i>
+                                <span class="text-gray-700">Comentarios y actividad</span>
+                            </div>
+                            <div class="flex items-center text-sm">
+                                <i class="fas fa-times-circle text-red-500 mr-2"></i>
+                                <span class="text-gray-700">Archivos adjuntos</span>
+                            </div>
+                            <div class="flex items-center text-sm">
+                                <i class="fas fa-times-circle text-red-500 mr-2"></i>
+                                <span class="text-gray-700">Historial de cambios</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Restricciones -->
+                {% if object.status != 'draft' and object.assigned_employees.count > 0 %}
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-exclamation-triangle text-yellow-400"></i>
+                        </div>
+                        <div class="ml-3">
+                            <h4 class="text-sm font-semibold text-yellow-800">Consideración Importante</h4>
+                            <div class="mt-2 text-sm text-yellow-700">
+                                <p>Esta tarea tiene empleados asignados y no está en estado de borrador. Considera las siguientes alternativas:</p>
+                                <ul class="mt-2 list-disc list-inside space-y-1">
+                                    <li>Cancelar la tarea en lugar de eliminarla</li>
+                                    <li>Quitar las asignaciones primero</li>
+                                    <li>Archivar la tarea para referencia futura</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Empleados afectados -->
+                {% if object.assigned_employees.count > 0 %}
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 class="text-sm font-semibold text-blue-800 mb-3">
+                        <i class="fas fa-users mr-1"></i>
+                        Empleados que serán notificados de la eliminación:
+                    </h4>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                        {% for employee in object.assigned_employees.all|slice:":6" %}
+                        <div class="flex items-center space-x-2 text-sm text-blue-700">
+                            <div class="w-6 h-6 bg-blue-200 rounded-full flex items-center justify-center text-xs font-medium">
+                                {{ employee.user.first_name|first|upper }}
+                            </div>
+                            <span>{{ employee.user.get_full_name }}</span>
+                        </div>
+                        {% endfor %}
+                        {% if object.assigned_employees.count > 6 %}
+                        <div class="text-sm text-blue-600">
+                            y {{ object.assigned_employees.count|add:"-6" }} más...
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Acciones -->
+        <div class="bg-gray-50 px-6 py-4 border-t border-gray-200">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-3 sm:space-y-0">
+                <!-- Alternativas -->
+                <div class="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+                    <a href="{% url 'tasks:task_detail' object.pk %}" 
+                       class="inline-flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i>
+                        Volver a Detalles
+                    </a>
+                    {% if object.status != 'cancelled' %}
+                    <button onclick="cancelTask()" 
+                            class="inline-flex items-center justify-center px-4 py-2 border border-yellow-300 rounded-lg text-sm font-medium text-yellow-700 bg-yellow-50 hover:bg-yellow-100 transition-colors">
+                        <i class="fas fa-ban mr-2"></i>
+                        Cancelar en lugar de Eliminar
+                    </button>
+                    {% endif %}
+                </div>
+
+                <!-- Confirmación de eliminación -->
+                <div class="flex items-center space-x-3">
+                    <div class="flex items-center">
+                        <input type="checkbox" id="confirm-deletion" class="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded">
+                        <label for="confirm-deletion" class="ml-2 text-sm text-gray-700">
+                            Entiendo las consecuencias
+                        </label>
+                    </div>
+                    <form method="post" id="delete-form">
+                        {% csrf_token %}
+                        <button type="submit" id="delete-button" disabled
+                                class="inline-flex items-center justify-center px-6 py-2 border border-transparent rounded-lg text-sm font-medium text-white bg-red-600 hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors">
+                            <i class="fas fa-trash mr-2"></i>
+                            Sí, Eliminar Definitivamente
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmación adicional -->
+<div id="final-confirmation-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3 text-center">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">Confirmación Final</h3>
+            <div class="mt-2 px-7 py-3">
+                <p class="text-sm text-gray-500">
+                    Escribe <strong class="text-red-600">"ELIMINAR"</strong> para confirmar que realmente quieres eliminar esta tarea:
+                </p>
+                <input type="text" id="final-confirmation-input" 
+                       class="mt-3 w-full px-3 py-2 border border-gray-300 rounded-md text-center font-medium"
+                       placeholder="Escribe ELIMINAR">
+            </div>
+            <div class="items-center px-4 py-3">
+                <button id="final-delete-button" disabled
+                        class="px-4 py-2 bg-red-600 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors">
+                    Eliminar Tarea
+                </button>
+                <button onclick="closeFinalModal()" 
+                        class="mt-3 px-4 py-2 bg-gray-300 text-gray-800 text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-400 transition-colors">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const confirmCheckbox = document.getElementById('confirm-deletion');
+    const deleteButton = document.getElementById('delete-button');
+    const deleteForm = document.getElementById('delete-form');
+    const finalModal = document.getElementById('final-confirmation-modal');
+    const finalInput = document.getElementById('final-confirmation-input');
+    const finalDeleteButton = document.getElementById('final-delete-button');
+
+    // Habilitar/deshabilitar botón según checkbox
+    confirmCheckbox.addEventListener('change', function() {
+        deleteButton.disabled = !this.checked;
+    });
+
+    // Interceptar envío del formulario para mostrar modal final
+    deleteForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        showFinalModal();
+    });
+
+    // Validar entrada en modal final
+    finalInput.addEventListener('input', function() {
+        const isValid = this.value.toUpperCase() === 'ELIMINAR';
+        finalDeleteButton.disabled = !isValid;
+        
+        if (isValid) {
+            finalDeleteButton.classList.remove('bg-gray-400');
+            finalDeleteButton.classList.add('bg-red-600', 'hover:bg-red-700');
+        } else {
+            finalDeleteButton.classList.add('bg-gray-400');
+            finalDeleteButton.classList.remove('bg-red-600', 'hover:bg-red-700');
+        }
+    });
+
+    // Eliminar definitivamente
+    finalDeleteButton.addEventListener('click', function() {
+        if (finalInput.value.toUpperCase() === 'ELIMINAR') {
+            finalDeleteButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Eliminando...';
+            finalDeleteButton.disabled = true;
+            deleteForm.submit();
+        }
+    });
+
+    // Cerrar modal con Escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && !finalModal.classList.contains('hidden')) {
+            closeFinalModal();
+        }
+    });
+});
+
+function showFinalModal() {
+    document.getElementById('final-confirmation-modal').classList.remove('hidden');
+    document.getElementById('final-confirmation-input').focus();
+}
+
+function closeFinalModal() {
+    document.getElementById('final-confirmation-modal').classList.add('hidden');
+    document.getElementById('final-confirmation-input').value = '';
+    document.getElementById('final-delete-button').disabled = true;
+}
+
+function cancelTask() {
+    if (confirm('¿Quieres cancelar esta tarea en lugar de eliminarla? Esto preservará los datos para referencia futura.')) {
+        // Implementar cancelación via AJAX
+        fetch(`{% url 'tasks:task_update' object.pk %}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify({
+                'status': 'cancelled',
+                'action': 'cancel_task'
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                window.location.href = '{% url "tasks:task_detail" object.pk %}';
+            } else {
+                alert('Error al cancelar la tarea: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error de conexión');
+        });
+    }
+}
+
+// Prevenir cierre accidental de la página
+window.addEventListener('beforeunload', function(e) {
+    const modal = document.getElementById('final-confirmation-modal');
+    if (!modal.classList.contains('hidden')) {
+        e.preventDefault();
+        e.returnValue = '';
+    }
+});
+</script>
+{% endblock %}

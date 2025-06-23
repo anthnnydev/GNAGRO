@@ -53,9 +53,9 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     
-    # MIDDLEWARES DEL SISTEMA DE EMPLEADOS:
     'core.employees.middleware.EmployeePasswordChangeMiddleware',
     'core.employees.middleware.EmployeeAccessMiddleware',
+    'core.employees.middleware.SupervisorAccessMiddleware',
 ]
 
 # AGREGAR ESTA LÍNEA:

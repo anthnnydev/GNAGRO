@@ -84,14 +84,11 @@ class LeaveRequestForm(forms.ModelForm):
     """
     class Meta:
         model = LeaveRequest
+        # IMPORTANTE: NO incluir 'employee' en los fields
         fields = [
-            'employee', 'leave_type', 'start_date', 'end_date', 
-            'days_requested', 'reason'
+            'leave_type', 'start_date', 'end_date', 'reason'
         ]
         widgets = {
-            'employee': forms.Select(attrs={
-                'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 bg-white shadow-sm hover:border-gray-400'
-            }),
             'leave_type': forms.Select(attrs={
                 'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 bg-white shadow-sm hover:border-gray-400'
             }),
@@ -103,11 +100,6 @@ class LeaveRequestForm(forms.ModelForm):
                 'type': 'date',
                 'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 bg-white shadow-sm hover:border-gray-400'
             }),
-            'days_requested': forms.NumberInput(attrs={
-                'class': 'w-full px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed shadow-sm',
-                'min': '1',
-                'readonly': True
-            }),
             'reason': forms.Textarea(attrs={
                 'class': 'w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200 bg-white shadow-sm hover:border-gray-400 resize-none',
                 'rows': 4,
@@ -115,11 +107,9 @@ class LeaveRequestForm(forms.ModelForm):
             }),
         }
         labels = {
-            'employee': 'Empleado',
             'leave_type': 'Tipo de Licencia',
             'start_date': 'Fecha de Inicio',
             'end_date': 'Fecha de Fin',
-            'days_requested': 'Días Solicitados',
             'reason': 'Motivo'
         }
 
@@ -130,25 +120,11 @@ class LeaveRequestForm(forms.ModelForm):
         # Filtrar tipos de licencia activos
         self.fields['leave_type'].queryset = LeaveType.objects.filter(is_active=True)
         self.fields['leave_type'].empty_label = "Seleccionar tipo de licencia"
-        
-        # Si es una nueva solicitud y tenemos usuario, preseleccionar empleado
-        if not self.instance.pk and self.user:
-            try:
-                # Importar aquí para evitar imports circulares - MOVIDO DENTRO DEL TRY
-                from core.employees.models import Employee
-                employee = Employee.objects.get(user=self.user)
-                self.fields['employee'].initial = employee
-            except Employee.DoesNotExist:
-                pass
-            except ImportError:
-                # Manejar el caso donde no se puede importar Employee
-                pass
 
     def clean(self):
         cleaned_data = super().clean()
         start_date = cleaned_data.get('start_date')
         end_date = cleaned_data.get('end_date')
-        employee = cleaned_data.get('employee')
         leave_type = cleaned_data.get('leave_type')
 
         # Validar fechas
@@ -159,31 +135,9 @@ class LeaveRequestForm(forms.ModelForm):
             if start_date < datetime.now().date():
                 raise ValidationError('La fecha de inicio no puede ser anterior a hoy.')
             
-            # Calcular días automáticamente
+            # Calcular días automáticamente (esto se hará en la vista)
             days_requested = (end_date - start_date).days + 1
             cleaned_data['days_requested'] = days_requested
-
-        # Validar balance disponible
-        if employee and leave_type and start_date:
-            year = start_date.year
-            try:
-                balance = LeaveBalance.objects.get(
-                    employee=employee,
-                    leave_type=leave_type,
-                    year=year
-                )
-                if balance.remaining_days < cleaned_data.get('days_requested', 0):
-                    raise ValidationError(
-                        f'No tienes suficientes días disponibles. '
-                        f'Disponible: {balance.remaining_days} días.'
-                    )
-            except LeaveBalance.DoesNotExist:
-                # Si no existe balance, verificar con días permitidos del tipo
-                if leave_type.days_allowed < cleaned_data.get('days_requested', 0):
-                    raise ValidationError(
-                        f'Los días solicitados exceden el límite permitido '
-                        f'({leave_type.days_allowed} días).'
-                    )
 
         return cleaned_data
 

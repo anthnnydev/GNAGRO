@@ -1,9 +1,12 @@
-# core/tasks/models.py
+# core/tasks/models.py (CORREGIDO - Solo las partes que cambian)
+
 from django.db import models
 from django.conf import settings
 from django.core.validators import MinValueValidator, MaxValueValidator
+from django.utils import timezone  # CORREGIDO: Usar timezone de Django
 from decimal import Decimal
 from datetime import datetime, time, timedelta
+
 
 class TaskCategory(models.Model):
     """Categorías de tareas agrícolas"""
@@ -235,7 +238,8 @@ class Task(models.Model):
         """Verifica si la tarea está vencida"""
         if self.status in ['completed', 'cancelled']:
             return False
-        return datetime.now() > self.end_date
+        # CORREGIDO: Usar timezone.now() en lugar de datetime.now()
+        return timezone.now() > self.end_date
     
     @property
     def duration_hours(self):
@@ -342,7 +346,9 @@ class TaskAssignment(models.Model):
         elif self.task.payment_type == 'fixed':
             # Pago fijo dividido entre empleados asignados
             if self.status == 'completed':
-                return self.task.fixed_amount / self.task.total_assigned_employees
+                total_assigned = self.task.total_assigned_employees
+                if total_assigned > 0:
+                    return self.task.fixed_amount / total_assigned
             return 0
         elif self.task.payment_type == 'unit':
             return self.units_completed * (self.task.unit_rate or 0)

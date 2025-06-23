@@ -1,0 +1,306 @@
+{% extends 'layouts/base_employee.html' %}
+
+{% block title %}Mis Tareas - Portal Empleado{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header de la página -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900 flex items-center">
+                        <i class="fas fa-tasks text-green-600 mr-3"></i>
+                        Mis Tareas Asignadas
+                    </h1>
+                    <p class="text-gray-600 mt-1">Gestiona y realiza seguimiento a tus tareas</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="text-sm text-gray-500">
+                        <i class="fas fa-calendar-alt mr-2"></i>
+                        {% now "d F Y" %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Filtros y búsqueda -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+                <div class="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4">
+                    <!-- Búsqueda -->
+                    <form method="GET" class="flex items-center space-x-4">
+                        <div class="relative">
+                            <input type="text" 
+                                   name="search" 
+                                   value="{{ current_filters.search }}"
+                                   placeholder="Buscar tareas..."
+                                   class="w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                            <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                        </div>
+                        
+                        <!-- Filtro por estado -->
+                        <select name="status" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                            <option value="">Todos los estados</option>
+                            {% for value, label in status_choices %}
+                                <option value="{{ value }}" {% if current_filters.status == value %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        
+                        <!-- Filtro por prioridad -->
+                        <select name="priority" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                            <option value="">Todas las prioridades</option>
+                            {% for value, label in priority_choices %}
+                                <option value="{{ value }}" {% if current_filters.priority == value %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        
+                        <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                            <i class="fas fa-filter mr-2"></i>Filtrar
+                        </button>
+                        
+                        {% if current_filters.search or current_filters.status or current_filters.priority %}
+                        <a href="{% url 'tasks:employee_task_list' %}" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors">
+                            <i class="fas fa-times mr-2"></i>Limpiar
+                        </a>
+                        {% endif %}
+                    </form>
+                </div>
+                
+                <!-- Estadísticas rápidas -->
+                <div class="flex items-center space-x-6 text-sm">
+                    <div class="text-center">
+                        <div class="font-semibold text-blue-600">{{ assignments.paginator.count }}</div>
+                        <div class="text-gray-500">Total</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lista de tareas -->
+        {% if assignments %}
+        <div class="space-y-4">
+            {% for assignment in assignments %}
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 hover:shadow-md transition-shadow">
+                <div class="p-6">
+                    <div class="flex items-start justify-between">
+                        <div class="flex-1">
+                            <!-- Header de la tarea -->
+                            <div class="flex items-center space-x-3 mb-3">
+                                <div class="flex-shrink-0">
+                                    {% if assignment.task.category %}
+                                    <div class="w-3 h-3 rounded-full" style="background-color: {{ assignment.task.category.color }}"></div>
+                                    {% else %}
+                                    <div class="w-3 h-3 rounded-full bg-gray-400"></div>
+                                    {% endif %}
+                                </div>
+                                <h3 class="text-lg font-semibold text-gray-900">{{ assignment.task.title }}</h3>
+                                
+                                <!-- Badges de estado y prioridad -->
+                                <div class="flex items-center space-x-2">
+                                    <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full 
+                                        {% if assignment.status == 'completed' %}bg-green-100 text-green-800
+                                        {% elif assignment.status == 'in_progress' %}bg-blue-100 text-blue-800
+                                        {% elif assignment.status == 'accepted' %}bg-purple-100 text-purple-800
+                                        {% elif assignment.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                        {% elif assignment.status == 'rejected' %}bg-red-100 text-red-800
+                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        {{ assignment.get_status_display }}
+                                    </span>
+                                    
+                                    {% if assignment.task.priority == 'urgent' %}
+                                    <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">
+                                        <i class="fas fa-exclamation-triangle mr-1"></i>URGENTE
+                                    </span>
+                                    {% elif assignment.task.priority == 'high' %}
+                                    <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-orange-100 text-orange-800">
+                                        ALTA
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <!-- Descripción -->
+                            {% if assignment.task.description %}
+                            <p class="text-gray-600 mb-3">{{ assignment.task.description|truncatechars:150 }}</p>
+                            {% endif %}
+                            
+                            <!-- Información de la tarea -->
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                                <div class="flex items-center text-sm text-gray-500">
+                                    <i class="fas fa-map-marker-alt mr-2 text-gray-400"></i>
+                                    <span>{{ assignment.task.location|default:"Sin ubicación" }}</span>
+                                </div>
+                                <div class="flex items-center text-sm text-gray-500">
+                                    <i class="fas fa-clock mr-2 text-gray-400"></i>
+                                    <span>{{ assignment.task.estimated_hours }}h estimadas</span>
+                                </div>
+                                <div class="flex items-center text-sm text-gray-500">
+                                    <i class="fas fa-calendar mr-2 text-gray-400"></i>
+                                    <span>Vence: {{ assignment.task.end_date|date:"d/m/Y H:i" }}</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Progreso -->
+                            {% if assignment.status == 'in_progress' or assignment.status == 'completed' %}
+                            <div class="mb-4">
+                                <div class="flex items-center justify-between text-sm text-gray-600 mb-1">
+                                    <span>Progreso</span>
+                                    <span>{{ assignment.hours_worked }}/{{ assignment.task.estimated_hours }}h</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2">
+                                    {% widthratio assignment.hours_worked assignment.task.estimated_hours 100 as progress_percent %}
+                                    <div class="bg-green-600 h-2 rounded-full" style="width: {{ progress_percent|floatformat:0 }}%"></div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            <!-- Información del supervisor -->
+                            <div class="flex items-center text-sm text-gray-500 mb-4">
+                                <i class="fas fa-user-tie mr-2 text-gray-400"></i>
+                                <span>Supervisor: {{ assignment.task.supervisor.user.get_full_name }}</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Acciones y pago -->
+                        <div class="flex-shrink-0 ml-6">
+                            <div class="text-right mb-4">
+                                <div class="text-lg font-semibold text-green-600">
+                                    ${{ assignment.calculated_payment|floatformat:2 }}
+                                </div>
+                                <div class="text-xs text-gray-500">
+                                    {% if assignment.task.payment_type == 'hourly' %}
+                                        Por hora
+                                    {% elif assignment.task.payment_type == 'fixed' %}
+                                        Monto fijo
+                                    {% elif assignment.task.payment_type == 'unit' %}
+                                        Por {{ assignment.task.unit_description }}
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <!-- Botón de acción -->
+                            <div class="space-y-2">
+                                <a href="{% url 'tasks:employee_task_detail' assignment.pk %}" 
+                                   class="block w-full bg-green-600 text-white text-center px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                                    {% if assignment.status == 'pending' %}
+                                        <i class="fas fa-eye mr-2"></i>Revisar
+                                    {% elif assignment.status == 'accepted' %}
+                                        <i class="fas fa-play mr-2"></i>Iniciar
+                                    {% elif assignment.status == 'in_progress' %}
+                                        <i class="fas fa-edit mr-2"></i>Continuar
+                                    {% elif assignment.status == 'completed' %}
+                                        <i class="fas fa-check mr-2"></i>Ver Detalles
+                                    {% else %}
+                                        <i class="fas fa-eye mr-2"></i>Ver
+                                    {% endif %}
+                                </a>
+                                
+                                <!-- Información adicional -->
+                                {% if assignment.status == 'pending' %}
+                                <div class="text-xs text-center text-gray-500">
+                                    Asignada {{ assignment.assigned_at|timesince }} ago
+                                </div>
+                                {% elif assignment.status == 'completed' %}
+                                <div class="text-xs text-center text-green-600">
+                                    ✓ Completada {{ assignment.completed_at|timesince }} ago
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Paginación -->
+        {% if is_paginated %}
+        <div class="mt-8 flex justify-center">
+            <nav class="flex items-center space-x-2">
+                {% if page_obj.has_previous %}
+                    <a href="?page=1{% if current_filters.search %}&search={{ current_filters.search }}{% endif %}{% if current_filters.status %}&status={{ current_filters.status }}{% endif %}{% if current_filters.priority %}&priority={{ current_filters.priority }}{% endif %}" 
+                       class="px-3 py-2 text-sm text-gray-500 hover:text-gray-700">Primera</a>
+                    <a href="?page={{ page_obj.previous_page_number }}{% if current_filters.search %}&search={{ current_filters.search }}{% endif %}{% if current_filters.status %}&status={{ current_filters.status }}{% endif %}{% if current_filters.priority %}&priority={{ current_filters.priority }}{% endif %}" 
+                       class="px-3 py-2 text-sm text-gray-500 hover:text-gray-700">Anterior</a>
+                {% endif %}
+                
+                <span class="px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded">
+                    Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                </span>
+                
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{% if current_filters.search %}&search={{ current_filters.search }}{% endif %}{% if current_filters.status %}&status={{ current_filters.status }}{% endif %}{% if current_filters.priority %}&priority={{ current_filters.priority }}{% endif %}" 
+                       class="px-3 py-2 text-sm text-gray-500 hover:text-gray-700">Siguiente</a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}{% if current_filters.search %}&search={{ current_filters.search }}{% endif %}{% if current_filters.status %}&status={{ current_filters.status }}{% endif %}{% if current_filters.priority %}&priority={{ current_filters.priority }}{% endif %}" 
+                       class="px-3 py-2 text-sm text-gray-500 hover:text-gray-700">Última</a>
+                {% endif %}
+            </nav>
+        </div>
+        {% endif %}
+        
+        {% else %}
+        <!-- Estado vacío -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+            <div class="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                <i class="fas fa-tasks text-gray-400 text-3xl"></i>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">No hay tareas disponibles</h3>
+            {% if current_filters.search or current_filters.status or current_filters.priority %}
+                <p class="text-gray-600 mb-4">No se encontraron tareas que coincidan con los filtros aplicados.</p>
+                <a href="{% url 'tasks:employee_task_list' %}" 
+                   class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">
+                    <i class="fas fa-times mr-2"></i>
+                    Limpiar filtros
+                </a>
+            {% else %}
+                <p class="text-gray-600">Tu supervisor aún no te ha asignado ninguna tarea.</p>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Funcionalidad para auto-submit del formulario de filtros
+        const filterForm = document.querySelector('form');
+        const selectElements = filterForm.querySelectorAll('select');
+        
+        selectElements.forEach(select => {
+            select.addEventListener('change', function() {
+                filterForm.submit();
+            });
+        });
+
+        // Animaciones para las tarjetas
+        const taskCards = document.querySelectorAll('.bg-white');
+        taskCards.forEach((card, index) => {
+            setTimeout(() => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                card.style.transition = 'all 0.5s ease';
+                
+                requestAnimationFrame(() => {
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                });
+            }, index * 100);
+        });
+
+        // Actualizar estado de tareas cada 30 segundos
+        setInterval(function() {
+            // Aquí podrías agregar una llamada AJAX para actualizar estados
+            console.log('Verificando actualizaciones de tareas...');
+        }, 30000);
+    });
+</script>
+{% endblock %}

@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 
 from core.employees.models import Employee
 from ..models import Task, TaskAssignment, TaskProgress, TaskComment
-from ..forms import TaskProgressForm, TaskCommentForm
+from core.tasks.forms.TaskForm import TaskProgressForm, TaskCommentForm
 
 
 class EmployeeTaskRequiredMixin:

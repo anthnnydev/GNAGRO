@@ -1,0 +1,181 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Mi Panel - GNAGRO{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'dist/styles.css' %}">
+    
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+    <!-- Font Awesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Estilos personalizados para el menú -->
+    <style>
+        .rotate-180 {
+            transform: rotate(180deg);
+        }
+        .transition-transform {
+            transition-property: transform;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            transition-duration: 150ms;
+        }
+        /* Fix para el menú desplegable */
+        #user-menu-dropdown {
+            z-index: 9999 !important;
+        }
+    </style>
+    
+</head>
+<body class="h-full bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-gray-200 relative z-50">
+        <div class="max-w-7xl mx-auto">
+            <div class="flex justify-between items-center px-4 sm:px-6 lg:px-8 h-16">
+                <!-- Logo y nombre -->
+                <div class="flex items-center">
+                    <div class="flex-shrink-0 flex items-center">
+                        <i class="fas fa-seedling text-green-600 text-2xl mr-3"></i>
+                        <span class="text-xl font-bold text-gray-900">
+                            <span class="text-green-600">GN</span>AGRO
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Navegación principal para empleados -->
+                <nav class="hidden md:flex space-x-6">
+                    <a href="{% url 'employees:employee_dashboard' %}" class="text-gray-700 hover:text-green-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                        <i class="fas fa-home mr-2"></i>Mi Panel
+                    </a>
+                    <a href="{% url 'tasks:employee_task_list' %}" class="text-gray-700 hover:text-green-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                        <i class="fas fa-tasks mr-2"></i>Mis Tareas
+                    </a>
+                    <a href="{% url 'employees:employee_time' %}" class="text-gray-700 hover:text-green-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                        <i class="fas fa-clock mr-2"></i>Horarios
+                    </a>
+                    <a href="{% url 'employees:employee_payroll' %}" class="text-gray-700 hover:text-green-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                        <i class="fas fa-money-bill-wave mr-2"></i>Mis Pagos
+                    </a>
+                </nav>
+
+                <!-- Menú de usuario -->
+                <div class="flex items-center space-x-4">
+                    <!-- Notificaciones -->
+                    <button class="p-2 text-gray-400 hover:text-gray-600 transition-colors">
+                        <i class="fas fa-bell text-lg"></i>
+                        <span class="sr-only">Notificaciones</span>
+                    </button>
+
+                    <!-- Menú desplegable de usuario -->
+                    <div class="relative" id="user-menu">
+                        <button class="flex items-center text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2" id="user-menu-button">
+                            {% if user.profile_picture %}
+                                <img class="w-8 h-8 rounded-full object-cover" 
+                                     src="{{ user.profile_picture.url }}" 
+                                     alt="{{ user.get_full_name|default:user.username }}">
+                            {% else %}
+                                <div class="w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center font-bold text-sm">
+                                    {{ user.first_name|first|upper|default:user.username|first|upper }}
+                                </div>
+                            {% endif %}
+                            <span class="ml-2 text-gray-700 font-medium hidden sm:block">{{ user.get_full_name|default:user.username }}</span>
+                            <i class="fas fa-chevron-down ml-2 text-gray-400 transition-transform duration-200" id="user-menu-chevron"></i>
+                        </button>
+                        
+                        <!-- Backdrop invisible para cerrar el menú -->
+                        <div class="fixed inset-0 hidden z-40" id="dropdown-backdrop"></div>
+                        
+                        <!-- Menú desplegable -->
+                        <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-xl ring-1 ring-black ring-opacity-5 focus:outline-none hidden z-50" id="user-menu-dropdown">
+                            <div class="py-1" role="menu">
+                                <a href="{% url 'employees:employee_profile' %}" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors" role="menuitem">
+                                    <i class="fas fa-user mr-3 text-gray-400"></i>
+                                    Mi Perfil
+                                </a>
+                                <a href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors" role="menuitem">
+                                    <i class="fas fa-question-circle mr-3 text-gray-400"></i>
+                                    Ayuda
+                                </a>
+                                <div class="border-t border-gray-100"></div>
+                                <form method="post" action="{% url 'users:logout' %}" class="w-full">
+                                    {% csrf_token %}
+                                    <button type="submit" class="flex items-center w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-50 transition-colors" role="menuitem">
+                                        <i class="fas fa-sign-out-alt mr-3 text-red-500"></i>
+                                        Cerrar Sesión
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Menú móvil -->
+                    <div class="md:hidden">
+                        <button class="text-gray-700 hover:text-green-600" id="mobile-menu-button">
+                            <i class="fas fa-bars text-lg"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Menú móvil expandido -->
+            <div class="md:hidden hidden z-40" id="mobile-menu">
+                <div class="px-2 pt-2 pb-3 space-y-1 bg-gray-50 border-t">
+                    <a href="{% url 'employees:employee_dashboard' %}" class="block px-3 py-2 text-gray-700 hover:text-green-600 font-medium">
+                        <i class="fas fa-home mr-2"></i>Mi Panel
+                    </a>
+                    <a href="{% url 'tasks:employee_task_list' %}" class="block px-3 py-2 text-gray-700 hover:text-green-600 font-medium">
+                        <i class="fas fa-tasks mr-2"></i>Mis Tareas
+                    </a>
+                    <a href="{% url 'employees:employee_time' %}" class="block px-3 py-2 text-gray-700 hover:text-green-600 font-medium">
+                        <i class="fas fa-clock mr-2"></i>Horarios
+                    </a>
+                    <a href="{% url 'employees:employee_payroll' %}" class="block px-3 py-2 text-gray-700 hover:text-green-600 font-medium">
+                        <i class="fas fa-money-bill-wave mr-2"></i>Mis Pagos
+                    </a>
+                    <div class="border-t border-gray-200 pt-2">
+                        <a href="#" class="block px-3 py-2 text-gray-700 hover:text-green-600 font-medium">
+                            <i class="fas fa-user mr-2"></i>Mi Perfil
+                        </a>
+                        <form method="post" action="{% url 'users:logout' %}" class="w-full">
+                            {% csrf_token %}
+                            <button type="submit" class="w-full text-left block px-3 py-2 text-red-700 hover:text-red-800 font-medium">
+                                <i class="fas fa-sign-out-alt mr-2"></i>Cerrar Sesión
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Contenido principal -->
+    <main class="flex-1">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <!-- Footer simplificado para empleados -->
+    <footer class="bg-gray-100 border-t border-gray-200 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center mb-4 md:mb-0">
+                    <i class="fas fa-seedling text-green-600 text-lg mr-2"></i>
+                    <span class="text-sm text-gray-600">
+                        <span class="text-green-600 font-semibold">GN</span>Agro - Portal del Empleado
+                    </span>
+                </div>
+                <p class="text-xs text-gray-500">
+                    © 2025 GNAGRO. Todos los derechos reservados.
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="{% static 'js/dashboard.js' %}"></script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

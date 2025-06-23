@@ -1,3 +1,4 @@
+# core/tasks/urls.py
 from django.urls import path
 from .views import supervisor, employee
 
@@ -5,7 +6,7 @@ app_name = 'tasks'
 
 urlpatterns = [
     # ===== URLs DEL SUPERVISOR =====
-    # Dashboard principal del supervisor
+    # Dashboard principal del supervisor (redirigido desde employees)
     path('supervisor/', supervisor.SupervisorDashboardView.as_view(), name='supervisor_dashboard'),
     
     # Gestión de tareas

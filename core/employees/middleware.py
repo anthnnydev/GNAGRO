@@ -62,7 +62,7 @@ class EmployeeAccessMiddleware(MiddlewareMixin):
             '/media/',
             '/api/',
             '/users/logout/',
-            reverse('employees:employee_change_password'),
+            '/employees/change-password/',
         ]
         
         # Verificar si la URL está exenta
@@ -70,20 +70,88 @@ class EmployeeAccessMiddleware(MiddlewareMixin):
             if request.path.startswith(exempt_url):
                 return None
         
-        # Si es empleado regular y está accediendo a URLs administrativas
-        if (hasattr(request.user, 'employee_profile') and 
-            (request.path.startswith('/employees/admin/') or 
-             request.path.startswith('/users/dashboard/'))):
+        # Solo aplicar si el usuario tiene employee_profile
+        if not hasattr(request.user, 'employee_profile'):
+            return None
+        
+        # Obtener el tipo de usuario
+        user_type = getattr(request.user, 'user_type', 'employee')
+        
+        # ==================== REDIRECCIONES PARA SUPERVISORES ====================
+        if user_type in ['supervisor', 'admin', 'hr']:
             
-            # Verificar si tiene permisos administrativos
-            if not (request.user.is_staff or request.user.is_superuser or 
-                   getattr(request.user, 'user_type', '') in ['admin', 'hr', 'supervisor']):
+            # Si está accediendo a la raíz, redirigir al dashboard de supervisor
+            if request.path == '/' or request.path == '/employees/':
+                return redirect('employees:supervisor_dashboard')
+            
+            # Si está accediendo a URLs de empleado regular, permitir (puede ver ambas vistas)
+            # Pero si está en /employees/dashboard/, redirigir al supervisor
+            if request.path == '/employees/dashboard/':
+                return redirect('employees:supervisor_dashboard')
+        
+        # ==================== REDIRECCIONES PARA EMPLEADOS REGULARES ====================
+        elif user_type == 'employee':
+            
+            # Si está accediendo a URLs de supervisor, redirigir al empleado
+            if request.path.startswith('/employees/supervisor/'):
+                return redirect('employees:employee_dashboard')
+            
+            # Si está accediendo a URLs administrativas sin permisos
+            if (request.path.startswith('/employees/admin/') or 
+                request.path.startswith('/users/dashboard/')):
+                return redirect('employees:employee_dashboard')
+            
+            # Si está accediendo a la raíz, redirigir al dashboard de empleado
+            if request.path == '/' or request.path == '/employees/':
                 return redirect('employees:employee_dashboard')
         
-        # Si es admin/staff y está accediendo a la raíz, redirigir al dashboard admin
-        if ((request.user.is_staff or request.user.is_superuser or 
-             getattr(request.user, 'user_type', '') in ['admin', 'hr', 'supervisor']) and
-            request.path == '/' and not hasattr(request.user, 'employee_profile')):
+        # ==================== REDIRECCIONES PARA STAFF/SUPERUSER SIN EMPLOYEE_PROFILE ====================
+        # Si es admin/staff pero no tiene employee_profile y está accediendo a la raíz
+        if ((request.user.is_staff or request.user.is_superuser) and
+            request.path == '/'):
             return redirect('users:dashboard')
+        
+        return None
+
+
+class SupervisorAccessMiddleware(MiddlewareMixin):
+    """
+    Middleware específico para redirecciones de supervisor
+    """
+    
+    def process_request(self, request):
+        # Solo aplicar a usuarios autenticados con employee_profile
+        if (not request.user.is_authenticated or 
+            not hasattr(request.user, 'employee_profile')):
+            return None
+        
+        # Solo aplicar a supervisores
+        user_type = getattr(request.user, 'user_type', 'employee')
+        if user_type not in ['supervisor', 'admin', 'hr']:
+            return None
+        
+        # URLs que no deben ser procesadas
+        exempt_paths = [
+            '/static/',
+            '/media/',
+            '/admin/',
+            '/api/',
+            '/users/logout/',
+            '/employees/change-password/',
+        ]
+        
+        for exempt_path in exempt_paths:
+            if request.path.startswith(exempt_path):
+                return None
+        
+        # Si el supervisor está accediendo a URLs específicas, redirigir apropiadamente
+        redirections = {
+            '/employees/dashboard/': 'employees:supervisor_dashboard',
+            '/employees/': 'employees:supervisor_dashboard',
+            '/': 'employees:supervisor_dashboard',
+        }
+        
+        if request.path in redirections:
+            return redirect(redirections[request.path])
         
         return None

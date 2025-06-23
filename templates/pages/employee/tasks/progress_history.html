@@ -1,0 +1,411 @@
+{% extends 'layouts/base_employee.html' %}
+
+{% block title %}Mi Historial de Progreso - Portal Empleado{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header de la página -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900 flex items-center">
+                        <i class="fas fa-chart-line text-purple-600 mr-3"></i>
+                        Mi Historial de Progreso
+                    </h1>
+                    <p class="text-gray-600 mt-1">Revisa todo tu progreso y actividad laboral</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="text-sm text-gray-500">
+                        <i class="fas fa-calendar-alt mr-2"></i>
+                        {% now "d F Y" %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Estadísticas de progreso -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <!-- Total de sesiones -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Total de Sesiones</p>
+                        <p class="text-3xl font-bold text-blue-600">{{ progress_stats.total_sessions|default:0 }}</p>
+                        <p class="text-sm text-blue-600 mt-1">
+                            <i class="fas fa-clipboard-list mr-1"></i>
+                            Reportes registrados
+                        </p>
+                    </div>
+                    <div class="bg-blue-100 p-3 rounded-full">
+                        <i class="fas fa-file-alt text-blue-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total de horas -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Horas Trabajadas</p>
+                        <p class="text-3xl font-bold text-green-600">{{ progress_stats.total_hours|floatformat:1|default:0 }}</p>
+                        <p class="text-sm text-green-600 mt-1">
+                            <i class="fas fa-clock mr-1"></i>
+                            Total acumulado
+                        </p>
+                    </div>
+                    <div class="bg-green-100 p-3 rounded-full">
+                        <i class="fas fa-hourglass-half text-green-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Total de unidades -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm font-medium text-gray-600">Unidades Completadas</p>
+                        <p class="text-3xl font-bold text-purple-600">{{ progress_stats.total_units|default:0 }}</p>
+                        <p class="text-sm text-purple-600 mt-1">
+                            <i class="fas fa-trophy mr-1"></i>
+                            Total producido
+                        </p>
+                    </div>
+                    <div class="bg-purple-100 p-3 rounded-full">
+                        <i class="fas fa-medal text-purple-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filtros -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+                <h2 class="text-lg font-semibold text-gray-900">Historial de Actividad</h2>
+                
+                <div class="flex items-center space-x-4">
+                    <!-- Filtro por fecha -->
+                    <form method="GET" class="flex items-center space-x-2">
+                        <select name="period" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-sm">
+                            <option value="">Todo el tiempo</option>
+                            <option value="today" {% if request.GET.period == 'today' %}selected{% endif %}>Hoy</option>
+                            <option value="week" {% if request.GET.period == 'week' %}selected{% endif %}>Esta semana</option>
+                            <option value="month" {% if request.GET.period == 'month' %}selected{% endif %}>Este mes</option>
+                            <option value="quarter" {% if request.GET.period == 'quarter' %}selected{% endif %}>Último trimestre</option>
+                        </select>
+                        <button type="submit" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors text-sm">
+                            <i class="fas fa-filter mr-2"></i>Filtrar
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Timeline de progreso -->
+        {% if progress_reports %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div class="space-y-6">
+                {% for progress in progress_reports %}
+                <div class="relative flex items-start space-x-4 pb-6 {% if not forloop.last %}border-b border-gray-100{% endif %}">
+                    <!-- Timeline dot -->
+                    <div class="flex-shrink-0 mt-1">
+                        <div class="w-3 h-3 bg-purple-500 rounded-full"></div>
+                    </div>
+                    
+                    <!-- Content -->
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1">
+                                <!-- Header del progreso -->
+                                <div class="flex items-center space-x-3 mb-2">
+                                    <h3 class="text-base font-medium text-gray-900">{{ progress.assignment.task.title }}</h3>
+                                    {% if progress.assignment.task.category %}
+                                    <div class="flex items-center space-x-1">
+                                        <div class="w-2 h-2 rounded-full" style="background-color: {{ progress.assignment.task.category.color }}"></div>
+                                        <span class="text-xs text-gray-500">{{ progress.assignment.task.category.name }}</span>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Fecha y tiempo -->
+                                <div class="flex items-center text-sm text-gray-500 mb-3">
+                                    <i class="fas fa-calendar-alt mr-2"></i>
+                                    <span>{{ progress.timestamp|date:"l, d F Y" }} a las {{ progress.timestamp|time:"H:i" }}</span>
+                                    {% if progress.hours_worked_session %}
+                                    <span class="mx-2">•</span>
+                                    <i class="fas fa-clock mr-1"></i>
+                                    <span class="font-medium text-blue-600">{{ progress.hours_worked_session }}h trabajadas</span>
+                                    {% endif %}
+                                    {% if progress.units_completed_session %}
+                                    <span class="mx-2">•</span>
+                                    <i class="fas fa-check mr-1"></i>
+                                    <span class="font-medium text-green-600">{{ progress.units_completed_session }} unidades</span>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Descripción del progreso -->
+                                <div class="bg-gray-50 rounded-lg p-4 mb-3">
+                                    <p class="text-gray-700 leading-relaxed">{{ progress.progress_description }}</p>
+                                </div>
+                                
+                                <!-- Imagen del progreso -->
+                                {% if progress.progress_image %}
+                                <div class="mb-3">
+                                    <img src="{{ progress.progress_image.url }}" 
+                                         alt="Progreso de {{ progress.assignment.task.title }}" 
+                                         class="max-w-sm h-auto rounded-lg border border-gray-200 cursor-pointer hover:opacity-80 transition-opacity"
+                                         onclick="openImageModal('{{ progress.progress_image.url }}', '{{ progress.assignment.task.title }}')">
+                                </div>
+                                {% endif %}
+                                
+                                <!-- Información de ubicación -->
+                                {% if progress.location_lat and progress.location_lng %}
+                                <div class="flex items-center text-sm text-gray-500">
+                                    <i class="fas fa-map-marker-alt mr-2"></i>
+                                    <span>Ubicación registrada: {{ progress.location_lat|floatformat:6 }}, {{ progress.location_lng|floatformat:6 }}</span>
+                                    <a href="https://maps.google.com/?q={{ progress.location_lat }},{{ progress.location_lng }}" 
+                                       target="_blank" 
+                                       class="ml-2 text-blue-600 hover:text-blue-800">
+                                        Ver en Maps
+                                    </a>
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Estadísticas de la sesión -->
+                            <div class="flex-shrink-0 ml-4 text-right">
+                                {% if progress.hours_worked_session %}
+                                <div class="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium mb-2">
+                                    {{ progress.hours_worked_session }}h
+                                </div>
+                                {% endif %}
+                                {% if progress.units_completed_session %}
+                                <div class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+                                    +{{ progress.units_completed_session }}
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Paginación -->
+        {% if is_paginated %}
+        <div class="mt-8 flex justify-center">
+            <nav class="flex items-center space-x-2">
+                {% if page_obj.has_previous %}
+                    <a href="?page=1{% if request.GET.period %}&period={{ request.GET.period }}{% endif %}" 
+                       class="px-3 py-2 text-sm text-gray-500 hover:text-gray-700">Primera</a>
+                    <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.period %}&period={{ request.GET.period }}{% endif %}" 
+                       class="px-3 py-2 text-sm text-gray-500 hover:text-gray-700">Anterior</a>
+                {% endif %}
+                
+                <span class="px-4 py-2 text-sm text-gray-700 bg-gray-100 rounded">
+                    Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                </span>
+                
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{% if request.GET.period %}&period={{ request.GET.period }}{% endif %}" 
+                       class="px-3 py-2 text-sm text-gray-500 hover:text-gray-700">Siguiente</a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.period %}&period={{ request.GET.period }}{% endif %}" 
+                       class="px-3 py-2 text-sm text-gray-500 hover:text-gray-700">Última</a>
+                {% endif %}
+            </nav>
+        </div>
+        {% endif %}
+        
+        {% else %}
+        <!-- Estado vacío -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
+            <div class="mx-auto w-24 h-24 bg-purple-100 rounded-full flex items-center justify-center mb-6">
+                <i class="fas fa-chart-line text-purple-600 text-3xl"></i>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 mb-2">No hay progreso registrado</h3>
+            {% if request.GET.period %}
+                <p class="text-gray-600 mb-4">No tienes actividad registrada en el período seleccionado.</p>
+                <a href="{% url 'tasks:employee_progress_history' %}" 
+                   class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700">
+                    <i class="fas fa-times mr-2"></i>
+                    Ver todo el historial
+                </a>
+            {% else %}
+                <p class="text-gray-600 mb-4">Aún no has reportado progreso en ninguna tarea.</p>
+                <a href="{% url 'tasks:employee_task_list' %}" 
+                   class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700">
+                    <i class="fas fa-tasks mr-2"></i>
+                    Ver mis tareas
+                </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal para ver imágenes en grande -->
+<div id="imageModal" class="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 hidden">
+    <div class="max-w-4xl max-h-full p-4">
+        <div class="relative">
+            <img id="modalImage" src="" alt="" class="max-w-full max-h-full object-contain rounded-lg">
+            <button onclick="closeImageModal()" 
+                    class="absolute top-4 right-4 text-white bg-black bg-opacity-50 rounded-full p-2 hover:bg-opacity-75 transition-colors">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+            <div id="modalCaption" class="absolute bottom-4 left-4 right-4 text-white bg-black bg-opacity-50 p-2 rounded text-center"></div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Auto-submit del formulario de filtros
+        const periodSelect = document.querySelector('select[name="period"]');
+        if (periodSelect) {
+            periodSelect.addEventListener('change', function() {
+                this.form.submit();
+            });
+        }
+
+        // Animaciones para las tarjetas de estadísticas
+        const statCards = document.querySelectorAll('.bg-white');
+        statCards.forEach((card, index) => {
+            setTimeout(() => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                card.style.transition = 'all 0.5s ease';
+                
+                requestAnimationFrame(() => {
+                    card.style.opacity = '1';
+                    card.style.transform = 'translateY(0)';
+                });
+            }, index * 100);
+        });
+
+        // Efecto de scroll reveal para los elementos del timeline
+        const timelineItems = document.querySelectorAll('.relative.flex');
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver(function(entries) {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateX(0)';
+                }
+            });
+        }, observerOptions);
+
+        timelineItems.forEach((item, index) => {
+            item.style.opacity = '0';
+            item.style.transform = 'translateX(-20px)';
+            item.style.transition = 'all 0.6s ease';
+            observer.observe(item);
+        });
+    });
+
+    // Funciones para el modal de imágenes
+    function openImageModal(imageSrc, caption) {
+        const modal = document.getElementById('imageModal');
+        const modalImage = document.getElementById('modalImage');
+        const modalCaption = document.getElementById('modalCaption');
+        
+        modalImage.src = imageSrc;
+        modalCaption.textContent = caption;
+        modal.classList.remove('hidden');
+        
+        // Prevenir scroll del body
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeImageModal() {
+        const modal = document.getElementById('imageModal');
+        modal.classList.add('hidden');
+        
+        // Restaurar scroll del body
+        document.body.style.overflow = 'auto';
+    }
+
+    // Cerrar modal con Escape o click fuera de la imagen
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeImageModal();
+        }
+    });
+
+    document.getElementById('imageModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeImageModal();
+        }
+    });
+
+    // Funcionalidad de exportación (placeholder)
+    function exportProgress(format) {
+        const period = new URLSearchParams(window.location.search).get('period') || 'all';
+        const url = `/tasks/api/employee/export-progress/?format=${format}&period=${period}`;
+        
+        // Crear descarga
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `progreso_${period}_${new Date().toISOString().split('T')[0]}.${format}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    // Agregar botones de exportación dinámicamente
+    document.addEventListener('DOMContentLoaded', function() {
+        const filterSection = document.querySelector('.flex.items-center.space-x-4');
+        if (filterSection && document.querySelectorAll('.relative.flex').length > 0) {
+            const exportButton = document.createElement('div');
+            exportButton.className = 'relative';
+            exportButton.innerHTML = `
+                <button onclick="toggleExportMenu()" 
+                        class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors text-sm">
+                    <i class="fas fa-download mr-2"></i>Exportar
+                </button>
+                <div id="exportMenu" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 hidden z-10">
+                    <div class="py-1">
+                        <button onclick="exportProgress('pdf')" 
+                                class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                            <i class="fas fa-file-pdf mr-2 text-red-500"></i>PDF
+                        </button>
+                        <button onclick="exportProgress('csv')" 
+                                class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                            <i class="fas fa-file-csv mr-2 text-green-500"></i>CSV
+                        </button>
+                        <button onclick="exportProgress('xlsx')" 
+                                class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                            <i class="fas fa-file-excel mr-2 text-green-600"></i>Excel
+                        </button>
+                    </div>
+                </div>
+            `;
+            filterSection.appendChild(exportButton);
+        }
+    });
+
+    function toggleExportMenu() {
+        const menu = document.getElementById('exportMenu');
+        menu.classList.toggle('hidden');
+    }
+
+    // Cerrar menú de exportación al hacer click fuera
+    document.addEventListener('click', function(e) {
+        const exportMenu = document.getElementById('exportMenu');
+        const exportButton = e.target.closest('button');
+        
+        if (exportMenu && !exportMenu.contains(e.target) && 
+            (!exportButton || !exportButton.textContent.includes('Exportar'))) {
+            exportMenu.classList.add('hidden');
+        }
+    });
+</script>
+{% endblock %}

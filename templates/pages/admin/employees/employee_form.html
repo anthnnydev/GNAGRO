@@ -88,7 +88,7 @@
             {% endif %}
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <!-- Información Personal -->
+                <!-- Información Principal -->
                 <div class="lg:col-span-2 space-y-6">
                     <!-- Datos de Acceso -->
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -123,6 +123,33 @@
                                 {% endif %}
                             </div>
 
+                            <!-- NUEVO: Tipo de Usuario -->
+                            <div class="md:col-span-2">
+                                <label for="{{ user_form.user_type.id_for_label }}" 
+                                       class="block text-sm font-medium text-gray-700 mb-2">
+                                    Tipo de Usuario / Rol en el Sistema *
+                                </label>
+                                {{ user_form.user_type }}
+                                {% if user_form.user_type.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ user_form.user_type.errors.0 }}</p>
+                                {% endif %}
+                                <p class="mt-1 text-xs text-gray-500">
+                                    <i class="fas fa-info-circle mr-1"></i>
+                                    Selecciona el nivel de acceso que tendrá este usuario en el sistema
+                                </p>
+                                
+                                <!-- Indicadores visuales para cada tipo -->
+                                <div id="user-type-info" class="mt-3 p-3 rounded-lg border hidden">
+                                    <div class="flex items-start space-x-2">
+                                        <i id="user-type-icon" class="fas fa-user text-lg mt-0.5"></i>
+                                        <div>
+                                            <h4 id="user-type-title" class="font-medium text-sm"></h4>
+                                            <p id="user-type-description" class="text-xs text-gray-600 mt-1"></p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             {% if not object %}
                                 <div class="md:col-span-2">
                                     <p class="text-sm text-gray-600 bg-blue-50 p-3 rounded-lg">
@@ -131,24 +158,6 @@
                                         La contraseña inicial será generada automáticamente y enviada al empleado por correo electrónico.
                                     </p>
                                 </div>
-                            {% endif %}
-
-                            <!-- Password1 (solo para crear) -->
-                            {% if not object %}
-                            <div>
-                                {{ user_form.password1 }}
-                                {% if user_form.password1.errors %}
-                                    <p class="mt-1 text-sm text-red-600">{{ user_form.password1.errors.0 }}</p>
-                                {% endif %}
-                            </div>
-
-                            <!-- Password2 (confirmación) -->
-                            <div>
-                                {{ user_form.password2 }}
-                                {% if user_form.password2.errors %}
-                                    <p class="mt-1 text-sm text-red-600">{{ user_form.password2.errors.0 }}</p>
-                                {% endif %}
-                            </div>
                             {% endif %}
                         </div>
                     </div>
@@ -201,7 +210,7 @@
 
                             <!-- Teléfono -->
                             <div>
-                                <label for="{{ user_form.phone.id_for_label }}" 
+                                <label for="{{ user_form.phone_number.id_for_label }}" 
                                        class="block text-sm font-medium text-gray-700 mb-2">
                                     Teléfono
                                 </label>
@@ -480,12 +489,72 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Configuración de tipos de usuario
+    const userTypeConfig = {
+        'employee': {
+            icon: 'fas fa-user',
+            title: 'Empleado',
+            description: 'Acceso básico al portal de empleados. Puede ver su perfil, documentos, nómina y horarios.',
+            bgColor: 'bg-blue-50',
+            borderColor: 'border-blue-200',
+            textColor: 'text-blue-700'
+        },
+        'supervisor': {
+            icon: 'fas fa-user-tie',
+            title: 'Supervisor',
+            description: 'Puede crear y gestionar tareas agrícolas, supervisar empleados y generar reportes.',
+            bgColor: 'bg-green-50',
+            borderColor: 'border-green-200',
+            textColor: 'text-green-700'
+        },
+        'admin': {
+            icon: 'fas fa-crown',
+            title: 'Administrador',
+            description: 'Acceso completo al sistema, configuración, usuarios y todas las funcionalidades.',
+            bgColor: 'bg-red-50',
+            borderColor: 'border-red-200',
+            textColor: 'text-red-700'
+        }
+    };
+
+    // Función para actualizar la información del tipo de usuario
+    function updateUserTypeInfo(userType) {
+        const infoContainer = document.getElementById('user-type-info');
+        const icon = document.getElementById('user-type-icon');
+        const title = document.getElementById('user-type-title');
+        const description = document.getElementById('user-type-description');
+        
+        if (userType && userTypeConfig[userType]) {
+            const config = userTypeConfig[userType];
+            
+            icon.className = config.icon + ' text-lg mt-0.5';
+            title.textContent = config.title;
+            description.textContent = config.description;
+            
+            infoContainer.className = `mt-3 p-3 rounded-lg border ${config.bgColor} ${config.borderColor} ${config.textColor}`;
+            infoContainer.classList.remove('hidden');
+        } else {
+            infoContainer.classList.add('hidden');
+        }
+    }
+
+    // Event listener para el campo user_type
+    const userTypeField = document.querySelector('select[name="user_type"]');
+    if (userTypeField) {
+        userTypeField.addEventListener('change', function() {
+            updateUserTypeInfo(this.value);
+        });
+        
+        // Mostrar información inicial si ya hay un valor seleccionado
+        if (userTypeField.value) {
+            updateUserTypeInfo(userTypeField.value);
+        }
+    }
+
     // Función para limpiar y dividir nombres
     function cleanNameParts(name) {
         if (!name) return [];
-        // Eliminar caracteres especiales y normalizar espacios
         const cleanedName = name.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '').trim();
-        // Dividir por espacios y filtrar partes vacías
         return cleanedName.split(/\s+/).filter(part => part.trim());
     }
 
@@ -498,16 +567,10 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (firstNames.length === 0 || lastNames.length === 0) return '';
         
-        // Tomar la primera letra del primer nombre
         const firstInitial = firstNames[0][0].toLowerCase();
-        
-        // Tomar el primer apellido completo
         const firstLastname = lastNames[0].toLowerCase();
-        
-        // Tomar la primera letra del segundo apellido (si existe)
         const secondLastnameInitial = lastNames.length > 1 ? lastNames[1][0].toLowerCase() : '';
         
-        // Formar el username base
         return `${firstInitial}${firstLastname}${secondLastnameInitial}`;
     }
 
@@ -530,7 +593,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 suggestedUsernameSpan.textContent = suggestedUsername;
                 previewContainer.classList.remove('hidden');
                 
-                // Solo actualizar el campo si es un nuevo empleado (readonly)
                 if (usernameField && usernameField.hasAttribute('readonly')) {
                     usernameField.value = suggestedUsername;
                 }
@@ -617,6 +679,73 @@ document.addEventListener('DOMContentLoaded', function() {
         const month = String(now.getMonth() + 1).padStart(2, '0');
         const random = String(Math.floor(Math.random() * 1000)).padStart(3, '0');
         employeeNumberField.value = `EMP${year}${month}${random}`;
+    }
+
+    // Efectos visuales para el tipo de usuario
+    const userTypeSelect = document.querySelector('select[name="user_type"]');
+    if (userTypeSelect) {
+        userTypeSelect.addEventListener('change', function() {
+            const selectedValue = this.value;
+            
+            // Agregar efecto visual al select
+            this.classList.remove('border-blue-300', 'border-green-300', 'border-purple-300', 'border-red-300');
+            
+            switch(selectedValue) {
+                case 'employee':
+                    this.classList.add('border-blue-300');
+                    break;
+                case 'supervisor':
+                    this.classList.add('border-green-300');
+                    break;
+                case 'admin':
+                    this.classList.add('border-red-300');
+                    break;
+            }
+        });
+    }
+
+    // Mostrar alertas según el tipo de usuario seleccionado
+    const showUserTypeAlert = (userType) => {
+        // Remover alertas existentes
+        const existingAlert = document.querySelector('.user-type-alert');
+        if (existingAlert) {
+            existingAlert.remove();
+        }
+
+        if (userType === 'admin' || userType === 'hr') {
+            const alertHTML = `
+                <div class="user-type-alert mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-exclamation-triangle text-yellow-400"></i>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-yellow-800">
+                                Permisos de alto nivel
+                            </h3>
+                            <div class="mt-2 text-sm text-yellow-700">
+                                <p>Este usuario tendrá acceso a funciones administrativas y datos sensibles del sistema.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            const userTypeContainer = document.querySelector('select[name="user_type"]').closest('div');
+            userTypeContainer.insertAdjacentHTML('afterend', alertHTML);
+        }
+    };
+
+    // Event listener para mostrar alertas
+    if (userTypeSelect) {
+        userTypeSelect.addEventListener('change', function() {
+            showUserTypeAlert(this.value);
+        });
+        
+        // Mostrar alerta inicial si ya hay un valor
+        if (userTypeSelect.value) {
+            showUserTypeAlert(userTypeSelect.value);
+        }
     }
 });
 </script>

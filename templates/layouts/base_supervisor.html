@@ -1,0 +1,268 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Panel Supervisor - GNAGRO{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'dist/styles.css' %}">
+    
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+    <!-- Font Awesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <!-- Estilos personalizados para el menú -->
+    <style>
+        .rotate-180 {
+            transform: rotate(180deg);
+        }
+        .transition-transform {
+            transition-property: transform;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            transition-duration: 150ms;
+        }
+        /* Fix para el menú desplegable */
+        #user-menu-dropdown {
+            z-index: 9999 !important;
+        }
+        /* Estilos para badge de supervisor */
+        .supervisor-badge {
+            background: linear-gradient(135deg, #3B82F6, #1E40AF);
+        }
+    </style>
+    
+</head>
+<body class="h-full bg-gray-50">
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-gray-200 relative z-50">
+        <div class="max-w-7xl mx-auto">
+            <div class="flex justify-between items-center px-4 sm:px-6 lg:px-8 h-16">
+                <!-- Logo y nombre (Sección izquierda) -->
+                <div class="flex items-center flex-shrink-0">
+                    <div class="flex items-center space-x-3">
+                        <i class="fas fa-seedling text-green-600 text-2xl"></i>
+                        <span class="text-xl font-bold text-gray-900">
+                            <span class="text-green-600">GN</span>AGRO
+                        </span>
+                        <span class="px-2 py-1 text-xs font-semibold text-white supervisor-badge rounded-full">
+                            <i class="fas fa-crown mr-1"></i>SUPERVISOR
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Navegación central (solo en pantallas grandes) -->
+                <nav class="hidden lg:flex items-center space-x-2">
+                    <a href="{% url 'employees:supervisor_dashboard' %}" class="flex items-center text-gray-700 hover:text-blue-600 hover:bg-blue-50 px-3 py-2 rounded-lg text-sm font-medium transition-all">
+                        <i class="fas fa-tachometer-alt mr-2 text-blue-500 text-sm"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="{% url 'tasks:task_list' %}" class="flex items-center text-gray-700 hover:text-blue-600 hover:bg-blue-50 px-3 py-2 rounded-lg text-sm font-medium transition-all">
+                        <i class="fas fa-tasks mr-2 text-blue-500 text-sm"></i>
+                        <span>Tareas</span>
+                    </a>
+                    <a href="{% url 'tasks:task_create' %}" class="flex items-center text-white bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded-lg text-sm font-medium transition-all shadow-sm">
+                        <i class="fas fa-plus mr-2 text-sm"></i>
+                        <span>Nueva</span>
+                    </a>
+                    <a href="{% url 'employees:supervisor_team' %}" class="flex items-center text-gray-700 hover:text-blue-600 hover:bg-blue-50 px-3 py-2 rounded-lg text-sm font-medium transition-all">
+                        <i class="fas fa-users mr-2 text-blue-500 text-sm"></i>
+                        <span>Equipo</span>
+                    </a>
+                </nav>
+
+                <!-- Sección derecha del navbar -->
+                <div class="flex items-center space-x-3">
+                    <!-- Estadísticas compactas (solo en pantallas muy grandes) -->
+                    <div class="hidden 2xl:flex items-center space-x-4 text-sm">
+                        <div class="flex items-center bg-blue-50 px-2 py-1 rounded-md">
+                            <i class="fas fa-clipboard-list text-blue-600 mr-1 text-xs"></i>
+                            <span class="text-gray-700 text-xs">Activas:</span>
+                            <span class="text-blue-600 font-bold ml-1 text-xs">{{ tasks_stats.active|default:0 }}</span>
+                        </div>
+                        <div class="flex items-center bg-orange-50 px-2 py-1 rounded-md">
+                            <i class="fas fa-exclamation-triangle text-orange-600 mr-1 text-xs"></i>
+                            <span class="text-gray-700 text-xs">Urgentes:</span>
+                            <span class="text-orange-600 font-bold ml-1 text-xs">{{ urgent_tasks_count|default:0 }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Notificaciones -->
+                    <button class="relative p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-all">
+                        <i class="fas fa-bell text-base"></i>
+                        <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center font-medium">3</span>
+                        <span class="sr-only">Notificaciones</span>
+                    </button>
+
+                    <!-- Menú desplegable de usuario -->
+                    <div class="relative" id="user-menu">
+                        <button class="flex items-center text-sm rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 p-1 hover:bg-gray-50 transition-all" id="user-menu-button">
+                            {% if user.profile_picture %}
+                                <img class="w-7 h-7 rounded-full object-cover border border-blue-200" 
+                                     src="{{ user.profile_picture.url }}" 
+                                     alt="{{ user.get_full_name|default:user.username }}">
+                            {% else %}
+                                <div class="w-7 h-7 supervisor-badge text-white rounded-full flex items-center justify-center font-bold text-xs border border-blue-200">
+                                    {{ user.first_name|first|upper|default:user.username|first|upper }}
+                                </div>
+                            {% endif %}
+                            <div class="ml-2 text-left hidden sm:block">
+                                <div class="text-xs font-medium text-gray-900">{{ user.get_full_name|default:user.username|truncatewords:2 }}</div>
+                                <div class="text-xs text-gray-500">{{ user.employee_profile.position.name|default:"Supervisor"|truncatewords:1 }}</div>
+                            </div>
+                            <i class="fas fa-chevron-down ml-1 text-gray-400 transition-transform duration-200 text-xs" id="user-menu-chevron"></i>
+                        </button>
+                        
+                        <!-- Backdrop invisible para cerrar el menú -->
+                        <div class="fixed inset-0 hidden z-40" id="dropdown-backdrop"></div>
+                        
+                        <!-- Menú desplegable -->
+                        <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-xl ring-1 ring-black ring-opacity-5 focus:outline-none hidden z-50" id="user-menu-dropdown">
+                            <div class="py-1" role="menu">
+                                <div class="px-4 py-2 text-xs text-gray-500 border-b">
+                                    Supervisor: {{ user.employee_profile.department.name|default:"Sin departamento" }}
+                                </div>
+                                
+                                <a href="{% url 'employees:supervisor_dashboard' %}" class="flex items-center px-4 py-2 text-sm text-blue-700 hover:bg-blue-50 transition-colors" role="menuitem">
+                                    <i class="fas fa-crown mr-3 text-blue-500"></i>
+                                    Panel Supervisor
+                                </a>
+                                
+                                <a href="{% url 'employees:supervisor_team' %}" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors" role="menuitem">
+                                    <i class="fas fa-users mr-3 text-gray-400"></i>
+                                    Mi Equipo
+                                </a>
+                                
+                                {% if user.employee_profile %}
+                                <a href="{% url 'employees:employee_profile' %}" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors" role="menuitem">
+                                    <i class="fas fa-user mr-3 text-gray-400"></i>
+                                    Mi Perfil
+                                </a>
+                                {% endif %}
+                                
+                                <a href="{% url 'tasks:export_tasks_csv' %}" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors" role="menuitem">
+                                    <i class="fas fa-download mr-3 text-gray-400"></i>
+                                    Exportar Tareas
+                                </a>
+                                
+                                <a href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors" role="menuitem">
+                                    <i class="fas fa-cog mr-3 text-gray-400"></i>
+                                    Configuración
+                                </a>
+                                
+                                <a href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors" role="menuitem">
+                                    <i class="fas fa-question-circle mr-3 text-gray-400"></i>
+                                    Ayuda
+                                </a>
+                                
+                                <div class="border-t border-gray-100"></div>
+                                <form method="post" action="{% url 'users:logout' %}" class="w-full">
+                                    {% csrf_token %}
+                                    <button type="submit" class="flex items-center w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-50 transition-colors" role="menuitem">
+                                        <i class="fas fa-sign-out-alt mr-3 text-red-500"></i>
+                                        Cerrar Sesión
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Menú móvil -->
+                    <div class="lg:hidden">
+                        <button class="flex items-center text-gray-700 hover:text-blue-600 hover:bg-blue-50 p-1 rounded-lg transition-all" id="mobile-menu-button">
+                            <i class="fas fa-bars text-lg"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Menú móvil expandido -->
+            <div class="lg:hidden hidden z-40" id="mobile-menu">
+                <div class="px-4 pt-2 pb-3 space-y-1 bg-white border-t border-gray-200 shadow-lg">
+                    <!-- Estadísticas móviles -->
+                    <div class="flex justify-between py-3 mb-3 bg-gray-50 rounded-lg px-3">
+                        <div class="text-center">
+                            <div class="text-lg font-bold text-blue-600">{{ tasks_stats.active|default:0 }}</div>
+                            <div class="text-xs text-gray-600">Activas</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-lg font-bold text-orange-600">{{ urgent_tasks_count|default:0 }}</div>
+                            <div class="text-xs text-gray-600">Urgentes</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-lg font-bold text-green-600">{{ tasks_stats.completed|default:0 }}</div>
+                            <div class="text-xs text-gray-600">Completadas</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Navegación móvil -->
+                    <a href="{% url 'employees:supervisor_dashboard' %}" class="flex items-center px-3 py-3 text-gray-700 hover:text-blue-600 hover:bg-blue-50 font-medium rounded-lg transition-all">
+                        <i class="fas fa-tachometer-alt mr-3 text-blue-500 w-5"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="{% url 'tasks:task_list' %}" class="flex items-center px-3 py-3 text-gray-700 hover:text-blue-600 hover:bg-blue-50 font-medium rounded-lg transition-all">
+                        <i class="fas fa-tasks mr-3 text-blue-500 w-5"></i>
+                        <span>Mis Tareas</span>
+                    </a>
+                    <a href="{% url 'tasks:task_create' %}" class="flex items-center px-3 py-3 text-white bg-blue-600 hover:bg-blue-700 font-medium rounded-lg transition-all">
+                        <i class="fas fa-plus mr-3 w-5"></i>
+                        <span>Nueva Tarea</span>
+                    </a>
+                    <a href="{% url 'employees:supervisor_team' %}" class="flex items-center px-3 py-3 text-gray-700 hover:text-blue-600 hover:bg-blue-50 font-medium rounded-lg transition-all">
+                        <i class="fas fa-users mr-3 text-blue-500 w-5"></i>
+                        <span>Mi Equipo</span>
+                    </a>
+                    
+                    <div class="border-t border-gray-200 pt-3 mt-3 space-y-1">
+                        <a href="{% url 'employees:employee_profile' %}" class="flex items-center px-3 py-3 text-gray-700 hover:text-blue-600 hover:bg-blue-50 font-medium rounded-lg transition-all">
+                            <i class="fas fa-user-circle mr-3 text-gray-500 w-5"></i>
+                            <span>Mi Perfil</span>
+                        </a>
+                        <a href="{% url 'tasks:export_tasks_csv' %}" class="flex items-center px-3 py-3 text-gray-700 hover:text-blue-600 hover:bg-blue-50 font-medium rounded-lg transition-all">
+                            <i class="fas fa-download mr-3 text-gray-500 w-5"></i>
+                            <span>Exportar Tareas</span>
+                        </a>
+                        <form method="post" action="{% url 'users:logout' %}" class="w-full">
+                            {% csrf_token %}
+                            <button type="submit" class="flex items-center w-full px-3 py-3 text-red-700 hover:text-red-800 hover:bg-red-50 font-medium rounded-lg transition-all text-left">
+                                <i class="fas fa-sign-out-alt mr-3 text-red-500 w-5"></i>
+                                <span>Cerrar Sesión</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Contenido principal -->
+    <main class="flex-1">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <!-- Footer para supervisores -->
+    <footer class="bg-gray-100 border-t border-gray-200 mt-auto">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="flex items-center mb-4 md:mb-0">
+                    <i class="fas fa-seedling text-green-600 text-lg mr-2"></i>
+                    <span class="text-sm text-gray-600">
+                        <span class="text-green-600 font-semibold">GN</span>Agro - Panel de Supervisor
+                    </span>
+                </div>
+                <div class="flex items-center space-x-4 text-xs text-gray-500">
+                    <span>Gestión de Tareas y Equipos</span>
+                    <span>|</span>
+                    <span>© 2025 GNAGRO. Todos los derechos reservados.</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="{% static 'js/dashboard.js' %}"></script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

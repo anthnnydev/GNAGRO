@@ -1,7 +1,7 @@
 # core/employees/urls.py
 from django.urls import path, include
 from core.employees.views import employee, department, position
-from core.employees.views import employee_portal
+from core.employees.views import employee_portal, attendance_ajax, supervisor_portal
 
 app_name = 'employees'
 
@@ -36,58 +36,45 @@ urlpatterns = [
     path('admin/ajax/positions-by-department/', position.get_positions_by_department, name='positions_by_department'),
     path('admin/ajax/department-stats/', position.department_stats, name='department_stats'),
     
-    # ===== URLs DEL PORTAL DEL EMPLEADO =====
-    # Cambio de contraseña temporal (debe ser la primera para interceptar)
-    path('change-password/', 
-         employee_portal.employee_change_password_view, 
-         name='employee_change_password'),
+    # ===== PORTAL DEL SUPERVISOR =====
+    path('supervisor/', supervisor_portal.SupervisorDashboardView.as_view(), name='supervisor_dashboard'),
+    path('supervisor/team/', supervisor_portal.SupervisorTeamView.as_view(), name='supervisor_team'),
+    path('supervisor/team/<int:pk>/', supervisor_portal.SupervisorEmployeeDetailView.as_view(), name='supervisor_employee_detail'),
+    path('supervisor/reports/', supervisor_portal.SupervisorReportsView.as_view(), name='supervisor_reports'),
     
-    # Dashboard del empleado (página principal)
-    path('', 
-         employee_portal.EmployeeDashboardView.as_view(), 
-         name='employee_dashboard'),
+    # APIs del supervisor
+    path('supervisor/api/stats/', supervisor_portal.supervisor_stats_api, name='supervisor_stats_api'),
+    path('supervisor/api/team-performance/', supervisor_portal.supervisor_team_performance_api, name='supervisor_team_performance_api'),
     
-    # Perfil del empleado
-    path('profile/', 
-         employee_portal.EmployeeProfileView.as_view(), 
-         name='employee_profile'),
+    # ===== PORTAL DEL EMPLEADO =====
+    path('dashboard/', employee_portal.EmployeeDashboardView.as_view(), name='employee_dashboard'),
+    path('profile/', employee_portal.EmployeeProfileView.as_view(), name='employee_profile'),
+    path('documents/', employee_portal.EmployeeDocumentsView.as_view(), name='employee_documents'),
+    path('payroll/', employee_portal.EmployeePayrollView.as_view(), name='employee_payroll'),
+    path('time/', employee_portal.EmployeeTimeView.as_view(), name='employee_time'),
+    path('requests/', employee_portal.EmployeeRequestsView.as_view(), name='employee_requests'),
     
-    # Documentos del empleado
-    path('documents/', 
-         employee_portal.EmployeeDocumentsView.as_view(), 
-         name='employee_documents'),
+    # ===== NUEVAS URLs PARA GESTIÓN DE SOLICITUDES DE LICENCIA =====
+    path('requests/leave/create/', employee_portal.EmployeeLeaveRequestCreateView.as_view(), name='employee_leave_request_create'),
+    path('requests/leave/<int:pk>/', employee_portal.EmployeeLeaveRequestDetailView.as_view(), name='employee_leave_request_detail'),
     
+    path('settings/', employee_portal.EmployeeSettingsView.as_view(), name='employee_settings'),
+    path('notifications/', employee_portal.EmployeeNotificationsView.as_view(), name='employee_notifications'),
+    
+    # Cambio de contraseña
+    path('change-password/', employee_portal.employee_change_password_view, name='employee_change_password'),
+    
+    # APIs de asistencia
+    path('api/attendance/', include([
+        path('clock-in/', attendance_ajax.clock_in_api, name='api_clock_in'),
+        path('clock-out/', attendance_ajax.clock_out_api, name='api_clock_out'),
+        path('break-start/', attendance_ajax.break_start_api, name='api_break_start'),
+        path('break-end/', attendance_ajax.break_end_api, name='api_break_end'),
+        path('status/', attendance_ajax.attendance_status_api, name='api_attendance_status'),
+    ])),
+    
+    # Descargas
     path('documents/<int:document_id>/download/', 
          employee_portal.employee_download_document, 
          name='employee_download_document'),
-    
-    # Información de nómina
-    path('payroll/', 
-         employee_portal.EmployeePayrollView.as_view(), 
-         name='employee_payroll'),
-    
-    # Control de tiempo/asistencia
-    path('time/', 
-         employee_portal.EmployeeTimeView.as_view(), 
-         name='employee_time'),
-    
-    # Solicitudes (vacaciones, permisos, etc.)
-    path('requests/', 
-         employee_portal.EmployeeRequestsView.as_view(), 
-         name='employee_requests'),
-    
-    # Configuración del empleado
-    path('settings/', 
-         employee_portal.EmployeeSettingsView.as_view(), 
-         name='employee_settings'),
-    
-    # Notificaciones
-    path('notifications/', 
-         employee_portal.EmployeeNotificationsView.as_view(), 
-         name='employee_notifications'),
-    
-    # AJAX para notificaciones del empleado
-    path('notifications/mark-read/', 
-         employee_portal.EmployeeMarkNotificationReadView.as_view(), 
-         name='employee_mark_notification_read'),
 ]

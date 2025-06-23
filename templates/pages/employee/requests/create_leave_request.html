@@ -1,0 +1,450 @@
+{% extends 'layouts/base_employee.html' %}
+
+{% block title %}Nueva Solicitud de Licencia - Portal Empleado{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header de la página -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900 flex items-center">
+                        <i class="fas fa-plus-circle text-green-600 mr-3"></i>
+                        Nueva Solicitud de Licencia
+                    </h1>
+                    <p class="text-gray-600 mt-1">Completa el formulario para solicitar tiempo libre</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="text-sm text-gray-500">
+                        <i class="fas fa-calendar-alt mr-2"></i>
+                        {% now "d F Y" %}
+                    </div>
+                    <a href="{% url 'employees:employee_requests' %}" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i>Volver
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Formulario Principal -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+                    <div class="mb-6">
+                        <h2 class="text-xl font-semibold text-gray-900 mb-2">Datos de la Solicitud</h2>
+                        <p class="text-gray-600">Completa todos los campos requeridos</p>
+                    </div>
+
+                    <form method="post" class="space-y-6" id="leaveRequestForm">
+                        {% csrf_token %}
+                        
+                        <!-- Tipo de Licencia -->
+                        <div>
+                            <label for="{{ form.leave_type.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-tags text-blue-500 mr-2"></i>{{ form.leave_type.label }}
+                                <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.leave_type }}
+                            {% if form.leave_type.errors %}
+                                <div class="mt-1 text-sm text-red-600 flex items-center">
+                                    <i class="fas fa-exclamation-circle mr-1"></i>
+                                    {{ form.leave_type.errors.0 }}
+                                </div>
+                            {% endif %}
+                            <p class="mt-1 text-sm text-gray-500">Selecciona el tipo de licencia que necesitas</p>
+                        </div>
+
+                        <!-- Fechas -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label for="{{ form.start_date.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                    <i class="fas fa-calendar-day text-green-500 mr-2"></i>{{ form.start_date.label }}
+                                    <span class="text-red-500">*</span>
+                                </label>
+                                {{ form.start_date }}
+                                {% if form.start_date.errors %}
+                                    <div class="mt-1 text-sm text-red-600 flex items-center">
+                                        <i class="fas fa-exclamation-circle mr-1"></i>
+                                        {{ form.start_date.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div>
+                                <label for="{{ form.end_date.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                    <i class="fas fa-calendar-check text-red-500 mr-2"></i>{{ form.end_date.label }}
+                                    <span class="text-red-500">*</span>
+                                </label>
+                                {{ form.end_date }}
+                                {% if form.end_date.errors %}
+                                    <div class="mt-1 text-sm text-red-600 flex items-center">
+                                        <i class="fas fa-exclamation-circle mr-1"></i>
+                                        {{ form.end_date.errors.0 }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Días Calculados -->
+                        <div class="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-xl p-6">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-3">
+                                    <div class="bg-blue-100 p-3 rounded-full">
+                                        <i class="fas fa-calculator text-blue-600 text-lg"></i>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-medium text-blue-800">Días solicitados</p>
+                                        <p class="text-xs text-blue-600">Calculado automáticamente</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <span id="calculatedDays" class="text-3xl font-bold text-blue-600">0</span>
+                                    <p class="text-xs text-blue-600">días</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Motivo -->
+                        <div>
+                            <label for="{{ form.reason.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-comment-alt text-purple-500 mr-2"></i>{{ form.reason.label }}
+                                <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.reason }}
+                            {% if form.reason.errors %}
+                                <div class="mt-1 text-sm text-red-600 flex items-center">
+                                    <i class="fas fa-exclamation-circle mr-1"></i>
+                                    {{ form.reason.errors.0 }}
+                                </div>
+                            {% endif %}
+                            <p class="mt-1 text-sm text-gray-500">Explica el motivo de tu solicitud de manera clara y concisa</p>
+                        </div>
+
+                        <!-- Errores generales del formulario -->
+                        {% if form.non_field_errors %}
+                            <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                                <div class="flex">
+                                    <i class="fas fa-exclamation-triangle text-red-400 mr-3 mt-0.5"></i>
+                                    <div>
+                                        <h4 class="text-red-800 font-medium mb-1">Error en la solicitud</h4>
+                                        {% for error in form.non_field_errors %}
+                                            <p class="text-sm text-red-700">{{ error }}</p>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+
+                        <!-- Botones de acción -->
+                        <div class="flex space-x-4 pt-6 border-t border-gray-200">
+                            <button type="submit" class="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-lg hover:from-green-700 hover:to-green-800 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-all duration-200 font-medium shadow-lg transform hover:scale-105">
+                                <i class="fas fa-paper-plane mr-2"></i>
+                                Enviar Solicitud
+                            </button>
+                            <a href="{% url 'employees:employee_requests' %}" class="flex-1 bg-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors font-medium text-center">
+                                <i class="fas fa-times mr-2"></i>
+                                Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Panel Lateral -->
+            <div class="lg:col-span-1 space-y-6">
+                <!-- Balance de Licencias -->
+                {% if leave_balances %}
+                <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <i class="fas fa-chart-pie text-blue-500 mr-2"></i>
+                        Tu Balance Actual
+                    </h3>
+                    <div class="space-y-4">
+                        {% for balance in leave_balances %}
+                        <div class="border rounded-lg p-4 hover:shadow-md transition-shadow" style="border-left: 4px solid {{ balance.leave_type.color }};">
+                            <div class="flex items-center justify-between mb-3">
+                                <span class="text-sm font-medium text-gray-900">{{ balance.leave_type.name }}</span>
+                                <span class="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600">{{ balance.leave_type.code }}</span>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="flex justify-between text-xs">
+                                    <span class="text-gray-600 flex items-center">
+                                        <i class="fas fa-circle text-green-500 mr-1 text-xs"></i>
+                                        Disponibles:
+                                    </span>
+                                    <span class="font-bold text-green-600">{{ balance.remaining_days }} días</span>
+                                </div>
+                                <div class="flex justify-between text-xs">
+                                    <span class="text-gray-600 flex items-center">
+                                        <i class="fas fa-circle text-blue-500 mr-1 text-xs"></i>
+                                        Utilizados:
+                                    </span>
+                                    <span class="font-medium">{{ balance.used_days }}/{{ balance.allocated_days }}</span>
+                                </div>
+                                {% if balance.carried_forward > 0 %}
+                                <div class="flex justify-between text-xs">
+                                    <span class="text-gray-600 flex items-center">
+                                        <i class="fas fa-circle text-purple-500 mr-1 text-xs"></i>
+                                        Transferidos:
+                                    </span>
+                                    <span class="font-medium text-purple-600">{{ balance.carried_forward }} días</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                            <!-- Barra de progreso mejorada -->
+                            <div class="mt-3">
+                                <div class="bg-gray-200 rounded-full h-2 overflow-hidden">
+                                    {% widthratio balance.used_days balance.allocated_days 100 as used_percentage %}
+                                    <div class="h-2 rounded-full transition-all duration-500" style="width: {{ used_percentage }}%; background: linear-gradient(90deg, {{ balance.leave_type.color }}, {{ balance.leave_type.color }}80);"></div>
+                                </div>
+                                <div class="flex justify-between text-xs mt-1 text-gray-500">
+                                    <span>0</span>
+                                    <span>{{ balance.allocated_days }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Información de Políticas -->
+                <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <i class="fas fa-info-circle text-yellow-500 mr-2"></i>
+                        Información Importante
+                    </h3>
+                    <div class="space-y-4">
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                            <div class="flex items-start space-x-3">
+                                <i class="fas fa-clock text-blue-500 mt-1"></i>
+                                <div>
+                                    <p class="text-sm font-medium text-blue-900">Tiempo de Anticipación</p>
+                                    <p class="text-xs text-blue-700">Las vacaciones requieren mínimo 15 días de anticipación</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-3">
+                            <div class="flex items-start space-x-3">
+                                <i class="fas fa-user-check text-green-500 mt-1"></i>
+                                <div>
+                                    <p class="text-sm font-medium text-green-900">Proceso de Aprobación</p>
+                                    <p class="text-xs text-green-700">Tu supervisor revisará y aprobará la solicitud</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                            <div class="flex items-start space-x-3">
+                                <i class="fas fa-bell text-purple-500 mt-1"></i>
+                                <div>
+                                    <p class="text-sm font-medium text-purple-900">Notificaciones</p>
+                                    <p class="text-xs text-purple-700">Recibirás actualizaciones por email sobre el estado</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                            <div class="flex items-start space-x-3">
+                                <i class="fas fa-edit text-orange-500 mt-1"></i>
+                                <div>
+                                    <p class="text-sm font-medium text-orange-900">Modificaciones</p>
+                                    <p class="text-xs text-orange-700">Puedes editar solicitudes mientras estén pendientes</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contacto de Ayuda -->
+                <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <i class="fas fa-headset text-green-500 mr-2"></i>
+                        ¿Necesitas Ayuda?
+                    </h3>
+                    <div class="space-y-3">
+                        {% if employee.supervisor %}
+                        <div class="flex items-center space-x-3 p-2 bg-blue-50 rounded-lg">
+                            <div class="bg-blue-100 p-2 rounded-lg">
+                                <i class="fas fa-user-tie text-blue-600 text-sm"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-900">Tu Supervisor</p>
+                                <p class="text-xs text-gray-600">{{ employee.supervisor.user.get_full_name }}</p>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="flex items-center space-x-3 p-2 bg-green-50 rounded-lg">
+                            <div class="bg-green-100 p-2 rounded-lg">
+                                <i class="fas fa-envelope text-green-600 text-sm"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-900">RRHH</p>
+                                <p class="text-xs text-gray-600">rrhh@gnagro.com</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center space-x-3 p-2 bg-purple-50 rounded-lg">
+                            <div class="bg-purple-100 p-2 rounded-lg">
+                                <i class="fas fa-phone text-purple-600 text-sm"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-gray-900">Teléfono</p>
+                                <p class="text-xs text-gray-600">+593 999 999 999 Ext. 101</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const startDateInput = document.getElementById('{{ form.start_date.id_for_label }}');
+        const endDateInput = document.getElementById('{{ form.end_date.id_for_label }}');
+        const leaveTypeSelect = document.getElementById('{{ form.leave_type.id_for_label }}');
+        const calculatedDaysSpan = document.getElementById('calculatedDays');
+        const form = document.getElementById('leaveRequestForm');
+
+        // Función para calcular días entre fechas
+        function calculateDays() {
+            const startDate = new Date(startDateInput.value);
+            const endDate = new Date(endDateInput.value);
+            
+            if (startDate && endDate && endDate >= startDate) {
+                const timeDiff = endDate.getTime() - startDate.getTime();
+                const daysDiff = Math.ceil(timeDiff / (1000 * 3600 * 24)) + 1;
+                calculatedDaysSpan.textContent = daysDiff;
+                
+                // Animación del contador
+                calculatedDaysSpan.style.transform = 'scale(1.2)';
+                setTimeout(() => {
+                    calculatedDaysSpan.style.transform = 'scale(1)';
+                }, 200);
+                
+                // Validar balance disponible
+                validateBalance(daysDiff);
+            } else {
+                calculatedDaysSpan.textContent = '0';
+            }
+        }
+
+        // Función para validar balance disponible
+        function validateBalance(requestedDays) {
+            const selectedLeaveType = leaveTypeSelect.value;
+            if (!selectedLeaveType) return;
+
+            // Resaltar el balance correspondiente
+            const balanceCards = document.querySelectorAll('[style*="border-left"]');
+            balanceCards.forEach(card => {
+                const codeSpan = card.querySelector('.bg-gray-100');
+                if (codeSpan) {
+                    // Reset previous highlights
+                    card.classList.remove('ring-2', 'ring-blue-300', 'bg-blue-50');
+                    
+                    // Highlight selected type (simplificado - en producción usarías el código real)
+                    if (selectedLeaveType && card.style.borderLeftColor) {
+                        card.classList.add('ring-2', 'ring-blue-300');
+                    }
+                }
+            });
+        }
+
+        // Event listeners
+        startDateInput.addEventListener('change', function() {
+            endDateInput.min = this.value;
+            if (endDateInput.value && endDateInput.value < this.value) {
+                endDateInput.value = this.value;
+            }
+            calculateDays();
+        });
+
+        endDateInput.addEventListener('change', calculateDays);
+        leaveTypeSelect.addEventListener('change', function() {
+            if (startDateInput.value && endDateInput.value) {
+                calculateDays();
+            }
+            validateBalance(0);
+        });
+
+        // Establecer fecha mínima (mañana)
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const minDate = tomorrow.toISOString().split('T')[0];
+        startDateInput.min = minDate;
+        endDateInput.min = minDate;
+
+        // Validación del formulario
+        form.addEventListener('submit', function(e) {
+            const startDate = new Date(startDateInput.value);
+            const today = new Date();
+            const selectedType = leaveTypeSelect.options[leaveTypeSelect.selectedIndex];
+            
+            // Validación para vacaciones (15 días de anticipación)
+            if (selectedType && selectedType.text.toLowerCase().includes('vacacion')) {
+                const daysDiff = (startDate - today) / (1000 * 60 * 60 * 24);
+                if (daysDiff < 15) {
+                    e.preventDefault();
+                    alert('⚠️ Las vacaciones deben solicitarse con al menos 15 días de anticipación.');
+                    return false;
+                }
+            }
+
+            // Validación de fechas
+            if (startDate <= today) {
+                e.preventDefault();
+                alert('⚠️ La fecha de inicio debe ser posterior a hoy.');
+                return false;
+            }
+
+            // Mostrar confirmación
+            const requestedDays = calculatedDaysSpan.textContent;
+            if (!confirm(`¿Confirmas que quieres solicitar ${requestedDays} día(s) de ${selectedType.text}?\n\nEsta solicitud será enviada a tu supervisor para su aprobación.`)) {
+                e.preventDefault();
+                return false;
+            }
+        });
+
+        // Calcular días iniciales si ya hay fechas
+        if (startDateInput.value && endDateInput.value) {
+            calculateDays();
+        }
+
+        // Animaciones de entrada
+        const cards = document.querySelectorAll('.bg-white');
+        cards.forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            card.style.transition = 'all 0.6s ease';
+            
+            setTimeout(() => {
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, index * 150);
+        });
+
+        // Efectos hover mejorados
+        const balanceCards = document.querySelectorAll('[style*="border-left"]');
+        balanceCards.forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-2px)';
+                this.style.boxShadow = '0 8px 25px rgba(0,0,0,0.1)';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0)';
+                this.style.boxShadow = '';
+            });
+        });
+    });
+</script>
+{% endblock %}

@@ -73,7 +73,6 @@ class UserEmployeeForm(forms.ModelForm):
         self.fields['user_type'].choices = [
             ('employee', 'Empleado - Acceso básico al portal'),
             ('supervisor', 'Supervisor - Puede crear y gestionar tareas'),
-            ('hr', 'Recursos Humanos - Gestión completa de empleados'),
             ('admin', 'Administrador - Acceso completo al sistema'),
         ]
     
@@ -172,7 +171,7 @@ class UserEmployeeForm(forms.ModelForm):
         user.user_type = self.cleaned_data.get('user_type', 'employee')
         
         # Asignar permisos staff según el tipo de usuario
-        if user.user_type in ['admin', 'hr']:
+        if user.user_type in ['admin']:
             user.is_staff = True
         elif user.user_type == 'supervisor':
             user.is_staff = False  # Los supervisores no necesitan acceso al admin de Django

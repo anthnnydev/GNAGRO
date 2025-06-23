@@ -1,0 +1,350 @@
+{% extends 'layouts/base_supervisor.html' %}
+{% load static %}
+
+{% block title %}Mis Tareas - Dashboard Supervisor{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header de la página -->
+    <div class="mb-8">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 flex items-center">
+                    <i class="fas fa-tasks text-blue-600 mr-3"></i>
+                    Mis Tareas
+                </h1>
+                <p class="mt-2 text-gray-600">
+                    Gestiona todas las tareas asignadas a tu equipo
+                </p>
+            </div>
+            <div class="mt-4 md:mt-0 flex space-x-3">
+                <a href="{% url 'tasks:task_create' %}" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                    <i class="fas fa-plus mr-2"></i>Nueva Tarea
+                </a>
+                <a href="{% url 'tasks:export_tasks_csv' %}" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                    <i class="fas fa-download mr-2"></i>Exportar
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros de búsqueda -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+        <form method="get" class="space-y-4 md:space-y-0 md:flex md:items-end md:space-x-4">
+            <div class="flex-1">
+                <label for="search" class="block text-sm font-medium text-gray-700 mb-1">Buscar</label>
+                <input type="text" id="search" name="search" value="{{ search_form.search.value|default:'' }}" 
+                       placeholder="Título, descripción o ubicación..."
+                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+            
+            <div>
+                <label for="category" class="block text-sm font-medium text-gray-700 mb-1">Categoría</label>
+                {{ search_form.category }}
+            </div>
+            
+            <div>
+                <label for="status" class="block text-sm font-medium text-gray-700 mb-1">Estado</label>
+                {{ search_form.status }}
+            </div>
+            
+            <div>
+                <label for="priority" class="block text-sm font-medium text-gray-700 mb-1">Prioridad</label>
+                {{ search_form.priority }}
+            </div>
+            
+            <div class="flex space-x-2">
+                <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                    <i class="fas fa-search mr-2"></i>Buscar
+                </button>
+                <a href="{% url 'tasks:task_list' %}" class="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors">
+                    <i class="fas fa-times mr-2"></i>Limpiar
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Lista de tareas -->
+    <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-gray-900">
+                    Tareas Creadas ({{ tasks|length }})
+                </h3>
+                <div class="flex items-center space-x-2">
+                    <select class="text-sm border border-gray-300 rounded-lg px-3 py-1" onchange="bulkAction(this.value)">
+                        <option value="">Acciones en lote</option>
+                        <option value="delete">Eliminar seleccionadas</option>
+                        <option value="cancel">Cancelar seleccionadas</option>
+                        <option value="change_priority">Cambiar prioridad</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <div class="overflow-hidden">
+            {% if tasks %}
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left">
+                                    <input type="checkbox" id="select-all" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                </th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tarea</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoría</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prioridad</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Empleados</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha Límite</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for task in tasks %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <input type="checkbox" name="task_ids" value="{{ task.pk }}" class="task-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div>
+                                        <div class="text-sm font-medium text-gray-900">
+                                            <a href="{% url 'tasks:task_detail' task.pk %}" class="hover:text-blue-600">
+                                                {{ task.title }}
+                                            </a>
+                                        </div>
+                                        <div class="text-sm text-gray-500">{{ task.location|default:"Sin ubicación" }}</div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-{{ task.category.color }}-100 text-{{ task.category.color }}-800">
+                                        {{ task.category.name }}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    {% if task.status == 'draft' %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                            <i class="fas fa-edit mr-1"></i>Borrador
+                                        </span>
+                                    {% elif task.status == 'assigned' %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                            <i class="fas fa-clock mr-1"></i>Asignada
+                                        </span>
+                                    {% elif task.status == 'in_progress' %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                            <i class="fas fa-play mr-1"></i>En Progreso
+                                        </span>
+                                    {% elif task.status == 'completed' %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            <i class="fas fa-check mr-1"></i>Completada
+                                        </span>
+                                    {% elif task.status == 'cancelled' %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                            <i class="fas fa-times mr-1"></i>Cancelada
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    {% if task.priority == 'urgent' %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                            <i class="fas fa-exclamation-triangle mr-1"></i>Urgente
+                                        </span>
+                                    {% elif task.priority == 'high' %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                                            <i class="fas fa-arrow-up mr-1"></i>Alta
+                                        </span>
+                                    {% elif task.priority == 'medium' %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                            <i class="fas fa-minus mr-1"></i>Media
+                                        </span>
+                                    {% elif task.priority == 'low' %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                                            <i class="fas fa-arrow-down mr-1"></i>Baja
+                                        </span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    <div class="flex -space-x-1 overflow-hidden">
+                                        {% for employee in task.assigned_employees.all|slice:":3" %}
+                                            {% if employee.user.profile_picture %}
+                                                <img class="inline-block h-6 w-6 rounded-full ring-2 ring-white" 
+                                                     src="{{ employee.user.profile_picture.url }}" 
+                                                     alt="{{ employee.user.get_full_name }}">
+                                            {% else %}
+                                                <div class="inline-block h-6 w-6 rounded-full ring-2 ring-white bg-blue-500 text-white text-xs flex items-center justify-center font-medium">
+                                                    {{ employee.user.first_name|first|upper }}
+                                                </div>
+                                            {% endif %}
+                                        {% endfor %}
+                                        {% if task.assigned_employees.count > 3 %}
+                                            <span class="inline-block h-6 w-6 rounded-full ring-2 ring-white bg-gray-200 text-gray-600 text-xs flex items-center justify-center font-medium">
+                                                +{{ task.assigned_employees.count|add:"-3" }}
+                                            </span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="text-xs text-gray-500 mt-1">
+                                        {{ task.assigned_employees.count }} empleado{{ task.assigned_employees.count|pluralize }}
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    <div class="text-sm text-gray-900">{{ task.end_date|date:"d M Y" }}</div>
+                                    <div class="text-xs text-gray-500">{{ task.end_date|date:"H:i" }}</div>
+                                    {% if task.end_date < now and task.status != 'completed' %}
+                                        <div class="text-xs text-red-600 font-medium">Vencida</div>
+                                    {% endif %}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <div class="flex space-x-2">
+                                        <a href="{% url 'tasks:task_detail' task.pk %}" class="text-blue-600 hover:text-blue-900" title="Ver detalles">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{% url 'tasks:task_update' task.pk %}" class="text-gray-600 hover:text-gray-900" title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        {% if task.status == 'draft' or task.status == 'assigned' %}
+                                        <a href="{% url 'tasks:task_assign' task.pk %}" class="text-green-600 hover:text-green-900" title="Asignar empleados">
+                                            <i class="fas fa-user-plus"></i>
+                                        </a>
+                                        {% endif %}
+                                        {% if task.status == 'draft' %}
+                                        <a href="{% url 'tasks:task_delete' task.pk %}" class="text-red-600 hover:text-red-900" title="Eliminar">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Paginación -->
+                {% if is_paginated %}
+                <div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
+                    <div class="flex-1 flex justify-between sm:hidden">
+                        {% if page_obj.has_previous %}
+                            <a href="?page={{ page_obj.previous_page_number }}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">Anterior</a>
+                        {% endif %}
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">Siguiente</a>
+                        {% endif %}
+                    </div>
+                    <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                        <div>
+                            <p class="text-sm text-gray-700">
+                                Mostrando <span class="font-medium">{{ page_obj.start_index }}</span> a <span class="font-medium">{{ page_obj.end_index }}</span> de <span class="font-medium">{{ page_obj.paginator.count }}</span> tareas
+                            </p>
+                        </div>
+                        <div>
+                            <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                                {% if page_obj.has_previous %}
+                                    <a href="?page={{ page_obj.previous_page_number }}" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </a>
+                                {% endif %}
+                                
+                                {% for num in page_obj.paginator.page_range %}
+                                    {% if page_obj.number == num %}
+                                        <span class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-blue-50 text-sm font-medium text-blue-600">{{ num }}</span>
+                                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                        <a href="?page={{ num }}" class="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50">{{ num }}</a>
+                                    {% endif %}
+                                {% endfor %}
+                                
+                                {% if page_obj.has_next %}
+                                    <a href="?page={{ page_obj.next_page_number }}" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
+                                        <i class="fas fa-chevron-right"></i>
+                                    </a>
+                                {% endif %}
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            {% else %}
+                <div class="text-center py-12">
+                    <i class="fas fa-clipboard-list text-gray-400 text-6xl mb-4"></i>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">No hay tareas creadas</h3>
+                    <p class="text-gray-600 mb-4">Comienza creando tu primera tarea para gestionar el trabajo de tu equipo.</p>
+                    <a href="{% url 'tasks:task_create' %}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700">
+                        <i class="fas fa-plus mr-2"></i>Crear Primera Tarea
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Funcionalidad de seleccionar todos
+    const selectAll = document.getElementById('select-all');
+    const taskCheckboxes = document.querySelectorAll('.task-checkbox');
+    
+    if (selectAll) {
+        selectAll.addEventListener('change', function() {
+            taskCheckboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+        });
+    }
+    
+    // Actualizar el estado de "seleccionar todos"
+    taskCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const checkedCount = document.querySelectorAll('.task-checkbox:checked').length;
+            selectAll.checked = checkedCount === taskCheckboxes.length;
+            selectAll.indeterminate = checkedCount > 0 && checkedCount < taskCheckboxes.length;
+        });
+    });
+});
+
+function bulkAction(action) {
+    if (!action) return;
+    
+    const checkedBoxes = document.querySelectorAll('.task-checkbox:checked');
+    if (checkedBoxes.length === 0) {
+        alert('Selecciona al menos una tarea.');
+        return;
+    }
+    
+    const taskIds = Array.from(checkedBoxes).map(cb => cb.value);
+    
+    if (confirm(`¿Estás seguro de que quieres ${action} ${taskIds.length} tarea(s)?`)) {
+        // Crear formulario para enviar la acción
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '{% url "tasks:bulk_task_actions" %}';
+        
+        // CSRF Token
+        const csrfToken = document.createElement('input');
+        csrfToken.type = 'hidden';
+        csrfToken.name = 'csrfmiddlewaretoken';
+        csrfToken.value = '{{ csrf_token }}';
+        form.appendChild(csrfToken);
+        
+        // Acción
+        const actionInput = document.createElement('input');
+        actionInput.type = 'hidden';
+        actionInput.name = 'action';
+        actionInput.value = action;
+        form.appendChild(actionInput);
+        
+        // IDs de tareas
+        taskIds.forEach(id => {
+            const idInput = document.createElement('input');
+            idInput.type = 'hidden';
+            idInput.name = 'task_ids';
+            idInput.value = id;
+            form.appendChild(idInput);
+        });
+        
+        document.body.appendChild(form);
+        form.submit();
+    }
+}
+</script>
+{% endblock %}

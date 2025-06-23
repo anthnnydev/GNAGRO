@@ -1,0 +1,517 @@
+{% extends 'layouts/base_employee.html' %}
+
+{% block title %}{{ assignment.task.title }} - Portal Empleado{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header de la página -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'tasks:employee_task_list' %}" 
+                       class="text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-arrow-left text-lg"></i>
+                    </a>
+                    <div>
+                        <h1 class="text-2xl font-bold text-gray-900">{{ assignment.task.title }}</h1>
+                        <p class="text-gray-600">Detalle de la tarea asignada</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <!-- Estado de la tarea -->
+                    <span class="inline-flex px-3 py-1 text-sm font-medium rounded-full 
+                        {% if assignment.status == 'completed' %}bg-green-100 text-green-800
+                        {% elif assignment.status == 'in_progress' %}bg-blue-100 text-blue-800
+                        {% elif assignment.status == 'accepted' %}bg-purple-100 text-purple-800
+                        {% elif assignment.status == 'pending' %}bg-yellow-100 text-yellow-800
+                        {% elif assignment.status == 'rejected' %}bg-red-100 text-red-800
+                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                        {{ assignment.get_status_display }}
+                    </span>
+                    
+                    <!-- Prioridad -->
+                    {% if assignment.task.priority == 'urgent' %}
+                    <span class="inline-flex px-3 py-1 text-sm font-medium rounded-full bg-red-100 text-red-800">
+                        <i class="fas fa-exclamation-triangle mr-1"></i>URGENTE
+                    </span>
+                    {% elif assignment.task.priority == 'high' %}
+                    <span class="inline-flex px-3 py-1 text-sm font-medium rounded-full bg-orange-100 text-orange-800">
+                        ALTA PRIORIDAD
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Columna principal -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Información de la tarea -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Información de la Tarea</h2>
+                    
+                    {% if assignment.task.description %}
+                    <div class="mb-6">
+                        <h3 class="text-sm font-medium text-gray-700 mb-2">Descripción</h3>
+                        <p class="text-gray-600 leading-relaxed">{{ assignment.task.description }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Detalles técnicos -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-700 mb-3">Detalles</h3>
+                            <div class="space-y-3">
+                                <div class="flex items-center">
+                                    <i class="fas fa-map-marker-alt text-gray-400 mr-3"></i>
+                                    <span class="text-sm text-gray-600">{{ assignment.task.location|default:"Sin ubicación específica" }}</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <i class="fas fa-clock text-gray-400 mr-3"></i>
+                                    <span class="text-sm text-gray-600">{{ assignment.task.estimated_hours }} horas estimadas</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <i class="fas fa-calendar text-gray-400 mr-3"></i>
+                                    <span class="text-sm text-gray-600">{{ assignment.task.start_date|date:"d/m/Y H:i" }} - {{ assignment.task.end_date|date:"d/m/Y H:i" }}</span>
+                                </div>
+                                {% if assignment.task.category %}
+                                <div class="flex items-center">
+                                    <div class="w-3 h-3 rounded-full mr-3" style="background-color: {{ assignment.task.category.color }}"></div>
+                                    <span class="text-sm text-gray-600">{{ assignment.task.category.name }}</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-700 mb-3">Supervisor</h3>
+                            <div class="flex items-center space-x-3">
+                                <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center">
+                                    <span class="text-white font-semibold text-sm">
+                                        {{ assignment.task.supervisor.user.first_name|first|upper }}{{ assignment.task.supervisor.user.last_name|first|upper }}
+                                    </span>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-900">{{ assignment.task.supervisor.user.get_full_name }}</p>
+                                    <p class="text-xs text-gray-500">{{ assignment.task.supervisor.position.title }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Instrucciones especiales -->
+                    {% if assignment.task.special_instructions %}
+                    <div class="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <h3 class="text-sm font-medium text-yellow-800 mb-2">
+                            <i class="fas fa-exclamation-circle mr-2"></i>Instrucciones Especiales
+                        </h3>
+                        <p class="text-sm text-yellow-700">{{ assignment.task.special_instructions }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Imagen de referencia -->
+                    {% if assignment.task.reference_image %}
+                    <div class="mt-6">
+                        <h3 class="text-sm font-medium text-gray-700 mb-2">Imagen de Referencia</h3>
+                        <img src="{{ assignment.task.reference_image.url }}" 
+                             alt="Referencia de la tarea" 
+                             class="max-w-full h-auto rounded-lg border border-gray-200">
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Otros empleados asignados -->
+                {% if other_assignments %}
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Otros Empleados Asignados</h2>
+                    <div class="space-y-3">
+                        {% for other_assignment in other_assignments %}
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                                    <span class="text-white font-semibold text-xs">
+                                        {{ other_assignment.employee.user.first_name|first|upper }}
+                                    </span>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-medium text-gray-900">{{ other_assignment.employee.user.get_full_name }}</p>
+                                    <p class="text-xs text-gray-500">{{ other_assignment.employee.position.title }}</p>
+                                </div>
+                            </div>
+                            <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full 
+                                {% if other_assignment.status == 'completed' %}bg-green-100 text-green-800
+                                {% elif other_assignment.status == 'in_progress' %}bg-blue-100 text-blue-800
+                                {% elif other_assignment.status == 'accepted' %}bg-purple-100 text-purple-800
+                                {% elif other_assignment.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ other_assignment.get_status_display }}
+                            </span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Reportes de progreso -->
+                {% if progress_reports %}
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Mi Progreso</h2>
+                    <div class="space-y-4">
+                        {% for progress in progress_reports %}
+                        <div class="border border-gray-200 rounded-lg p-4">
+                            <div class="flex items-start justify-between mb-2">
+                                <div class="flex items-center space-x-2">
+                                    <i class="fas fa-clock text-gray-400"></i>
+                                    <span class="text-sm text-gray-600">{{ progress.timestamp|date:"d/m/Y H:i" }}</span>
+                                </div>
+                                {% if progress.hours_worked_session %}
+                                <span class="text-sm font-medium text-blue-600">{{ progress.hours_worked_session }}h trabajadas</span>
+                                {% endif %}
+                            </div>
+                            <p class="text-gray-700 mb-2">{{ progress.progress_description }}</p>
+                            {% if progress.progress_image %}
+                            <img src="{{ progress.progress_image.url }}" 
+                                 alt="Progreso" 
+                                 class="max-w-xs h-auto rounded-lg border border-gray-200">
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Comentarios -->
+                {% if comments %}
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Comentarios</h2>
+                    <div class="space-y-4">
+                        {% for comment in comments %}
+                        <div class="border-l-4 border-blue-500 pl-4 py-2">
+                            <div class="flex items-center space-x-2 mb-1">
+                                <span class="text-sm font-medium text-gray-900">{{ comment.author.user.get_full_name }}</span>
+                                <span class="text-xs text-gray-500">{{ comment.timestamp|date:"d/m/Y H:i" }}</span>
+                                {% if comment.is_private %}
+                                <span class="inline-flex px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">Privado</span>
+                                {% endif %}
+                            </div>
+                            <p class="text-gray-700">{{ comment.content }}</p>
+                            {% if comment.attachment %}
+                            <a href="{{ comment.attachment.url }}" 
+                               class="text-blue-600 hover:text-blue-800 text-sm">
+                                <i class="fas fa-paperclip mr-1"></i>Ver adjunto
+                            </a>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Sidebar derecho -->
+            <div class="space-y-6">
+                <!-- Información de pago -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Información de Pago</h2>
+                    <div class="space-y-3">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Tipo de pago:</span>
+                            <span class="text-sm font-medium text-gray-900">
+                                {% if assignment.task.payment_type == 'hourly' %}
+                                    Por hora
+                                {% elif assignment.task.payment_type == 'fixed' %}
+                                    Monto fijo
+                                {% elif assignment.task.payment_type == 'unit' %}
+                                    Por {{ assignment.task.unit_description }}
+                                {% endif %}
+                            </span>
+                        </div>
+                        
+                        {% if assignment.task.payment_type == 'hourly' %}
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Tarifa por hora:</span>
+                            <span class="text-sm font-medium text-gray-900">${{ assignment.task.hourly_rate|floatformat:2 }}</span>
+                        </div>
+                        {% elif assignment.task.payment_type == 'fixed' %}
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Monto fijo:</span>
+                            <span class="text-sm font-medium text-gray-900">${{ assignment.task.fixed_amount|floatformat:2 }}</span>
+                        </div>
+                        {% elif assignment.task.payment_type == 'unit' %}
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm text-gray-600">Por {{ assignment.task.unit_description }}:</span>
+                            <span class="text-sm font-medium text-gray-900">${{ assignment.task.unit_rate|floatformat:2 }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        <hr class="my-3">
+                        
+                        <div class="flex justify-between items-center">
+                            <span class="text-base font-medium text-gray-900">Pago estimado:</span>
+                            <span class="text-lg font-bold text-green-600">${{ estimated_payment|floatformat:2 }}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Progreso actual -->
+                {% if assignment.status == 'in_progress' or assignment.status == 'completed' %}
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Progreso Actual</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <div class="flex justify-between text-sm text-gray-600 mb-1">
+                                <span>Horas trabajadas</span>
+                                <span>{{ assignment.hours_worked }}/{{ assignment.task.estimated_hours }}h</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2">
+                                {% widthratio assignment.hours_worked assignment.task.estimated_hours 100 as progress_percent %}
+                                <div class="bg-blue-600 h-2 rounded-full" style="width: {{ progress_percent|floatformat:0 }}%"></div>
+                            </div>
+                        </div>
+                        
+                        {% if assignment.task.payment_type == 'unit' %}
+                        <div>
+                            <div class="flex justify-between text-sm text-gray-600 mb-1">
+                                <span>Unidades completadas</span>
+                                <span>{{ assignment.units_completed }}</span>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="text-center">
+                            <span class="text-2xl font-bold text-green-600">${{ assignment.calculated_payment|floatformat:2 }}</span>
+                            <p class="text-xs text-gray-500">Ganancia actual</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <!-- Acciones -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Acciones</h2>
+                    <div class="space-y-3">
+                        {% if assignment.status == 'pending' %}
+                            <!-- Tarea pendiente de aceptar -->
+                            <form method="post" class="space-y-3">
+                                {% csrf_token %}
+                                <button type="submit" name="accept_task" 
+                                        class="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                                    <i class="fas fa-check mr-2"></i>Aceptar Tarea
+                                </button>
+                                
+                                <div class="space-y-2">
+                                    <label class="block text-sm font-medium text-gray-700">Motivo del rechazo (opcional):</label>
+                                    <textarea name="reject_reason" rows="2" 
+                                              class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                                              placeholder="Explica por qué no puedes realizar esta tarea..."></textarea>
+                                    <button type="submit" name="reject_task" 
+                                            class="w-full bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors">
+                                        <i class="fas fa-times mr-2"></i>Rechazar Tarea
+                                    </button>
+                                </div>
+                            </form>
+                            
+                        {% elif assignment.status == 'accepted' %}
+                            <!-- Tarea aceptada, puede iniciar -->
+                            <form method="post">
+                                {% csrf_token %}
+                                {% if can_start_work %}
+                                <button type="submit" name="start_work" 
+                                        class="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                                    <i class="fas fa-play mr-2"></i>Iniciar Trabajo
+                                </button>
+                                {% else %}
+                                <div class="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                    <p class="text-sm text-yellow-800">
+                                        <i class="fas fa-map-marker-alt mr-2"></i>
+                                        Debes estar en la ubicación de la tarea para iniciar
+                                    </p>
+                                </div>
+                                {% endif %}
+                            </form>
+                            
+                        {% elif assignment.status == 'in_progress' %}
+                            <!-- Tarea en progreso -->
+                            <form method="post">
+                                {% csrf_token %}
+                                <button type="submit" name="pause_work" 
+                                        class="w-full bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors mb-3">
+                                    <i class="fas fa-pause mr-2"></i>Pausar Trabajo
+                                </button>
+                                
+                                <button type="submit" name="complete_task" 
+                                        class="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                                        onclick="return confirm('¿Estás seguro de que quieres marcar esta tarea como completada?')">
+                                    <i class="fas fa-check mr-2"></i>Marcar como Completada
+                                </button>
+                            </form>
+                            
+                        {% elif assignment.status == 'completed' %}
+                            <!-- Tarea completada -->
+                            <div class="p-4 bg-green-50 border border-green-200 rounded-lg text-center">
+                                <i class="fas fa-check-circle text-green-600 text-2xl mb-2"></i>
+                                <p class="text-sm font-medium text-green-800">Tarea Completada</p>
+                                <p class="text-xs text-green-600">{{ assignment.completed_at|date:"d/m/Y H:i" }}</p>
+                            </div>
+                            
+                        {% elif assignment.status == 'rejected' %}
+                            <!-- Tarea rechazada -->
+                            <div class="p-4 bg-red-50 border border-red-200 rounded-lg text-center">
+                                <i class="fas fa-times-circle text-red-600 text-2xl mb-2"></i>
+                                <p class="text-sm font-medium text-red-800">Tarea Rechazada</p>
+                                {% if assignment.employee_notes %}
+                                <p class="text-xs text-red-600 mt-1">{{ assignment.employee_notes }}</p>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Reportar progreso (solo si está en progreso) -->
+                {% if assignment.status == 'in_progress' %}
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Reportar Progreso</h2>
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Descripción del progreso</label>
+                                {{ progress_form.progress_description }}
+                            </div>
+                            
+                            {% if assignment.task.payment_type == 'hourly' or assignment.task.payment_type == 'fixed' %}
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Horas trabajadas en esta sesión</label>
+                                {{ progress_form.hours_worked_session }}
+                            </div>
+                            {% endif %}
+                            
+                            {% if assignment.task.payment_type == 'unit' %}
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">
+                                    {{ assignment.task.unit_description|title }} completadas
+                                </label>
+                                {{ progress_form.units_completed_session }}
+                            </div>
+                            {% endif %}
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Imagen del progreso (opcional)</label>
+                                {{ progress_form.progress_image }}
+                            </div>
+                            
+                            <!-- Campos ocultos para geolocalización -->
+                            <input type="hidden" id="latitude" name="latitude">
+                            <input type="hidden" id="longitude" name="longitude">
+                            
+                            <button type="submit" name="report_progress" 
+                                    class="w-full bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
+                                <i class="fas fa-upload mr-2"></i>Reportar Progreso
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                {% endif %}
+                
+                <!-- Agregar comentario -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Agregar Comentario</h2>
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="space-y-4">
+                            <div>
+                                {{ comment_form.content }}
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Adjunto (opcional)</label>
+                                {{ comment_form.attachment }}
+                            </div>
+                            
+                            {{ comment_form.is_private }}
+                            
+                            <button type="submit" name="add_comment" 
+                                    class="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
+                                <i class="fas fa-comment mr-2"></i>Agregar Comentario
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Obtener geolocalización para reportes de progreso
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                document.getElementById('latitude').value = position.coords.latitude;
+                document.getElementById('longitude').value = position.coords.longitude;
+            }, function(error) {
+                console.log('Error obteniendo ubicación:', error);
+            });
+        }
+
+        // Confirmación para acciones importantes
+        const dangerButtons = document.querySelectorAll('[name="reject_task"], [name="complete_task"]');
+        dangerButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                const action = this.name === 'reject_task' ? 'rechazar' : 'completar';
+                if (!confirm(`¿Estás seguro de que quieres ${action} esta tarea?`)) {
+                    e.preventDefault();
+                }
+            });
+        });
+
+        // Validación del formulario de progreso
+        const progressForm = document.querySelector('form[method="post"]');
+        if (progressForm) {
+            progressForm.addEventListener('submit', function(e) {
+                const description = document.querySelector('[name="progress_description"]');
+                const hoursWorked = document.querySelector('[name="hours_worked_session"]');
+                const unitsCompleted = document.querySelector('[name="units_completed_session"]');
+                
+                if (description && description.value.trim() === '') {
+                    alert('Debes proporcionar una descripción del progreso.');
+                    e.preventDefault();
+                    return false;
+                }
+                
+                if (hoursWorked && (hoursWorked.value === '' || parseFloat(hoursWorked.value) <= 0)) {
+                    alert('Debes especificar las horas trabajadas.');
+                    e.preventDefault();
+                    return false;
+                }
+                
+                if (unitsCompleted && (unitsCompleted.value === '' || parseInt(unitsCompleted.value) <= 0)) {
+                    alert('Debes especificar las unidades completadas.');
+                    e.preventDefault();
+                    return false;
+                }
+            });
+        }
+
+        // Auto-expansión del textarea de comentarios
+        const textarea = document.querySelector('textarea[name="content"]');
+        if (textarea) {
+            textarea.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = this.scrollHeight + 'px';
+            });
+        }
+
+        // Actualizar estado cada 60 segundos
+        setInterval(function() {
+            // Aquí podrías agregar una llamada AJAX para verificar cambios
+            console.log('Verificando actualizaciones de la tarea...');
+        }, 60000);
+    });
+</script>
+{% endblock %}
