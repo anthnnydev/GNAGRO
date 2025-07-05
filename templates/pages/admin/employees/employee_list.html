@@ -28,7 +28,7 @@
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Filtros y Búsqueda -->
         <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
-            <form method="get" class="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-5 lg:gap-4">
+            <form method="get" class="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-6 lg:gap-4">
                 <!-- Búsqueda -->
                 <div>
                     <label for="search" class="block text-sm font-medium text-gray-700 mb-2">Buscar</label>
@@ -60,13 +60,14 @@
                     </select>
                 </div>
 
-                <!-- Filtro por Estado -->
+                <!-- MEJORADO: Filtro por Estado -->
                 <div>
                     <label for="status" class="block text-sm font-medium text-gray-700 mb-2">Estado</label>
                     <select id="status" 
                             name="status" 
                             class="w-full py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
-                        <option value="">Todos los estados</option>
+                        <option value="" {% if not selected_status %}selected{% endif %}>Solo Activos</option>
+                        <option value="all" {% if show_all %}selected{% endif %}>Todos los Estados</option>
                         {% for status_key, status_value in status_choices %}
                         <option value="{{ status_key }}" {% if selected_status == status_key %}selected{% endif %}>
                             {{ status_value }}
@@ -75,7 +76,7 @@
                     </select>
                 </div>
 
-                <!-- NUEVO: Filtro por Tipo de Usuario -->
+                <!-- Filtro por Tipo de Usuario -->
                 <div>
                     <label for="user_type" class="block text-sm font-medium text-gray-700 mb-2">Tipo de Usuario</label>
                     <select id="user_type" 
@@ -84,8 +85,18 @@
                         <option value="">Todos los tipos</option>
                         <option value="employee" {% if selected_user_type == 'employee' %}selected{% endif %}>Empleado</option>
                         <option value="supervisor" {% if selected_user_type == 'supervisor' %}selected{% endif %}>Supervisor</option>
-                        <option value="hr" {% if selected_user_type == 'hr' %}selected{% endif %}>Recursos Humanos</option>
                         <option value="admin" {% if selected_user_type == 'admin' %}selected{% endif %}>Administrador</option>
+                    </select>
+                </div>
+
+                <!-- NUEVO: Mostrar Inactivos -->
+                <div>
+                    <label for="show_all" class="block text-sm font-medium text-gray-700 mb-2">Mostrar</label>
+                    <select id="show_all" 
+                            name="show_all" 
+                            class="w-full py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        <option value="" {% if not show_all %}selected{% endif %}>Solo Activos</option>
+                        <option value="1" {% if show_all %}selected{% endif %}>Todos</option>
                     </select>
                 </div>
 
@@ -106,7 +117,7 @@
         </div>
 
         <!-- Estadísticas Rápidas -->
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <div class="flex items-center">
                     <div class="bg-blue-100 p-3 rounded-full">
@@ -125,8 +136,21 @@
                         <i class="fas fa-user-check text-green-600"></i>
                     </div>
                     <div class="ml-4">
-                        <p class="text-sm font-medium text-gray-600">Empleados Activos</p>
+                        <p class="text-sm font-medium text-gray-600">Activos</p>
                         <p class="text-2xl font-bold text-green-600">{{ active_employees|default:0 }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- NUEVA: Tarjeta para Inactivos -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center">
+                    <div class="bg-red-100 p-3 rounded-full">
+                        <i class="fas fa-user-times text-red-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Inactivos</p>
+                        <p class="text-2xl font-bold text-red-600">{{ inactive_employees|default:0 }}</p>
                     </div>
                 </div>
             </div>
@@ -206,24 +230,27 @@
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
                         {% for employee in employees %}
-                        <tr class="hover:bg-gray-50">
+                        <tr class="hover:bg-gray-50 {% if employee.status != 'active' %}bg-gray-50 opacity-75{% endif %}">
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <input type="checkbox" class="rounded employee-checkbox" value="{{ employee.id }}">
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
                                 <div class="flex items-center">
                                     {% if employee.user.profile_picture %}
-                                        <img class="h-10 w-10 rounded-full object-cover" 
+                                        <img class="h-10 w-10 rounded-full object-cover {% if employee.status != 'active' %}grayscale{% endif %}" 
                                              src="{{ employee.user.profile_picture.url }}" 
                                              alt="{{ employee.user.get_full_name }}">
                                     {% else %}
-                                        <div class="h-10 w-10 bg-primary-600 text-white rounded-full flex items-center justify-center font-bold">
+                                        <div class="h-10 w-10 bg-primary-600 text-white rounded-full flex items-center justify-center font-bold {% if employee.status != 'active' %}bg-gray-400{% endif %}">
                                             {{ employee.user.first_name|first|upper }}{{ employee.user.last_name|first|upper }}
                                         </div>
                                     {% endif %}
                                     <div class="ml-4">
-                                        <div class="text-sm font-medium text-gray-900">
+                                        <div class="text-sm font-medium text-gray-900 {% if employee.status != 'active' %}text-gray-500{% endif %}">
                                             {{ employee.user.get_full_name }}
+                                            {% if employee.status != 'active' %}
+                                                <span class="text-xs text-red-500 ml-2">(Inactivo)</span>
+                                            {% endif %}
                                         </div>
                                         <div class="text-sm text-gray-500">
                                             {{ employee.employee_number }}
@@ -235,35 +262,35 @@
                                 </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <!-- NUEVO: Mostrar tipo de usuario con iconos y colores -->
+                                <!-- Mostrar tipo de usuario con iconos y colores -->
                                 {% if employee.user.user_type == 'admin' %}
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 {% if employee.status != 'active' %}opacity-60{% endif %}">
                                         <i class="fas fa-crown mr-1.5"></i>
                                         Administrador
                                     </span>
                                 {% elif employee.user.user_type == 'hr' %}
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800 {% if employee.status != 'active' %}opacity-60{% endif %}">
                                         <i class="fas fa-users-cog mr-1.5"></i>
                                         Recursos Humanos
                                     </span>
                                 {% elif employee.user.user_type == 'supervisor' %}
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 {% if employee.status != 'active' %}opacity-60{% endif %}">
                                         <i class="fas fa-user-tie mr-1.5"></i>
                                         Supervisor
                                     </span>
                                 {% else %}
-                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 {% if employee.status != 'active' %}opacity-60{% endif %}">
                                         <i class="fas fa-user mr-1.5"></i>
                                         Empleado
                                     </span>
                                 {% endif %}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm text-gray-900">{{ employee.department.name }}</div>
+                                <div class="text-sm text-gray-900 {% if employee.status != 'active' %}text-gray-500{% endif %}">{{ employee.department.name }}</div>
                                 <div class="text-xs text-gray-500">{{ employee.department.code }}</div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm text-gray-900">{{ employee.position.title }}</div>
+                                <div class="text-sm text-gray-900 {% if employee.status != 'active' %}text-gray-500{% endif %}">{{ employee.position.title }}</div>
                                 {% if employee.supervisor %}
                                 <div class="text-xs text-gray-500">
                                     Supervisor: {{ employee.supervisor.user.get_full_name }}
@@ -280,7 +307,7 @@
                                 </span>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <div class="text-sm text-gray-900">{{ employee.hire_date|date:"d/m/Y" }}</div>
+                                <div class="text-sm text-gray-900 {% if employee.status != 'active' %}text-gray-500{% endif %}">{{ employee.hire_date|date:"d/m/Y" }}</div>
                                 <div class="text-xs text-gray-500">
                                     {{ employee.hire_date|timesince }} ago
                                 </div>
@@ -292,19 +319,42 @@
                                        title="Ver detalles">
                                         <i class="fas fa-eye"></i>
                                     </a>
-                                    {% if perms.employees.change_employee %}
-                                    <a href="{% url 'employees:employee_update' employee.pk %}" 
-                                       class="text-blue-600 hover:text-blue-700 p-1 rounded" 
-                                       title="Editar">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    {% endif %}
-                                    {% if perms.employees.delete_employee %}
-                                    <a href="{% url 'employees:employee_delete' employee.pk %}" 
-                                       class="text-red-600 hover:text-red-700 p-1 rounded" 
-                                       title="Eliminar">
-                                        <i class="fas fa-trash"></i>
-                                    </a>
+                                    
+                                    {% if employee.status == 'active' %}
+                                        {% if perms.employees.change_employee %}
+                                        <a href="{% url 'employees:employee_update' employee.pk %}" 
+                                           class="text-blue-600 hover:text-blue-700 p-1 rounded" 
+                                           title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        {% endif %}
+                                        {% if perms.employees.delete_employee %}
+                                        <a href="{% url 'employees:employee_delete' employee.pk %}" 
+                                           class="text-red-600 hover:text-red-700 p-1 rounded" 
+                                           title="Desactivar">
+                                            <i class="fas fa-user-times"></i>
+                                        </a>
+                                        {% endif %}
+                                    {% else %}
+                                        <!-- NUEVO: Botón para reactivar empleados inactivos -->
+                                        {% if perms.employees.change_employee %}
+                                        <form method="post" action="{% url 'employees:employee_reactivate' employee.pk %}" class="inline">
+                                            {% csrf_token %}
+                                            <button type="submit" 
+                                                    class="text-green-600 hover:text-green-700 p-1 rounded" 
+                                                    title="Reactivar empleado"
+                                                    onclick="return confirm('¿Estás seguro de que deseas reactivar a {{ employee.user.get_full_name }}?')">
+                                                <i class="fas fa-user-check"></i>
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                        {% if perms.employees.change_employee %}
+                                        <a href="{% url 'employees:employee_update' employee.pk %}" 
+                                           class="text-blue-600 hover:text-blue-700 p-1 rounded" 
+                                           title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        {% endif %}
                                     {% endif %}
                                 </div>
                             </td>
@@ -329,11 +379,11 @@
                     </div>
                     <div class="flex items-center space-x-1">
                         {% if page_obj.has_previous %}
-                            <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.department %}department={{ request.GET.department }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.user_type %}user_type={{ request.GET.user_type }}&{% endif %}page=1" 
+                            <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.department %}department={{ request.GET.department }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.user_type %}user_type={{ request.GET.user_type }}&{% endif %}{% if request.GET.show_all %}show_all={{ request.GET.show_all }}&{% endif %}page=1" 
                                class="px-3 py-2 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50">
                                 Primera
                             </a>
-                            <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.department %}department={{ request.GET.department }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.user_type %}user_type={{ request.GET.user_type }}&{% endif %}page={{ page_obj.previous_page_number }}" 
+                            <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.department %}department={{ request.GET.department }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.user_type %}user_type={{ request.GET.user_type }}&{% endif %}{% if request.GET.show_all %}show_all={{ request.GET.show_all }}&{% endif %}page={{ page_obj.previous_page_number }}" 
                                class="px-3 py-2 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50">
                                 <i class="fas fa-chevron-left"></i>
                             </a>
@@ -344,11 +394,11 @@
                         </span>
                         
                         {% if page_obj.has_next %}
-                            <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.department %}department={{ request.GET.department }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.user_type %}user_type={{ request.GET.user_type }}&{% endif %}page={{ page_obj.next_page_number }}" 
+                            <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.department %}department={{ request.GET.department }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.user_type %}user_type={{ request.GET.user_type }}&{% endif %}{% if request.GET.show_all %}show_all={{ request.GET.show_all }}&{% endif %}page={{ page_obj.next_page_number }}" 
                                class="px-3 py-2 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50">
                                 <i class="fas fa-chevron-right"></i>
                             </a>
-                            <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.department %}department={{ request.GET.department }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.user_type %}user_type={{ request.GET.user_type }}&{% endif %}page={{ page_obj.paginator.num_pages }}" 
+                            <a href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.department %}department={{ request.GET.department }}&{% endif %}{% if request.GET.status %}status={{ request.GET.status }}&{% endif %}{% if request.GET.user_type %}user_type={{ request.GET.user_type }}&{% endif %}{% if request.GET.show_all %}show_all={{ request.GET.show_all }}&{% endif %}page={{ page_obj.paginator.num_pages }}" 
                                class="px-3 py-2 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50">
                                 Última
                             </a>
@@ -401,11 +451,39 @@
         this.form.submit();
     });
 
-    document.getElementById('status').addEventListener('change', function() {
+    document.getElementById('user_type').addEventListener('change', function() {
         this.form.submit();
     });
 
-    document.getElementById('user_type').addEventListener('change', function() {
+    // CORREGIDO: Manejo de filtros de estado
+    document.getElementById('status').addEventListener('change', function() {
+        const showAllSelect = document.getElementById('show_all');
+        
+        if (this.value === 'all') {
+            // Si selecciona "Todos los Estados", marcar show_all como 1
+            showAllSelect.value = '1';
+        } else if (this.value === '') {
+            // Si selecciona "Solo Activos", limpiar show_all
+            showAllSelect.value = '';
+        } else {
+            // Si selecciona un estado específico, limpiar show_all
+            showAllSelect.value = '';
+        }
+        
+        this.form.submit();
+    });
+
+    document.getElementById('show_all').addEventListener('change', function() {
+        const statusSelect = document.getElementById('status');
+        
+        if (this.value === '1') {
+            // Si selecciona mostrar todos, cambiar status a "all"
+            statusSelect.value = 'all';
+        } else {
+            // Si no, volver a "Solo Activos"
+            statusSelect.value = '';
+        }
+        
         this.form.submit();
     });
 
@@ -413,27 +491,15 @@
     const tableRows = document.querySelectorAll('tbody tr');
     tableRows.forEach(row => {
         row.addEventListener('mouseenter', function() {
-            this.style.transform = 'scale(1.002)';
-            this.style.transition = 'transform 0.2s ease';
+            if (!this.classList.contains('bg-gray-50')) {
+                this.style.transform = 'scale(1.002)';
+                this.style.transition = 'transform 0.2s ease';
+            }
         });
         
         row.addEventListener('mouseleave', function() {
             this.style.transform = 'scale(1)';
         });
-    });
-
-    // Tooltip para tipos de usuario
-    const userTypeBadges = document.querySelectorAll('[class*="bg-red-100"], [class*="bg-purple-100"], [class*="bg-green-100"], [class*="bg-blue-100"]');
-    userTypeBadges.forEach(badge => {
-        if (badge.textContent.includes('Administrador')) {
-            badge.title = 'Acceso completo al sistema y configuración';
-        } else if (badge.textContent.includes('Recursos Humanos')) {
-            badge.title = 'Gestión de empleados, nómina y documentos';
-        } else if (badge.textContent.includes('Supervisor')) {
-            badge.title = 'Gestión de tareas y supervisión de empleados';
-        } else if (badge.textContent.includes('Empleado')) {
-            badge.title = 'Acceso básico al portal de empleados';
-        }
     });
 
     // Búsqueda en tiempo real (opcional)
@@ -449,19 +515,16 @@
         }, 500);
     });
 
-    // Estadísticas en tiempo real
-    function updateStats() {
-        const rows = document.querySelectorAll('tbody tr');
-        const activeCount = document.querySelectorAll('[class*="bg-green-100"]:not([class*="text-green-800"])').length;
-        const supervisorCount = document.querySelectorAll('span:contains("Supervisor")').length;
-        const adminCount = document.querySelectorAll('span:contains("Administrador")').length;
-        
-        // Actualizar contadores si existen
-        const totalElement = document.querySelector('.text-blue-600');
-        if (totalElement) {
-            totalElement.textContent = rows.length;
-        }
-    }
+    // Confirmación para reactivación
+    document.querySelectorAll('form[action*="reactivate"]').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const buttonTitle = this.querySelector('button').title;
+            if (confirm('¿Estás seguro de que deseas reactivar este empleado? Esto le permitirá acceder nuevamente al sistema.')) {
+                this.submit();
+            }
+        });
+    });
 
     // Animación de entrada para las tarjetas de estadísticas
     const statCards = document.querySelectorAll('.grid > .bg-white');
@@ -475,5 +538,45 @@
             card.style.transform = 'translateY(0)';
         }, index * 100);
     });
+
+    // Mensaje informativo sobre filtros activos
+    function showActiveFilters() {
+        const status = document.getElementById('status').value;
+        const showAll = document.getElementById('show_all').value;
+        const userType = document.getElementById('user_type').value;
+        const department = document.getElementById('department').value;
+        const search = document.getElementById('search').value;
+        
+        let activeFilters = [];
+        
+        if (showAll === '1' || status === 'all') {
+            activeFilters.push('Mostrando todos los empleados');
+        } else if (status) {
+            const statusText = document.querySelector(`#status option[value="${status}"]`).textContent;
+            activeFilters.push(`Estado: ${statusText}`);
+        } else {
+            activeFilters.push('Solo empleados activos');
+        }
+        
+        if (userType) {
+            const userTypeText = document.querySelector(`#user_type option[value="${userType}"]`).textContent;
+            activeFilters.push(`Tipo: ${userTypeText}`);
+        }
+        
+        if (department) {
+            const deptText = document.querySelector(`#department option[value="${department}"]`).textContent;
+            activeFilters.push(`Departamento: ${deptText}`);
+        }
+        
+        if (search) {
+            activeFilters.push(`Búsqueda: "${search}"`);
+        }
+        
+        // Mostrar filtros activos en consola para debugging
+        console.log('Filtros activos:', activeFilters);
+    }
+    
+    // Ejecutar al cargar la página
+    showActiveFilters();
 </script>
 {% endblock %}

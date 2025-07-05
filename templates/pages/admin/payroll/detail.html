@@ -1,0 +1,551 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}Detalle de Nómina - {{ payroll.employee.user.get_full_name }} - Sistema de Nómina{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">Detalle de Nómina</h1>
+                    <p class="text-gray-600 mt-1">
+                        {{ payroll.employee.user.get_full_name }} - {{ payroll.period.name }}
+                    </p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'payroll:payroll_list' %}" 
+                       class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i>
+                        Volver a Lista
+                    </a>
+                    {% if perms.payroll.change_payroll %}
+                    <a href="{% url 'payroll:payroll_edit' payroll.pk %}" 
+                       class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-edit mr-2"></i>
+                        Editar
+                    </a>
+                    {% endif %}
+                    {% if not payroll.is_paid and perms.payroll.change_payroll %}
+                    <form method="post" action="{% url 'payroll:payroll_mark_paid' payroll.pk %}" class="inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="payment_method" value="efectivo">
+                        <button type="submit" 
+                                class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+                                onclick="return confirm('¿Marcar esta nómina como pagada?')">
+                            <i class="fas fa-dollar-sign mr-2"></i>
+                            Marcar como Pagada
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Información del Empleado y Período -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- Información del Empleado -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-user text-blue-600 mr-2"></i>
+                    Información del Empleado
+                </h3>
+                <div class="space-y-3">
+                    <div class="flex items-center">
+                        {% if payroll.employee.user.profile_picture %}
+                            <img class="h-16 w-16 rounded-full object-cover" 
+                                 src="{{ payroll.employee.user.profile_picture.url }}" 
+                                 alt="{{ payroll.employee.user.get_full_name }}">
+                        {% else %}
+                            <div class="h-16 w-16 bg-primary-600 text-white rounded-full flex items-center justify-center font-bold text-lg">
+                                {{ payroll.employee.user.first_name|first|upper }}{{ payroll.employee.user.last_name|first|upper }}
+                            </div>
+                        {% endif %}
+                        <div class="ml-4">
+                            <h4 class="text-lg font-medium text-gray-900">{{ payroll.employee.user.get_full_name }}</h4>
+                            <p class="text-gray-500">{{ payroll.employee.employee_number }}</p>
+                        </div>
+                    </div>
+                    <div class="border-t border-gray-200 pt-3">
+                        <dl class="grid grid-cols-1 gap-3 text-sm">
+                            <div>
+                                <dt class="font-medium text-gray-500">Departamento</dt>
+                                <dd class="text-gray-900">{{ payroll.employee.department.name }}</dd>
+                            </div>
+                            <div>
+                                <dt class="font-medium text-gray-500">Cargo</dt>
+                                <dd class="text-gray-900">{{ payroll.employee.position.title }}</dd>
+                            </div>
+                            <div>
+                                <dt class="font-medium text-gray-500">Email</dt>
+                                <dd class="text-gray-900">{{ payroll.employee.user.email }}</dd>
+                            </div>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Información del Período -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-calendar-alt text-green-600 mr-2"></i>
+                    Información del Período
+                </h3>
+                <dl class="grid grid-cols-1 gap-3 text-sm">
+                    <div>
+                        <dt class="font-medium text-gray-500">Período</dt>
+                        <dd class="text-gray-900 font-medium">{{ payroll.period.name }}</dd>
+                    </div>
+                    <div>
+                        <dt class="font-medium text-gray-500">Tipo</dt>
+                        <dd class="text-gray-900">{{ payroll.period.get_period_type_display }}</dd>
+                    </div>
+                    <div>
+                        <dt class="font-medium text-gray-500">Fechas</dt>
+                        <dd class="text-gray-900">{{ payroll.period.start_date|date:"d/m/Y" }} - {{ payroll.period.end_date|date:"d/m/Y" }}</dd>
+                    </div>
+                    <div>
+                        <dt class="font-medium text-gray-500">Fecha de Pago</dt>
+                        <dd class="text-gray-900">{{ payroll.period.pay_date|date:"d/m/Y" }}</dd>
+                    </div>
+                    <div>
+                        <dt class="font-medium text-gray-500">Estado del Período</dt>
+                        <dd>
+                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
+                                {% if payroll.period.status == 'draft' %}bg-yellow-100 text-yellow-800
+                                {% elif payroll.period.status == 'processing' %}bg-blue-100 text-blue-800
+                                {% elif payroll.period.status == 'completed' %}bg-green-100 text-green-800
+                                {% elif payroll.period.status == 'paid' %}bg-purple-100 text-purple-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ payroll.period.get_status_display }}
+                            </span>
+                        </dd>
+                    </div>
+                </dl>
+            </div>
+        </div>
+
+        <!-- Resumen de Cálculos -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-8">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">
+                    <i class="fas fa-calculator text-purple-600 mr-2"></i>
+                    Resumen de Cálculos
+                </h3>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Pago Bruto -->
+                    <div class="text-center p-6 bg-green-50 rounded-lg border border-green-200">
+                        <div class="text-3xl font-bold text-green-600 mb-2">
+                            ${{ payroll.gross_pay|floatformat:2 }}
+                        </div>
+                        <div class="text-sm text-green-700 font-medium">Pago Bruto</div>
+                        <div class="text-xs text-green-600 mt-1">Total de ingresos</div>
+                    </div>
+
+                    <!-- Total Deducciones -->
+                    <div class="text-center p-6 bg-red-50 rounded-lg border border-red-200">
+                        <div class="text-3xl font-bold text-red-600 mb-2">
+                            ${{ payroll.total_deductions|floatformat:2 }}
+                        </div>
+                        <div class="text-sm text-red-700 font-medium">Total Deducciones</div>
+                        <div class="text-xs text-red-600 mt-1">Descuentos aplicados</div>
+                    </div>
+
+                    <!-- Pago Neto -->
+                    <div class="text-center p-6 bg-blue-50 rounded-lg border border-blue-200">
+                        <div class="text-3xl font-bold text-blue-600 mb-2">
+                            ${{ payroll.net_pay|floatformat:2 }}
+                        </div>
+                        <div class="text-sm text-blue-700 font-medium">Pago Neto</div>
+                        <div class="text-xs text-blue-600 mt-1">A recibir</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Desglose de Ingresos y Deducciones -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            <!-- Ingresos -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            <i class="fas fa-plus-circle text-green-600 mr-2"></i>
+                            Ingresos
+                        </h3>
+                        {% if perms.payroll.change_payroll %}
+                        <a href="{% url 'payroll:payroll_select_rubro' payroll_pk=payroll.pk %}"
+                           class="text-green-600 hover:text-green-700 text-sm font-medium">
+                            <i class="fas fa-plus mr-1"></i>
+                            Agregar Rubro
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-4">
+                        <!-- Salario Base -->
+                        <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                            <span class="text-gray-700">Salario Base</span>
+                            <span class="font-medium text-green-600">${{ payroll.base_salary|floatformat:2 }}</span>
+                        </div>
+
+                        <!-- Horas Extra -->
+                        {% if payroll.overtime_pay > 0 %}
+                        <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                            <span class="text-gray-700">
+                                Horas Extra 
+                                <span class="text-xs text-gray-500">({{ payroll.overtime_hours }} hrs × {{ payroll.overtime_rate }})</span>
+                            </span>
+                            <span class="font-medium text-green-600">${{ payroll.overtime_pay|floatformat:2 }}</span>
+                        </div>
+                        {% endif %}
+
+                        <!-- Rubros de Ingreso Aplicados -->
+                        {% for rubro in ingresos %}
+                        <div class="flex justify-between items-center py-2 border-b border-gray-100 group">
+                            <div class="flex items-center">
+                                <span class="text-gray-700">{{ rubro.rubro.nombre }}</span>
+                                {% if rubro.observaciones %}
+                                <i class="fas fa-info-circle text-gray-400 ml-2" title="{{ rubro.observaciones }}"></i>
+                                {% endif %}
+                            </div>
+                            <div class="flex items-center">
+                                <span class="font-medium text-green-600">${{ rubro.monto|floatformat:2 }}</span>
+                                {% if perms.payroll.change_payroll and not payroll.is_paid %}
+                                <button onclick="eliminarRubro({{ rubro.pk }}, '{{ rubro.rubro.nombre }}', 'ingreso')"
+                                   class="ml-2 text-red-600 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                                   title="Eliminar rubro">
+                                    <i class="fas fa-trash-alt text-xs"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+
+                        <!-- Total Ingresos -->
+                        <div class="flex justify-between items-center py-3 border-t-2 border-green-200 bg-green-50 rounded-lg px-3 mt-4">
+                            <span class="font-bold text-green-800">Total Ingresos</span>
+                            <span class="font-bold text-green-800 text-lg">${{ payroll.gross_pay|floatformat:2 }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Deducciones -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            <i class="fas fa-minus-circle text-red-600 mr-2"></i>
+                            Deducciones
+                        </h3>
+                        {% if perms.payroll.change_payroll %}
+                        <a href="{% url 'payroll:payroll_select_rubro' payroll_pk=payroll.pk %}"
+                           class="text-red-600 hover:text-red-700 text-sm font-medium">
+                            <i class="fas fa-plus mr-1"></i>
+                            Agregar Rubro
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div class="space-y-4">
+                        <!-- Impuesto a la Renta -->
+                        {% if payroll.income_tax > 0 %}
+                        <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                            <span class="text-gray-700">Impuesto a la Renta</span>
+                            <span class="font-medium text-red-600">${{ payroll.income_tax|floatformat:2 }}</span>
+                        </div>
+                        {% endif %}
+
+                        <!-- Seguridad Social -->
+                        {% if payroll.social_security > 0 %}
+                        <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                            <span class="text-gray-700">Seguridad Social</span>
+                            <span class="font-medium text-red-600">${{ payroll.social_security|floatformat:2 }}</span>
+                        </div>
+                        {% endif %}
+
+                        <!-- Seguro de Salud -->
+                        {% if payroll.health_insurance > 0 %}
+                        <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                            <span class="text-gray-700">Seguro de Salud</span>
+                            <span class="font-medium text-red-600">${{ payroll.health_insurance|floatformat:2 }}</span>
+                        </div>
+                        {% endif %}
+
+                        <!-- Otras Deducciones -->
+                        {% if payroll.other_deductions > 0 %}
+                        <div class="flex justify-between items-center py-2 border-b border-gray-100">
+                            <span class="text-gray-700">Otras Deducciones</span>
+                            <span class="font-medium text-red-600">${{ payroll.other_deductions|floatformat:2 }}</span>
+                        </div>
+                        {% endif %}
+
+                        <!-- Rubros de Egreso Aplicados -->
+                        {% for rubro in egresos %}
+                        <div class="flex justify-between items-center py-2 border-b border-gray-100 group">
+                            <div class="flex items-center">
+                                <span class="text-gray-700">{{ rubro.rubro.nombre }}</span>
+                                {% if rubro.es_adelanto %}
+                                <span class="ml-2 text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full">Adelanto</span>
+                                {% endif %}
+                                {% if rubro.observaciones %}
+                                <i class="fas fa-info-circle text-gray-400 ml-2" title="{{ rubro.observaciones }}"></i>
+                                {% endif %}
+                            </div>
+                            <div class="flex items-center">
+                                <span class="font-medium text-red-600">${{ rubro.monto|floatformat:2 }}</span>
+                                {% if perms.payroll.change_payroll and not payroll.is_paid %}
+                                <button onclick="eliminarRubro({{ rubro.pk }}, '{{ rubro.rubro.nombre }}', 'egreso')"
+                                   class="ml-2 text-red-600 hover:text-red-700 opacity-0 group-hover:opacity-100 transition-opacity"
+                                   title="Eliminar rubro">
+                                    <i class="fas fa-trash-alt text-xs"></i>
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+
+                        <!-- Total Deducciones -->
+                        <div class="flex justify-between items-center py-3 border-t-2 border-red-200 bg-red-50 rounded-lg px-3 mt-4">
+                            <span class="font-bold text-red-800">Total Deducciones</span>
+                            <span class="font-bold text-red-800 text-lg">${{ payroll.total_deductions|floatformat:2 }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Adelantos Pendientes -->
+        {% if adelantos_pendientes %}
+        <div class="bg-orange-50 rounded-xl border border-orange-200 p-6 mb-8">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-orange-900">
+                    <i class="fas fa-hand-holding-usd text-orange-600 mr-2"></i>
+                    Adelantos Pendientes de Descuento
+                </h3>
+                {% if perms.payroll.change_payroll %}
+                <a href="{% url 'payroll:payroll_process_adelantos' payroll.pk %}" 
+                   class="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors text-sm">
+                    <i class="fas fa-process mr-2"></i>
+                    Procesar Adelantos
+                </a>
+                {% endif %}
+            </div>
+            <div class="space-y-3">
+                {% for adelanto in adelantos_pendientes %}
+                <div class="flex justify-between items-center bg-white p-3 rounded-lg border border-orange-200">
+                    <div>
+                        <span class="font-medium text-gray-900">${{ adelanto.monto|floatformat:2 }}</span>
+                        <span class="text-gray-500 ml-2">{{ adelanto.fecha_adelanto|date:"d/m/Y" }}</span>
+                        {% if adelanto.motivo %}
+                        <div class="text-sm text-gray-600 mt-1">{{ adelanto.motivo }}</div>
+                        {% endif %}
+                    </div>
+                    <span class="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full">Pendiente</span>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Información Adicional -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">
+                    <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                    Información Adicional
+                </h3>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <dl class="space-y-3 text-sm">
+                            <div>
+                                <dt class="font-medium text-gray-500">Estado de Pago</dt>
+                                <dd>
+                                    {% if payroll.is_paid %}
+                                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                            <i class="fas fa-check-circle mr-1"></i>
+                                            Pagada
+                                        </span>
+                                    {% else %}
+                                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                            <i class="fas fa-clock mr-1"></i>
+                                            Pendiente
+                                        </span>
+                                    {% endif %}
+                                </dd>
+                            </div>
+                            {% if payroll.payment_date %}
+                            <div>
+                                <dt class="font-medium text-gray-500">Fecha de Pago</dt>
+                                <dd class="text-gray-900">{{ payroll.payment_date|date:"d/m/Y" }}</dd>
+                            </div>
+                            {% endif %}
+                            {% if payroll.payment_method %}
+                            <div>
+                                <dt class="font-medium text-gray-500">Método de Pago</dt>
+                                <dd class="text-gray-900">{{ payroll.payment_method }}</dd>
+                            </div>
+                            {% endif %}
+                            <div>
+                                <dt class="font-medium text-gray-500">Creada</dt>
+                                <dd class="text-gray-900">{{ payroll.created_at|date:"d/m/Y H:i" }}</dd>
+                            </div>
+                            <div>
+                                <dt class="font-medium text-gray-500">Última Actualización</dt>
+                                <dd class="text-gray-900">{{ payroll.updated_at|date:"d/m/Y H:i" }}</dd>
+                            </div>
+                        </dl>
+                    </div>
+                    {% if payroll.notes %}
+                    <div>
+                        <dt class="font-medium text-gray-500 mb-2">Notas</dt>
+                        <dd class="text-gray-900 bg-gray-50 p-3 rounded-lg">{{ payroll.notes }}</dd>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de confirmación para eliminar rubro -->
+<div id="eliminarRubroModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3 text-center">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                <i class="fas fa-trash-alt text-red-600"></i>
+            </div>
+            <h3 class="text-lg font-medium text-gray-900 mt-2">Eliminar Rubro</h3>
+            <div class="mt-2 px-7 py-3">
+                <p class="text-sm text-gray-500">
+                    ¿Estás seguro que deseas eliminar el rubro "<span id="rubroNombre" class="font-medium"></span>"?
+                </p>
+                <p class="text-xs text-gray-400 mt-2">
+                    Esta acción no se puede deshacer y recalculará automáticamente la nómina.
+                </p>
+            </div>
+            <div class="items-center px-4 py-3">
+                <button id="confirmarEliminar" 
+                        class="px-4 py-2 bg-red-500 text-white text-base font-medium rounded-md w-24 mr-2 hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-300">
+                    Eliminar
+                </button>
+                <button onclick="cerrarModalEliminar()" 
+                        class="px-4 py-2 bg-gray-300 text-gray-900 text-base font-medium rounded-md w-24 hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let rubroIdParaEliminar = null;
+
+    // Función para mostrar modal de confirmación
+    function eliminarRubro(rubroId, rubroNombre, tipo) {
+        rubroIdParaEliminar = rubroId;
+        document.getElementById('rubroNombre').textContent = rubroNombre;
+        document.getElementById('eliminarRubroModal').classList.remove('hidden');
+    }
+
+    // Función para cerrar modal
+    function cerrarModalEliminar() {
+        document.getElementById('eliminarRubroModal').classList.add('hidden');
+        rubroIdParaEliminar = null;
+    }
+
+    // Confirmar eliminación
+    document.getElementById('confirmarEliminar').addEventListener('click', function() {
+        if (rubroIdParaEliminar) {
+            // Construir URL usando el patrón de Django
+            const urlTemplate = "{% url 'payroll:payroll_remove_rubro' payroll_pk=payroll.pk rubro_pk=12345 %}";
+            const finalUrl = urlTemplate.replace('12345', rubroIdParaEliminar);
+            
+            // Crear formulario para enviar por POST
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = finalUrl;
+            
+            // Agregar token CSRF
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (csrfToken) {
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = 'csrfmiddlewaretoken';
+                csrfInput.value = csrfToken.value;
+                form.appendChild(csrfInput);
+            } else {
+                // Si no hay token CSRF en la página, obtenerlo de las cookies
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = 'csrfmiddlewaretoken';
+                csrfInput.value = getCookie('csrftoken');
+                form.appendChild(csrfInput);
+            }
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
+
+    // Función para obtener cookie CSRF
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Confirmación para marcar como pagada
+    document.querySelectorAll('form[action*="marcar-pagado"]').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            if (confirm('¿Estás seguro de que deseas marcar esta nómina como pagada? Esta acción no se puede deshacer.')) {
+                this.submit();
+            }
+        });
+    });
+
+    // Cerrar modal al hacer click fuera de él
+    document.getElementById('eliminarRubroModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            cerrarModalEliminar();
+        }
+    });
+
+    // Cerrar modal con tecla Escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            cerrarModalEliminar();
+        }
+    });
+
+    // Tooltips para información adicional
+    document.querySelectorAll('[title]').forEach(element => {
+        element.addEventListener('mouseenter', function() {
+            // Aquí podrías agregar tooltips más avanzados si es necesario
+        });
+    });
+</script>
+{% endblock %}

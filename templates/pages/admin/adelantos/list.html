@@ -1,0 +1,423 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}Adelantos de Quincena - Sistema de Nómina{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">Adelantos de Quincena</h1>
+                    <p class="text-gray-600 mt-1">Gestiona los adelantos otorgados a los empleados</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'payroll:nomina_dashboard' %}" 
+                       class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i>
+                        Volver al Panel
+                    </a>
+                    {% if perms.payroll.add_adelantoquincena %}
+                    <a href="{% url 'payroll:adelanto_create' %}" 
+                       class="bg-primary-600 text-black px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors">
+                        <i class="fas fa-plus mr-2"></i>
+                        Nuevo Adelanto
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Filtros y Búsqueda -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+            <form method="get" class="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-4 lg:gap-4">
+                <!-- Búsqueda -->
+                <div>
+                    <label for="search" class="block text-sm font-medium text-gray-700 mb-2">Buscar</label>
+                    <div class="relative">
+                        <input type="text" 
+                               id="search" 
+                               name="search" 
+                               value="{{ current_filters.search }}"
+                               placeholder="Nombre, apellido, motivo..."
+                               class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center">
+                            <i class="fas fa-search text-gray-400"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filtro por Empleado -->
+                <div>
+                    <label for="employee" class="block text-sm font-medium text-gray-700 mb-2">Empleado</label>
+                    <select id="employee" 
+                            name="employee" 
+                            class="w-full py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        <option value="">Todos los empleados</option>
+                        {% for emp in employees %}
+                        <option value="{{ emp.id }}" {% if current_filters.employee == emp.id|stringformat:"s" %}selected{% endif %}>
+                            {{ emp.user.get_full_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Filtro por Estado -->
+                <div>
+                    <label for="status" class="block text-sm font-medium text-gray-700 mb-2">Estado</label>
+                    <select id="status" 
+                            name="status" 
+                            class="w-full py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        <option value="">Todos los estados</option>
+                        <option value="pending" {% if current_filters.status == 'pending' %}selected{% endif %}>Pendientes</option>
+                        <option value="processed" {% if current_filters.status == 'processed' %}selected{% endif %}>Procesados</option>
+                    </select>
+                </div>
+
+                <!-- Botones -->
+                <div class="flex items-end space-x-2">
+                    <button type="submit" 
+                            class="bg-primary-600 text-black px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors">
+                        <i class="fas fa-search mr-2"></i>
+                        Filtrar
+                    </button>
+                    <a href="{% url 'payroll:adelanto_list' %}" 
+                       class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors">
+                        <i class="fas fa-times mr-2"></i>
+                        Limpiar
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Estadísticas Rápidas -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center">
+                    <div class="bg-blue-100 p-3 rounded-full">
+                        <i class="fas fa-hand-holding-usd text-blue-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Total Adelantos</p>
+                        <p class="text-2xl font-bold text-blue-600">{{ page_obj.paginator.count }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center">
+                    <div class="bg-yellow-100 p-3 rounded-full">
+                        <i class="fas fa-clock text-yellow-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Pendientes</p>
+                        <p class="text-2xl font-bold text-yellow-600">{{ stats.total_pending|default:0 }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center">
+                    <div class="bg-green-100 p-3 rounded-full">
+                        <i class="fas fa-check-circle text-green-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Procesados</p>
+                        <p class="text-2xl font-bold text-green-600">{{ stats.total_processed|default:0 }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center">
+                    <div class="bg-purple-100 p-3 rounded-full">
+                        <i class="fas fa-dollar-sign text-purple-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Monto Total</p>
+                        <p class="text-2xl font-bold text-purple-600">${{ stats.total_amount|default:0|floatformat:2 }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla de Adelantos -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-900">
+                        Lista de Adelantos 
+                        <span class="text-sm font-normal text-gray-500">({{ page_obj.paginator.count }} total)</span>
+                    </h3>
+                    <div class="flex space-x-2">
+                        <button class="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors">
+                            <i class="fas fa-download mr-2"></i>
+                            Exportar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {% if page_obj %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <input type="checkbox" class="rounded" id="select-all">
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Empleado
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Monto
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Fecha del Adelanto
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Estado
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Autorizado por
+                            </th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Acciones
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for adelanto in page_obj %}
+                        <tr class="hover:bg-gray-50 {% if adelanto.is_descontado %}bg-green-50{% endif %}">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <input type="checkbox" class="rounded adelanto-checkbox" value="{{ adelanto.id }}">
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    {% if adelanto.employee.user.profile_picture %}
+                                        <img class="h-10 w-10 rounded-full object-cover" 
+                                             src="{{ adelanto.employee.user.profile_picture.url }}" 
+                                             alt="{{ adelanto.employee.user.get_full_name }}">
+                                    {% else %}
+                                        <div class="h-10 w-10 bg-primary-600 text-white rounded-full flex items-center justify-center font-bold">
+                                            {{ adelanto.employee.user.first_name|first|upper }}{{ adelanto.employee.user.last_name|first|upper }}
+                                        </div>
+                                    {% endif %}
+                                    <div class="ml-4">
+                                        <div class="text-sm font-medium text-gray-900">
+                                            {{ adelanto.employee.user.get_full_name }}
+                                        </div>
+                                        <div class="text-sm text-gray-500">
+                                            {{ adelanto.employee.employee_number }}
+                                        </div>
+                                        <div class="text-xs text-gray-400">
+                                            {{ adelanto.employee.department.name }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-lg font-bold text-green-600">${{ adelanto.monto|floatformat:2 }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">{{ adelanto.fecha_adelanto|date:"d/m/Y" }}</div>
+                                <div class="text-xs text-gray-500">
+                                    {{ adelanto.fecha_adelanto|timesince }} atrás
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                {% if adelanto.is_descontado %}
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                        <i class="fas fa-check-circle mr-1"></i>
+                                        Procesado
+                                    </span>
+                                    {% if adelanto.payroll_descuento %}
+                                    <div class="text-xs text-gray-500 mt-1">
+                                        En {{ adelanto.payroll_descuento.period.name }}
+                                    </div>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                        <i class="fas fa-clock mr-1"></i>
+                                        Pendiente
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">
+                                    {{ adelanto.created_by.get_full_name|default:"Sistema" }}
+                                </div>
+                                <div class="text-xs text-gray-500">
+                                    {{ adelanto.created_at|date:"d/m/Y H:i" }}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <div class="flex items-center justify-end space-x-2">
+                                    {% if perms.payroll.change_adelantoquincena %}
+                                    <a href="{% url 'payroll:adelanto_edit' adelanto.pk %}" 
+                                       class="text-blue-600 hover:text-blue-700 p-1 rounded" 
+                                       title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    {% endif %}
+                                    
+                                    {% if adelanto.payroll_descuento %}
+                                    <a href="{% url 'payroll:payroll_detail' adelanto.payroll_descuento.pk %}" 
+                                       class="text-green-600 hover:text-green-700 p-1 rounded" 
+                                       title="Ver nómina donde se descontó">
+                                        <i class="fas fa-file-invoice-dollar"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% if adelanto.motivo %}
+                        <tr class="bg-gray-50">
+                            <td colspan="7" class="px-6 py-2">
+                                <div class="text-sm text-gray-600">
+                                    <strong>Motivo:</strong> {{ adelanto.motivo }}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Paginación -->
+            {% if page_obj.has_other_pages %}
+            <div class="bg-gray-50 px-6 py-3 border-t border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div class="text-sm text-gray-700">
+                        Mostrando 
+                        <span class="font-medium">{{ page_obj.start_index }}</span>
+                        a 
+                        <span class="font-medium">{{ page_obj.end_index }}</span>
+                        de 
+                        <span class="font-medium">{{ page_obj.paginator.count }}</span>
+                        resultados
+                    </div>
+                    <div class="flex items-center space-x-1">
+                        {% if page_obj.has_previous %}
+                            <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page=1" 
+                               class="px-3 py-2 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                                Primera
+                            </a>
+                            <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}" 
+                               class="px-3 py-2 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        {% endif %}
+                        
+                        <span class="px-3 py-2 text-sm bg-primary-600 text-white border border-primary-600 rounded-md">
+                            {{ page_obj.number }}
+                        </span>
+                        
+                        {% if page_obj.has_next %}
+                            <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}" 
+                               class="px-3 py-2 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                            <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.paginator.num_pages }}" 
+                               class="px-3 py-2 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                                Última
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% else %}
+            <!-- Estado vacío -->
+            <div class="px-6 py-12 text-center">
+                <div class="text-gray-400 mb-4">
+                    <i class="fas fa-hand-holding-usd text-6xl"></i>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">No hay adelantos registrados</h3>
+                <p class="text-gray-500 mb-6">
+                    {% if current_filters.search or current_filters.employee or current_filters.status %}
+                        No se encontraron adelantos que coincidan con los filtros aplicados.
+                    {% else %}
+                        Comienza registrando el primer adelanto de quincena.
+                    {% endif %}
+                </p>
+                {% if perms.payroll.add_adelantoquincena %}
+                <a href="{% url 'payroll:adelanto_create' %}" 
+                   class="bg-primary-600 text-black px-6 py-3 rounded-lg hover:bg-primary-700 transition-colors inline-flex items-center">
+                    <i class="fas fa-plus mr-2"></i>
+                    Registrar Adelanto
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Seleccionar todos los checkboxes
+    document.getElementById('select-all').addEventListener('change', function() {
+        const checkboxes = document.querySelectorAll('.adelanto-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+        });
+    });
+
+    // Auto-submit del formulario al cambiar filtros
+    document.getElementById('employee').addEventListener('change', function() {
+        this.form.submit();
+    });
+
+    document.getElementById('status').addEventListener('change', function() {
+        this.form.submit();
+    });
+
+    // Búsqueda en tiempo real
+    let searchTimeout;
+    const searchInput = document.getElementById('search');
+    
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            if (this.value.length >= 3 || this.value.length === 0) {
+                this.form.submit();
+            }
+        }, 500);
+    });
+
+    // Efectos hover para las filas de la tabla
+    const tableRows = document.querySelectorAll('tbody tr');
+    tableRows.forEach(row => {
+        row.addEventListener('mouseenter', function() {
+            if (!this.classList.contains('bg-gray-50')) {
+                this.style.transform = 'scale(1.002)';
+                this.style.transition = 'transform 0.2s ease';
+            }
+        });
+        
+        row.addEventListener('mouseleave', function() {
+            this.style.transform = 'scale(1)';
+        });
+    });
+
+    // Animación de entrada para las tarjetas de estadísticas
+    const statCards = document.querySelectorAll('.grid > .bg-white');
+    statCards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+            card.style.transition = 'all 0.5s ease';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
+</script>
+{% endblock %}

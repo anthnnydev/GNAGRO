@@ -1,0 +1,99 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}Eliminar Rubro - Sistema de Nómina{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 py-12">
+    <div class="max-w-md mx-auto bg-white rounded-lg shadow-md overflow-hidden">
+        <div class="px-6 py-4 bg-red-50 border-b border-red-200">
+            <div class="flex items-center">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-exclamation-triangle text-red-400 text-2xl"></i>
+                </div>
+                <div class="ml-3">
+                    <h3 class="text-lg font-medium text-red-800">
+                        Confirmar Eliminación
+                    </h3>
+                </div>
+            </div>
+        </div>
+        
+        <div class="px-6 py-4">
+            <div class="mb-4">
+                <p class="text-sm text-gray-600">
+                    ¿Estás seguro que deseas eliminar el siguiente rubro de la nómina?
+                </p>
+            </div>
+            
+            <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                <div class="space-y-2">
+                    <div class="flex justify-between">
+                        <span class="text-sm font-medium text-gray-500">Empleado:</span>
+                        <span class="text-sm text-gray-900">{{ payroll.employee.user.get_full_name }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-sm font-medium text-gray-500">Período:</span>
+                        <span class="text-sm text-gray-900">{{ payroll.period.name }}</span>
+                    </div>
+                    <div class="flex justify-between border-t border-gray-200 pt-2">
+                        <span class="text-sm font-medium text-gray-500">Rubro:</span>
+                        <span class="text-sm font-medium text-gray-900">{{ rubro_aplicado.rubro.nombre }}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-sm font-medium text-gray-500">Monto:</span>
+                        <span class="text-sm font-medium {{ rubro_aplicado.rubro.tipo_rubro.tipo == 'ingreso'|yesno:'text-green-600,text-red-600' }}">
+                            ${{ rubro_aplicado.monto|floatformat:2 }}
+                        </span>
+                    </div>
+                    {% if rubro_aplicado.observaciones %}
+                    <div class="flex justify-between">
+                        <span class="text-sm font-medium text-gray-500">Observaciones:</span>
+                        <span class="text-sm text-gray-900">{{ rubro_aplicado.observaciones }}</span>
+                    </div>
+                    {% endif %}
+                    {% if rubro_aplicado.es_adelanto %}
+                    <div class="flex justify-between">
+                        <span class="text-sm font-medium text-gray-500">Tipo:</span>
+                        <span class="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded-full">Adelanto</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="bg-yellow-50 border border-yellow-200 rounded-md p-3 mb-6">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-info-circle text-yellow-400"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-yellow-700">
+                            <strong>Importante:</strong> Esta acción no se puede deshacer. 
+                            La nómina se recalculará automáticamente después de eliminar el rubro.
+                        </p>
+                        {% if rubro_aplicado.es_adelanto %}
+                        <p class="text-sm text-yellow-700 mt-2">
+                            <strong>Nota:</strong> Al eliminar este adelanto, quedará disponible para ser aplicado en otras nóminas.
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="px-6 py-4 bg-gray-50 border-t border-gray-200">
+            <form method="post" class="flex justify-end space-x-3">
+                {% csrf_token %}
+                <a href="{% url 'payroll:payroll_detail' pk=payroll.pk %}" 
+                   class="bg-gray-300 text-gray-700 px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-400 transition-colors">
+                    Cancelar
+                </a>
+                <button type="submit" 
+                        class="bg-red-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-red-700 transition-colors">
+                    <i class="fas fa-trash-alt mr-2"></i>
+                    Eliminar Rubro
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

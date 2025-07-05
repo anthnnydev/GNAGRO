@@ -1,0 +1,712 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}Generar Nóminas - {{ period.name }} - Sistema de Nómina{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">Generar Nóminas</h1>
+                    <p class="text-gray-600 mt-1">
+                        Período: {{ period.name }} ({{ period.start_date|date:"d/m/Y" }} - {{ period.end_date|date:"d/m/Y" }})
+                    </p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'payroll:period_detail' period.pk %}" 
+                       class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i>
+                        Volver al Período
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {% if is_biweekly %}
+    <div class="bg-orange-50 rounded-xl border border-orange-200 p-6 mb-8">
+        <div class="flex items-center justify-center mb-4">
+            <div class="bg-orange-100 p-3 rounded-full mr-4">
+                <i class="fas fa-calculator text-orange-600 text-2xl"></i>
+            </div>
+            <div>
+                <h3 class="text-lg font-semibold text-orange-800">Período Quincenal Detectado</h3>
+                <p class="text-orange-600 text-sm">Los cálculos se ajustarán automáticamente</p>
+            </div>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div class="bg-white rounded-lg p-4 border border-orange-200">
+                <div class="flex items-center">
+                    <i class="fas fa-calendar-week text-orange-500 text-xl mr-3"></i>
+                    <div>
+                        <p class="text-sm text-gray-600">Tipo de Período</p>
+                        <p class="font-semibold text-gray-900">{{ period_label|default:"Quincena" }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg p-4 border border-orange-200">
+                <div class="flex items-center">
+                    <i class="fas fa-divide text-orange-500 text-xl mr-3"></i>
+                    <div>
+                        <p class="text-sm text-gray-600">Factor de División</p>
+                        <p class="font-semibold text-gray-900">÷ {{ salary_divisor }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-lg p-4 border border-orange-200">
+                <div class="flex items-center">
+                    <i class="fas fa-info-circle text-orange-500 text-xl mr-3"></i>
+                    <div>
+                        <p class="text-sm text-gray-600">Estado</p>
+                        <p class="font-semibold text-gray-900">Salarios Ajustados</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-orange-100 rounded-lg p-4 border border-orange-300">
+            <h4 class="font-medium text-orange-800 mb-2">
+                <i class="fas fa-lightbulb mr-2"></i>
+                Información sobre Cálculos Quincenales
+            </h4>
+            <ul class="text-orange-700 text-sm space-y-1">
+                <li>• <strong>Salarios base:</strong> Se dividirán automáticamente entre {{ salary_divisor }}</li>
+                <li>• <strong>Rubros automáticos:</strong> También se ajustarán proporcionalmente</li>
+                <li>• <strong>Deducciones legales:</strong> Se calcularán sobre el monto quincenal</li>
+                <li>• <strong>Horas extra:</strong> Se aplicarán al período completo sin división</li>
+            </ul>
+        </div>
+    </div>
+    {% endif %}
+
+
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Estado del Período -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">
+                    <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                    Estado del Período
+                </h3>
+                <span class="inline-flex px-3 py-1 text-sm font-semibold rounded-full 
+                    {% if period.status == 'draft' %}bg-yellow-100 text-yellow-800
+                    {% elif period.status == 'processing' %}bg-blue-100 text-blue-800
+                    {% elif period.status == 'completed' %}bg-green-100 text-green-800
+                    {% elif period.status == 'paid' %}bg-purple-100 text-purple-800
+                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                    {{ period.get_status_display }}
+                </span>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="text-center p-4 bg-blue-50 rounded-lg">
+                    <div class="text-2xl font-bold text-blue-600">{{ active_employees_count }}</div>
+                    <div class="text-sm text-blue-700">Empleados Activos</div>
+                </div>
+                <div class="text-center p-4 bg-green-50 rounded-lg">
+                    <div class="text-2xl font-bold text-green-600">{{ existing_payrolls_count }}</div>
+                    <div class="text-sm text-green-700">Nóminas Existentes</div>
+                </div>
+                <div class="text-center p-4 bg-purple-50 rounded-lg">
+                    <div class="text-2xl font-bold text-purple-600">{{ automatic_rubros.count }}</div>
+                    <div class="text-sm text-purple-700">Rubros Automáticos</div>
+                </div>
+                <div class="text-center p-4 bg-orange-50 rounded-lg">
+                    <div class="text-2xl font-bold text-orange-600">
+                        {{ pending_employees_count }}
+                    </div>
+                    <div class="text-sm text-orange-700">Por Procesar</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rubros Automáticos -->
+        {% if automatic_rubros %}
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                <i class="fas fa-cogs text-purple-600 mr-2"></i>
+                Rubros que se Aplicarán Automáticamente
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {% for rubro in automatic_rubros %}
+                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div class="flex items-center">
+                        <div class="w-3 h-3 rounded-full mr-3 
+                            {% if rubro.tipo_rubro.tipo == 'ingreso' %}bg-green-500{% else %}bg-red-500{% endif %}">
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-900">{{ rubro.nombre }}</p>
+                            <p class="text-sm text-gray-500">{{ rubro.tipo_rubro.get_tipo_display }}</p>
+                        </div>
+                    </div>
+                    <div class="text-sm text-gray-600">
+                        {% if rubro.tipo_calculo == 'fijo' %}
+                            ${{ rubro.monto_default|floatformat:2 }}
+                        {% elif rubro.tipo_calculo == 'porcentaje' %}
+                            {{ rubro.porcentaje_default }}%
+                        {% elif rubro.tipo_calculo == 'porcentaje_bruto' %}
+                            {{ rubro.porcentaje_default }}% (bruto)
+                        {% else %}
+                            {{ rubro.get_tipo_calculo_display }}
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Lista de Empleados -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-8">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">
+                    <i class="fas fa-users text-blue-600 mr-2"></i>
+                    Empleados a Procesar
+                </h3>
+            </div>
+            <div class="p-6">
+                {% if active_employees %}
+                <div class="overflow-x-auto">
+                    <table class="min-w-full">
+                        <thead>
+                            <tr class="border-b border-gray-200">
+                                <th class="text-left py-3 px-4 font-medium text-gray-900">Empleado</th>
+                                <th class="text-left py-3 px-4 font-medium text-gray-900">Departamento</th>
+                                <th class="text-left py-3 px-4 font-medium text-gray-900">Cargo</th>
+                                <th class="text-right py-3 px-4 font-medium text-gray-900">Salario</th>
+                                <th class="text-center py-3 px-4 font-medium text-gray-900">Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-200">
+                            {% for employee in active_employees %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="py-3 px-4">
+                                    <div class="flex items-center">
+                                        {% if employee.user.profile_picture %}
+                                            <img class="h-8 w-8 rounded-full object-cover" 
+                                                 src="{{ employee.user.profile_picture.url }}" 
+                                                 alt="{{ employee.user.get_full_name }}">
+                                        {% else %}
+                                            <div class="h-8 w-8 bg-primary-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                                                {{ employee.user.first_name|first|upper }}{{ employee.user.last_name|first|upper }}
+                                            </div>
+                                        {% endif %}
+                                        <div class="ml-3">
+                                            <p class="text-sm font-medium text-gray-900">{{ employee.user.get_full_name }}</p>
+                                            <p class="text-xs text-gray-500">{{ employee.employee_number }}</p>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="py-3 px-4 text-sm text-gray-900">
+                                    {{ employee.department.name|default:"Sin departamento" }}
+                                </td>
+                                <td class="py-3 px-4 text-sm text-gray-900">
+                                    {{ employee.position.title|default:"Sin cargo" }}
+                                </td>
+                                <td class="py-3 px-4 text-sm text-gray-900 text-right">
+                                    {% if employee.salary %}
+                                        ${{ employee.salary|floatformat:2 }}
+                                    {% else %}
+                                        <span class="text-red-600">Sin salario</span>
+                                    {% endif %}
+                                </td>
+                                <td class="py-3 px-4 text-center">
+                                    {% if employee.has_payroll %}
+                                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                            Ya procesado
+                                        </span>
+                                    {% else %}
+                                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                            Pendiente
+                                        </span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-8">
+                    <i class="fas fa-users text-gray-400 text-4xl mb-4"></i>
+                    <p class="text-gray-500">No hay empleados activos para procesar.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Acciones -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">
+                    <i class="fas fa-tasks text-green-600 mr-2"></i>
+                    Acciones Disponibles
+                </h3>
+            </div>
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- Generar Nóminas -->
+                    {% if can_generate %}
+                    <form method="post" class="w-full">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="generate">
+                        <button type="submit" 
+                                class="w-full flex flex-col items-center p-6 bg-green-50 rounded-lg hover:bg-green-100 transition-colors group"
+                                onclick="return confirm('¿Generar nóminas para todos los empleados activos?\n\nEsta acción creará {{ active_employees_count }} nóminas.')">
+                            <div class="bg-green-600 p-3 rounded-full group-hover:bg-green-700 transition-colors mb-3">
+                                <i class="fas fa-cogs text-white text-xl"></i>
+                            </div>
+                            <p class="font-medium text-green-900">Generar Nóminas</p>
+                            <p class="text-sm text-green-600 text-center">Crear nóminas para empleados activos</p>
+                        </button>
+                    </form>
+                    {% endif %}
+
+                    <!-- Generar Reporte PDF -->
+                    {% if existing_payrolls_count > 0 %}
+                    <form method="post" class="w-full">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="generate_report">
+                        <button type="submit" 
+                                class="w-full flex flex-col items-center p-6 bg-red-50 rounded-lg hover:bg-red-100 transition-colors group">
+                            <div class="bg-red-600 p-3 rounded-full group-hover:bg-red-700 transition-colors mb-3">
+                                <i class="fas fa-file-pdf text-white text-xl"></i>
+                            </div>
+                            <p class="font-medium text-red-900">Reporte PDF</p>
+                            <p class="text-sm text-red-600 text-center">Generar reporte masivo en PDF</p>
+                        </button>
+                    </form>
+
+                    <!-- Exportar CSV -->
+                    <form method="post" class="w-full">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="export_csv">
+                        <button type="submit" 
+                                class="w-full flex flex-col items-center p-6 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors group">
+                            <div class="bg-blue-600 p-3 rounded-full group-hover:bg-blue-700 transition-colors mb-3">
+                                <i class="fas fa-file-csv text-white text-xl"></i>
+                            </div>
+                            <p class="font-medium text-blue-900">Exportar CSV</p>
+                            <p class="text-sm text-blue-600 text-center">Descargar datos en Excel</p>
+                        </button>
+                    </form>
+
+                    <!-- Exportar PDF Individual -->
+                    <form method="post" class="w-full">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="export_pdf">
+                        <button type="submit" 
+                                class="w-full flex flex-col items-center p-6 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors group">
+                            <div class="bg-purple-600 p-3 rounded-full group-hover:bg-purple-700 transition-colors mb-3">
+                                <i class="fas fa-file-export text-white text-xl"></i>
+                            </div>
+                            <p class="font-medium text-purple-900">PDF Detallado</p>
+                            <p class="text-sm text-purple-600 text-center">Reporte completo con rubros</p>
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+
+                <!-- Información Adicional -->
+                {% if not can_generate %}
+                <div class="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-exclamation-triangle text-yellow-400"></i>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-yellow-800">Período No Editable</h3>
+                            <div class="mt-2 text-sm text-yellow-700">
+                                <p>Este período está en estado "{{ period.get_status_display }}" y no permite generar nuevas nóminas. 
+                                Solo se pueden generar reportes de las nóminas existentes.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if existing_payrolls_count == 0 %}
+                <div class="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-info-circle text-blue-400"></i>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-blue-800">Sin Nóminas Generadas</h3>
+                            <div class="mt-2 text-sm text-blue-700">
+                                <p>Aún no se han generado nóminas para este período. 
+                                Use el botón "Generar Nóminas" para crear automáticamente las nóminas de todos los empleados activos.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Vista Previa de Cálculos -->
+        {% if active_employees and can_generate %}
+        <div class="mt-8 bg-white rounded-xl shadow-sm border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">
+                    <i class="fas fa-calculator text-orange-600 mr-2"></i>
+                    Vista Previa de Cálculos
+                    {% if is_biweekly %}
+                        <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800 ml-2">
+                            Quincenal (÷{{ salary_divisor }})
+                        </span>
+                    {% endif %}
+                </h3>
+                {% if is_biweekly %}
+                <p class="text-sm text-gray-600 mt-1">
+                    Cálculos ajustados para período quincenal - Los montos se dividen automáticamente entre {{ salary_divisor }}
+                </p>
+                {% endif %}
+            </div>
+            <div class="p-6">
+                {% if is_biweekly %}
+                <!-- Comparación Mensual vs Quincenal -->
+                <div class="bg-blue-50 rounded-lg p-4 mb-6 border border-blue-200">
+                    <h4 class="font-medium text-blue-800 mb-3">
+                        <i class="fas fa-chart-line mr-2"></i>
+                        Comparación: Salario Mensual vs Quincenal
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-white rounded-lg p-4 border border-blue-300">
+                            <h5 class="font-semibold text-blue-900 mb-2">💼 Salario Mensual Total</h5>
+                            <div class="text-2xl font-bold text-blue-600">
+                                ${{ total_estimated_salary|floatformat:2|add:total_estimated_salary|floatformat:2 }}
+                            </div>
+                            <div class="text-sm text-blue-600">Base de {{ active_employees_count }} empleados</div>
+                        </div>
+                        <div class="bg-white rounded-lg p-4 border border-orange-300">
+                            <h5 class="font-semibold text-orange-900 mb-2">📅 Salario Quincenal (÷{{ salary_divisor }})</h5>
+                            <div class="text-2xl font-bold text-orange-600">
+                                ${{ total_estimated_salary|floatformat:2 }}
+                            </div>
+                            <div class="text-sm text-orange-600">Para este período</div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Resumen Principal -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                    <div class="text-center p-4 {% if is_biweekly %}bg-orange-50{% else %}bg-gray-50{% endif %} rounded-lg">
+                        <div class="text-2xl font-bold {% if is_biweekly %}text-orange-600{% else %}text-gray-600{% endif %}">
+                            ${{ total_estimated_salary|floatformat:2 }}
+                        </div>
+                        <div class="text-sm {% if is_biweekly %}text-orange-700{% else %}text-gray-700{% endif %}">
+                            Salarios Base{% if is_biweekly %} (Quincenal){% endif %}
+                        </div>
+                        <div class="text-xs {% if is_biweekly %}text-orange-600{% else %}text-gray-600{% endif %} mt-1">
+                            {{ active_employees_count }} empleados
+                            {% if is_biweekly %}• ÷{{ salary_divisor }}{% endif %}
+                        </div>
+                    </div>
+
+                    {% if estimated_additional_income > 0 %}
+                    <div class="text-center p-4 bg-green-50 rounded-lg">
+                        <div class="text-2xl font-bold text-green-600">
+                            ${{ estimated_additional_income|floatformat:2 }}
+                        </div>
+                        <div class="text-sm text-green-700">
+                            Ingresos Adicionales{% if is_biweekly %} (Ajustados){% endif %}
+                        </div>
+                        <div class="text-xs text-green-600 mt-1">
+                            Por rubros automáticos
+                            {% if is_biweekly %}• Proporcional{% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="text-center p-4 bg-blue-50 rounded-lg">
+                        <div class="text-2xl font-bold text-blue-600">
+                            ${{ estimated_gross|floatformat:2 }}
+                        </div>
+                        <div class="text-sm text-blue-700">
+                            Estimado Bruto Total{% if is_biweekly %} (Quincenal){% endif %}
+                        </div>
+                        <div class="text-xs text-blue-600 mt-1">
+                            Base + ingresos adicionales
+                        </div>
+                    </div>
+
+                    <div class="text-center p-4 bg-red-50 rounded-lg">
+                        <div class="text-2xl font-bold text-red-600">
+                            ${{ estimated_deductions|floatformat:2 }}
+                        </div>
+                        <div class="text-sm text-red-700">
+                            Deducciones Estimadas{% if is_biweekly %} (Ajustadas){% endif %}
+                        </div>
+                        <div class="text-xs text-red-600 mt-1">
+                            Rubros automáticos
+                            {% if is_biweekly %}• Proporcional{% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Total Final -->
+                <div class="text-center p-6 bg-gradient-to-r {% if is_biweekly %}from-orange-50 to-green-50 border-orange-200{% else %}from-blue-50 to-green-50 border-blue-200{% endif %} rounded-lg border">
+                    <div class="text-3xl font-bold {% if is_biweekly %}text-orange-600{% else %}text-blue-600{% endif %} mb-2">
+                        ${{ estimated_net|floatformat:2 }}
+                    </div>
+                    <div class="text-lg {% if is_biweekly %}text-orange-800{% else %}text-blue-800{% endif %} font-medium">
+                        Total Neto Estimado a Pagar{% if is_biweekly %} (Quincenal){% endif %}
+                    </div>
+                    <div class="text-sm {% if is_biweekly %}text-orange-600{% else %}text-blue-600{% endif %} mt-1">
+                        Total a pagar de {{ active_employees_count }} empleados
+                        {% if is_biweekly %}
+                            <br><span class="text-xs">
+                                (Esto representa la mitad del gasto mensual total de nómina)
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Desglose de Deducciones -->
+                {% if deductions_breakdown %}
+                <div class="mt-6">
+                    <h4 class="text-md font-semibold text-gray-900 mb-3">
+                        <i class="fas fa-minus-circle text-red-600 mr-2"></i>
+                        Desglose de Deducciones Automáticas{% if is_biweekly %} (Ajustadas Quincenalmente){% endif %}
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {% for deduction in deductions_breakdown %}
+                        <div class="flex justify-between items-center p-3 bg-red-50 rounded-lg border border-red-100">
+                            <div>
+                                <p class="font-medium text-red-900">{{ deduction.name }}</p>
+                                <p class="text-xs text-red-600">
+                                    {{ deduction.description }}
+                                    {% if is_biweekly %} • Quincenal{% endif %}
+                                </p>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-bold text-red-700">${{ deduction.amount|floatformat:2 }}</p>
+                                <p class="text-xs text-red-500">{{ deduction.code }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Desglose de Ingresos Adicionales -->
+                {% if income_breakdown %}
+                <div class="mt-6">
+                    <h4 class="text-md font-semibold text-gray-900 mb-3">
+                        <i class="fas fa-plus-circle text-green-600 mr-2"></i>
+                        Desglose de Ingresos Adicionales Automáticos{% if is_biweekly %} (Ajustados Quincenalmente){% endif %}
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {% for income in income_breakdown %}
+                        <div class="flex justify-between items-center p-3 bg-green-50 rounded-lg border border-green-100">
+                            <div>
+                                <p class="font-medium text-green-900">{{ income.name }}</p>
+                                <p class="text-xs text-green-600">
+                                    {{ income.description }}
+                                    {% if is_biweekly %} • Quincenal{% endif %}
+                                </p>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-bold text-green-700">${{ income.amount|floatformat:2 }}</p>
+                                <p class="text-xs text-green-500">{{ income.code }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Nota Explicativa Mejorada -->
+                <div class="mt-6 p-4 {% if is_biweekly %}bg-orange-50 border-orange-200{% else %}bg-blue-50 border-blue-200{% endif %} border rounded-lg">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-info-circle {% if is_biweekly %}text-orange-400{% else %}text-blue-400{% endif %}"></i>
+                        </div>
+                        <div class="ml-3">
+                            <h4 class="text-sm font-medium {% if is_biweekly %}text-orange-800{% else %}text-blue-800{% endif %}">
+                                Información sobre los Cálculos{% if is_biweekly %} Quincenales{% endif %}
+                            </h4>
+                            <div class="mt-2 text-sm {% if is_biweekly %}text-orange-700{% else %}text-blue-700{% endif %}">
+                                <p><strong>Estos cálculos son estimados</strong> basados en:</p>
+                                <ul class="list-disc list-inside mt-1 space-y-1">
+                                    <li>Los salarios base actuales de {{ active_employees_count }} empleados activos</li>
+                                    {% if is_biweekly %}
+                                    <li><strong>División automática por {{ salary_divisor }}</strong> para ajustar a período quincenal</li>
+                                    {% endif %}
+                                    <li>Los {{ automatic_rubros.count }} rubros configurados para aplicarse automáticamente</li>
+                                    <li>No incluyen horas extra, bonificaciones manuales o rubros específicos por empleado</li>
+                                    <li>Los montos finales pueden variar según las condiciones individuales de cada empleado</li>
+                                    {% if is_biweekly %}
+                                    <li><strong>Para obtener el gasto mensual total, multiplique estos valores por {{ salary_divisor }}</strong></li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Comparación por Empleado -->
+                <div class="mt-6 p-4 {% if is_biweekly %}bg-orange-50{% else %}bg-gray-50{% endif %} rounded-lg">
+                    <h4 class="text-sm font-medium text-gray-800 mb-2">
+                        Promedio por Empleado{% if is_biweekly %} (Quincenal){% endif %}
+                    </h4>
+                    <div class="grid grid-cols-3 gap-4 text-center">
+                        <div>
+                            <p class="text-lg font-bold text-gray-600">
+                                ${{ average_gross_per_employee|floatformat:2 }}
+                            </p>
+                            <p class="text-xs text-gray-500">
+                                Bruto promedio{% if is_biweekly %} (quincenal){% endif %}
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-lg font-bold text-red-600">
+                                ${{ average_deductions_per_employee|floatformat:2 }}
+                            </p>
+                            <p class="text-xs text-gray-500">
+                                Deducción promedio{% if is_biweekly %} (quincenal){% endif %}
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-lg font-bold {% if is_biweekly %}text-orange-600{% else %}text-blue-600{% endif %}">
+                                ${{ average_net_per_employee|floatformat:2 }}
+                            </p>
+                            <p class="text-xs text-gray-500">
+                                Neto promedio{% if is_biweekly %} (quincenal){% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    {% if is_biweekly %}
+                    <div class="mt-3 text-center">
+                        <p class="text-xs text-orange-600">
+                            💡 <strong>Tip:</strong> Para ver el equivalente mensual, multiplica cada valor por {{ salary_divisor }}
+                        </p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+// Confirmaciones mejoradas para las acciones
+document.addEventListener('DOMContentLoaded', function() {
+    // Confirmación para generar nóminas
+    const generateForm = document.querySelector('form input[value="generate"]');
+    if (generateForm) {
+        generateForm.closest('form').addEventListener('submit', function(e) {
+            const employeeCount = {{ active_employees_count }};
+            const existingCount = {{ existing_payrolls_count }};
+            
+            let message = `¿Generar nóminas para ${employeeCount} empleados activos?`;
+            
+            if (existingCount > 0) {
+                message += `\n\nNota: Ya existen ${existingCount} nóminas en este período.`;
+                message += '\nSolo se crearán nóminas para empleados que no las tengan.';
+            }
+            
+            message += '\n\nEsta acción aplicará automáticamente:';
+            message += '\n- Salarios base de cada empleado';
+            message += '\n- Rubros automáticos configurados';
+            message += '\n- Deducciones legales (IESS, impuestos)';
+            
+            if (!confirm(message)) {
+                e.preventDefault();
+            }
+        });
+    }
+    
+    // Confirmación para generar reportes
+    const reportForms = document.querySelectorAll('form input[value^="generate_report"], form input[value^="export_"]');
+    reportForms.forEach(function(input) {
+        input.closest('form').addEventListener('submit', function(e) {
+            const action = input.value;
+            let message = '';
+            
+            switch(action) {
+                case 'generate_report':
+                    message = '¿Generar reporte PDF masivo con todas las nóminas del período?';
+                    break;
+                case 'export_csv':
+                    message = '¿Exportar todas las nóminas a formato CSV (Excel)?';
+                    break;
+                case 'export_pdf':
+                    message = '¿Generar reporte PDF detallado con información completa de rubros?';
+                    break;
+            }
+            
+            if (message && !confirm(message)) {
+                e.preventDefault();
+            }
+        });
+    });
+    
+    // Animaciones de hover para las cards
+    const actionCards = document.querySelectorAll('.group');
+    actionCards.forEach(function(card) {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'scale(1.02)';
+            this.style.transition = 'transform 0.2s ease';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'scale(1)';
+        });
+    });
+    
+    // Mostrar progreso para acciones largas
+    const forms = document.querySelectorAll('form');
+    forms.forEach(function(form) {
+        form.addEventListener('submit', function() {
+            const button = this.querySelector('button[type="submit"]');
+            if (button) {
+                const originalText = button.innerHTML;
+                button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Procesando...';
+                button.disabled = true;
+                
+                // Restaurar si hay error (timeout de seguridad)
+                setTimeout(function() {
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                }, 30000);
+            }
+        });
+    });
+});
+</script>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Funciones adicionales para mejorar la experiencia
+function showEmployeeDetails(employeeId) {
+    // Función para mostrar detalles del empleado en modal
+    // Se puede implementar más adelante
+    console.log('Mostrar detalles del empleado:', employeeId);
+}
+
+function previewCalculations() {
+    // Función para preview de cálculos en tiempo real
+    // Se puede implementar más adelante
+    console.log('Preview de cálculos');
+}
+
+// Auto-refresh para verificar estado del período
+setInterval(function() {
+    // Solo hacer refresh si estamos en una acción de generación
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('refresh') === 'true') {
+        location.reload();
+    }
+}, 5000);
+</script>
+{% endblock %}

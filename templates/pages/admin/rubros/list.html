@@ -1,0 +1,405 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}Rubros - Sistema de Nómina{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">Rubros</h1>
+                    <p class="text-gray-600 mt-1">Gestiona los rubros de ingresos y deducciones</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'payroll:nomina_dashboard' %}" 
+                       class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i>
+                        Volver al Panel
+                    </a>
+                    <a href="{% url 'payroll:tipo_rubro_list' %}" 
+                       class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
+                        <i class="fas fa-tags mr-2"></i>
+                        Tipos de Rubro
+                    </a>
+                    {% if perms.payroll.add_rubro %}
+                    <a href="{% url 'payroll:rubro_create' %}" 
+                       class="bg-primary-600 text-black px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors">
+                        <i class="fas fa-plus mr-2"></i>
+                        Nuevo Rubro
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Filtros y Búsqueda -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
+            <form method="get" class="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-4 lg:gap-4">
+                <!-- Búsqueda -->
+                <div>
+                    <label for="search" class="block text-sm font-medium text-gray-700 mb-2">Buscar</label>
+                    <div class="relative">
+                        <input type="text" 
+                               id="search" 
+                               name="search" 
+                               value="{{ current_filters.search }}"
+                               placeholder="Código, nombre..."
+                               class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center">
+                            <i class="fas fa-search text-gray-400"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filtro por Tipo -->
+                <div>
+                    <label for="tipo" class="block text-sm font-medium text-gray-700 mb-2">Tipo de Rubro</label>
+                    <select id="tipo" 
+                            name="tipo" 
+                            class="w-full py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        <option value="">Todos los tipos</option>
+                        {% for tipo_rubro in tipos_rubro %}
+                        <option value="{{ tipo_rubro.id }}" {% if current_filters.tipo == tipo_rubro.id|stringformat:"s" %}selected{% endif %}>
+                            {{ tipo_rubro.nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Filtro por Estado -->
+                <div>
+                    <label for="status" class="block text-sm font-medium text-gray-700 mb-2">Estado</label>
+                    <select id="status" 
+                            name="status" 
+                            class="w-full py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                        <option value="">Todos los estados</option>
+                        <option value="active" {% if current_filters.status == 'active' %}selected{% endif %}>Activos</option>
+                        <option value="inactive" {% if current_filters.status == 'inactive' %}selected{% endif %}>Inactivos</option>
+                    </select>
+                </div>
+
+                <!-- Botones -->
+                <div class="flex items-end space-x-2">
+                    <button type="submit" 
+                            class="bg-primary-600 text-black px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors">
+                        <i class="fas fa-search mr-2"></i>
+                        Filtrar
+                    </button>
+                    <a href="{% url 'payroll:rubro_list' %}" 
+                       class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors">
+                        <i class="fas fa-times mr-2"></i>
+                        Limpiar
+                    </a>
+                </div>
+            </form>
+        </div>
+
+        <!-- Tabla de Rubros -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-900">
+                        Lista de Rubros 
+                        <span class="text-sm font-normal text-gray-500">({{ page_obj.paginator.count }} total)</span>
+                    </h3>
+                    <div class="flex space-x-2">
+                        <button class="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors">
+                            <i class="fas fa-download mr-2"></i>
+                            Exportar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {% if page_obj %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Código y Nombre
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Tipo
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Cálculo
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Valor por Defecto
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Configuración
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Estado
+                            </th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Acciones
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for rubro in page_obj %}
+                        <tr class="hover:bg-gray-50 {% if not rubro.is_active %}opacity-60{% endif %}">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 flex items-center justify-center rounded-full text-white font-bold
+                                        {% if rubro.tipo_rubro.tipo == 'ingreso' %}bg-green-500
+                                        {% else %}bg-red-500{% endif %}">
+                                        {{ rubro.codigo|slice:":2" }}
+                                    </div>
+                                    <div class="ml-4">
+                                        <div class="text-sm font-medium text-gray-900">{{ rubro.nombre }}</div>
+                                        <div class="text-sm text-gray-500">{{ rubro.codigo }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
+                                    {% if rubro.tipo_rubro.tipo == 'ingreso' %}bg-green-100 text-green-800
+                                    {% else %}bg-red-100 text-red-800{% endif %}">
+                                    {{ rubro.tipo_rubro.get_tipo_display }}
+                                </span>
+                                <div class="text-xs text-gray-500 mt-1">{{ rubro.tipo_rubro.nombre }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">{{ rubro.get_tipo_calculo_display }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                {% if rubro.monto_default %}
+                                    <div class="text-sm font-medium text-gray-900">${{ rubro.monto_default|floatformat:2 }}</div>
+                                {% endif %}
+                                {% if rubro.porcentaje_default %}
+                                    <div class="text-sm font-medium text-gray-900">{{ rubro.porcentaje_default }}%</div>
+                                {% endif %}
+                                {% if not rubro.monto_default and not rubro.porcentaje_default %}
+                                    <span class="text-sm text-gray-400">Sin valor por defecto</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex flex-col space-y-1">
+                                    {% if rubro.es_obligatorio %}
+                                    <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-orange-100 text-orange-800">
+                                        <i class="fas fa-exclamation-circle mr-1"></i>
+                                        Obligatorio
+                                    </span>
+                                    {% endif %}
+                                    {% if rubro.aplicar_automaticamente %}
+                                    <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+                                        <i class="fas fa-magic mr-1"></i>
+                                        Automático
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                {% if rubro.is_active %}
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                        <i class="fas fa-check-circle mr-1"></i>
+                                        Activo
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
+                                        <i class="fas fa-pause-circle mr-1"></i>
+                                        Inactivo
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <div class="flex items-center justify-end space-x-2">
+                                    {% if perms.payroll.change_rubro %}
+                                    <a href="{% url 'payroll:rubro_edit' rubro.pk %}" 
+                                       class="text-blue-600 hover:text-blue-700 p-1 rounded" 
+                                       title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    {% endif %}
+                                    
+                                    <button class="text-green-600 hover:text-green-700 p-1 rounded" 
+                                            title="Ver aplicaciones"
+                                            onclick="showRubroApplications('{{ rubro.codigo }}', '{{ rubro.nombre }}')">
+                                        <i class="fas fa-chart-bar"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% if rubro.descripcion %}
+                        <tr class="bg-gray-50">
+                            <td colspan="7" class="px-6 py-2">
+                                <div class="text-sm text-gray-600">
+                                    <strong>Descripción:</strong> {{ rubro.descripcion }}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Paginación -->
+            {% if page_obj.has_other_pages %}
+            <div class="bg-gray-50 px-6 py-3 border-t border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div class="text-sm text-gray-700">
+                        Mostrando 
+                        <span class="font-medium">{{ page_obj.start_index }}</span>
+                        a 
+                        <span class="font-medium">{{ page_obj.end_index }}</span>
+                        de 
+                        <span class="font-medium">{{ page_obj.paginator.count }}</span>
+                        resultados
+                    </div>
+                    <div class="flex items-center space-x-1">
+                        {% if page_obj.has_previous %}
+                            <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page=1" 
+                               class="px-3 py-2 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                                Primera
+                            </a>
+                            <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}" 
+                               class="px-3 py-2 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        {% endif %}
+                        
+                        <span class="px-3 py-2 text-sm bg-primary-600 text-white border border-primary-600 rounded-md">
+                            {{ page_obj.number }}
+                        </span>
+                        
+                        {% if page_obj.has_next %}
+                            <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}" 
+                               class="px-3 py-2 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                            <a href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.paginator.num_pages }}" 
+                               class="px-3 py-2 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                                Última
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% else %}
+            <!-- Estado vacío -->
+            <div class="px-6 py-12 text-center">
+                <div class="text-gray-400 mb-4">
+                    <i class="fas fa-tags text-6xl"></i>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">No hay rubros registrados</h3>
+                <p class="text-gray-500 mb-6">
+                    {% if current_filters.search or current_filters.tipo or current_filters.status %}
+                        No se encontraron rubros que coincidan con los filtros aplicados.
+                    {% else %}
+                        Comienza creando tu primer rubro de nómina.
+                    {% endif %}
+                </p>
+                {% if perms.payroll.add_rubro %}
+                <a href="{% url 'payroll:rubro_create' %}" 
+                   class="bg-primary-600 text-black px-6 py-3 rounded-lg hover:bg-primary-700 transition-colors inline-flex items-center">
+                    <i class="fas fa-plus mr-2"></i>
+                    Crear Rubro
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal para aplicaciones de rubro -->
+<div id="applicationsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-medium text-gray-900" id="modalTitle">Aplicaciones del Rubro</h3>
+                <button class="text-gray-400 hover:text-gray-600" onclick="closeModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="modalContent" class="text-sm text-gray-600">
+                Cargando información...
+            </div>
+            <div class="flex justify-end mt-4">
+                <button onclick="closeModal()" 
+                        class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors">
+                    Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-submit del formulario al cambiar filtros
+    document.getElementById('tipo').addEventListener('change', function() {
+        this.form.submit();
+    });
+
+    document.getElementById('status').addEventListener('change', function() {
+        this.form.submit();
+    });
+
+    // Búsqueda en tiempo real
+    let searchTimeout;
+    const searchInput = document.getElementById('search');
+    
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(() => {
+            if (this.value.length >= 3 || this.value.length === 0) {
+                this.form.submit();
+            }
+        }, 500);
+    });
+
+    // Modal para aplicaciones
+    function showRubroApplications(codigo, nombre) {
+        document.getElementById('modalTitle').textContent = `Aplicaciones del Rubro: ${codigo} - ${nombre}`;
+        document.getElementById('modalContent').innerHTML = `
+            <div class="text-center py-8">
+                <div class="text-gray-400 mb-4">
+                    <i class="fas fa-chart-bar text-4xl"></i>
+                </div>
+                <p>Funcionalidad en desarrollo</p>
+                <p class="text-xs text-gray-500 mt-2">Aquí se mostrarán las estadísticas de uso de este rubro</p>
+            </div>
+        `;
+        document.getElementById('applicationsModal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+        document.getElementById('applicationsModal').classList.add('hidden');
+    }
+
+    // Cerrar modal al hacer clic fuera
+    document.getElementById('applicationsModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeModal();
+        }
+    });
+
+    // Efectos hover para las filas de la tabla
+    const tableRows = document.querySelectorAll('tbody tr:not(.bg-gray-50)');
+    tableRows.forEach(row => {
+        row.addEventListener('mouseenter', function() {
+            if (!this.classList.contains('opacity-60')) {
+                this.style.transform = 'scale(1.002)';
+                this.style.transition = 'transform 0.2s ease';
+            }
+        });
+        
+        row.addEventListener('mouseleave', function() {
+            this.style.transform = 'scale(1)';
+        });
+    });
+</script>
+{% endblock %}

@@ -175,8 +175,9 @@
                                     </div>
                                 </div>
                                 
+                                <input type="hidden" name="assign_employees" value="1">
+                                
                                 <button type="submit" 
-                                        name="assign_employees" 
                                         id="assign-btn" 
                                         disabled
                                         class="w-full bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors font-medium">
@@ -207,62 +208,61 @@
                         Empleados Asignados
                     </h3>
                     <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {{ assigned_employees.count }} empleado{{ assigned_employees.count|pluralize }}
+                        {{ task_assignments.count }} empleado{{ task_assignments.count|pluralize }}
                     </span>
                 </div>
                 <p class="mt-1 text-sm text-gray-600">Empleados que actualmente están asignados a esta tarea</p>
             </div>
             <div class="p-6">
-                {% if assigned_employees %}
+                {% if task_assignments %}
                     <div class="space-y-4">
-                        {% for employee in assigned_employees %}
+                        {% for assignment in task_assignments %}
                         <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                             <div class="flex items-center space-x-3">
                                 <div class="flex-shrink-0">
-                                    {% if employee.user.profile_picture %}
+                                    {% if assignment.employee.user.profile_picture %}
                                         <img class="h-10 w-10 rounded-full object-cover" 
-                                             src="{{ employee.user.profile_picture.url }}" 
-                                             alt="{{ employee.user.get_full_name }}">
+                                            src="{{ assignment.employee.user.profile_picture.url }}" 
+                                            alt="{{ assignment.employee.user.get_full_name }}">
                                     {% else %}
                                         <div class="h-10 w-10 rounded-full bg-blue-500 text-white flex items-center justify-center font-medium">
-                                            {{ employee.user.first_name|first|upper }}{{ employee.user.last_name|first|upper }}
+                                            {{ assignment.employee.user.first_name|first|upper }}{{ assignment.employee.user.last_name|first|upper }}
                                         </div>
                                     {% endif %}
                                 </div>
                                 <div class="min-w-0 flex-1">
-                                    <h4 class="text-sm font-medium text-gray-900">{{ employee.user.get_full_name }}</h4>
-                                    <p class="text-sm text-gray-500">{{ employee.position.title|default:"Sin posición" }}</p>
-                                    <p class="text-xs text-gray-400">{{ employee.department.name|default:"Sin departamento" }}</p>
+                                    <h4 class="text-sm font-medium text-gray-900">{{ assignment.employee.user.get_full_name }}</h4>
+                                    <p class="text-sm text-gray-500">{{ assignment.employee.position.title|default:"Sin posición" }}</p>
+                                    <p class="text-xs text-gray-400">{{ assignment.employee.department.name|default:"Sin departamento" }}</p>
                                 </div>
                                 <div class="flex-shrink-0">
                                     <div class="text-right">
-                                        <p class="text-xs text-gray-500">Asignado</p>
-                                        <p class="text-xs font-medium text-gray-900">Hoy</p>
+                                        <div class="flex items-center space-x-2">
+                                            <!-- Estado de la asignación -->
+                                            {% if assignment.status == 'pending' %}
+                                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                                    <i class="fas fa-clock mr-1"></i>Pendiente
+                                                </span>
+                                            {% elif assignment.status == 'in_progress' %}
+                                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                    <i class="fas fa-play mr-1"></i>En Progreso
+                                                </span>
+                                            {% elif assignment.status == 'completed' %}
+                                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                    <i class="fas fa-check mr-1"></i>Completada
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                        <p class="text-xs text-gray-500 mt-1">Asignado: {{ assignment.assigned_at|date:"d/m/Y" }}</p>
                                     </div>
-                                </div>
-                            </div>
-
-                            <!-- Agregar este bloque de debug justo antes del form en el template -->
-                            <div class="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                                <h4 class="font-medium text-yellow-800 mb-2">🔍 Debug Info:</h4>
-                                <div class="text-sm text-yellow-700">
-                                    <p><strong>Empleados disponibles:</strong> {{ available_employees.count }}</p>
-                                    <p><strong>Empleados asignados:</strong> {{ assigned_employees.count }}</p>
-                                    <p><strong>Estado de la tarea:</strong> {{ task.status }}</p>
-                                    <ul class="mt-2">
-                                    {% for employee in available_employees %}
-                                        <li>• {{ employee.user.get_full_name }} (ID: {{ employee.id }})</li>
-                                    {% empty %}
-                                        <li>• No hay empleados disponibles</li>
-                                    {% endfor %}
-                                    </ul>
                                 </div>
                             </div>
                             
                             <div class="flex-shrink-0 ml-4">
-                                <form method="post" class="inline" onsubmit="return confirm('¿Estás seguro de que quieres quitar a {{ employee.user.get_full_name }} de esta tarea?')">
+                                <form method="post" class="inline" onsubmit="return confirm('¿Estás seguro de que quieres quitar a {{ assignment.employee.user.get_full_name }} de esta tarea?')">
                                     {% csrf_token %}
-                                    <input type="hidden" name="assignment_id" value="{{ employee.pk }}">
+                                    <!-- CORRECTO: Usar el ID de la asignación -->
+                                    <input type="hidden" name="assignment_id" value="{{ assignment.pk }}">
                                     <button type="submit" name="remove_assignment" 
                                             class="text-red-600 hover:text-red-800 p-2 rounded-lg hover:bg-red-50 transition-colors"
                                             title="Quitar asignación">
@@ -309,7 +309,6 @@
                 {% endif %}
             </div>
         </div>
-    </div>
 
     <!-- Estadísticas de la tarea -->
     {% if assigned_employees %}
@@ -354,11 +353,10 @@
 
 {% block extra_js %}
 <script>
-// JavaScript SIMPLE sin problemas de escape
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Iniciando asignación de empleados (versión simplificada)');
+    console.log('🚀 Iniciando asignación de empleados (versión completa)');
     
-    // Elementos DOM
+    // ==================== ELEMENTOS DOM ====================
     const searchInput = document.getElementById('search-input');
     const employeesContainer = document.getElementById('employees-container');
     const noResults = document.getElementById('no-results');
@@ -366,84 +364,187 @@ document.addEventListener('DOMContentLoaded', function() {
     const assignBtn = document.getElementById('assign-btn');
     const selectAllBtn = document.getElementById('select-all');
     const clearAllBtn = document.getElementById('clear-all');
+    const assignForm = document.getElementById('assign-form');
     
-    // Función de búsqueda
+    // Verificar que los elementos existen
+    if (!employeesContainer) {
+        console.warn('⚠️ Container de empleados no encontrado');
+        return;
+    }
+    
+    // ==================== FUNCIÓN DE BÚSQUEDA ====================
     function filterEmployees() {
         const searchTerm = searchInput.value.toLowerCase().trim();
         const employees = employeesContainer.querySelectorAll('.employee-item');
         let visibleCount = 0;
         
+        console.log(`🔍 Buscando: "${searchTerm}"`);
+        
         employees.forEach(function(employee) {
             const name = employee.dataset.name || '';
             const position = employee.dataset.position || '';
             
-            if (name.includes(searchTerm) || position.includes(searchTerm) || searchTerm === '') {
+            const isVisible = name.includes(searchTerm) || position.includes(searchTerm) || searchTerm === '';
+            
+            if (isVisible) {
                 employee.style.display = 'flex';
                 visibleCount++;
             } else {
                 employee.style.display = 'none';
+                // Desmarcar checkboxes ocultos
+                const checkbox = employee.querySelector('.employee-checkbox');
+                if (checkbox && checkbox.checked) {
+                    checkbox.checked = false;
+                }
             }
         });
         
         // Mostrar/ocultar mensaje de "no hay resultados"
-        if (visibleCount === 0 && searchTerm !== '') {
-            noResults.classList.remove('hidden');
-        } else {
-            noResults.classList.add('hidden');
+        if (noResults) {
+            if (visibleCount === 0 && searchTerm !== '') {
+                noResults.classList.remove('hidden');
+            } else {
+                noResults.classList.add('hidden');
+            }
         }
+        
+        console.log(`👥 Empleados visibles: ${visibleCount}`);
+        
+        // Actualizar contador después del filtro
+        updateSelectedCount();
     }
     
-    // Función para actualizar contador
+    // ==================== FUNCIÓN PARA ACTUALIZAR CONTADOR ====================
     function updateSelectedCount() {
-        const checkboxes = document.querySelectorAll('.employee-checkbox:checked');
-        const count = checkboxes.length;
+        const allCheckboxes = document.querySelectorAll('.employee-checkbox');
+        const checkedCheckboxes = document.querySelectorAll('.employee-checkbox:checked');
+        const visibleCheckedCheckboxes = [];
         
-        selectedCount.textContent = count;
-        assignBtn.disabled = count === 0;
+        // Solo contar checkboxes que están visibles
+        checkedCheckboxes.forEach(function(checkbox) {
+            const employeeItem = checkbox.closest('.employee-item');
+            if (employeeItem && employeeItem.style.display !== 'none') {
+                visibleCheckedCheckboxes.push(checkbox);
+            }
+        });
         
-        if (count === 0) {
-            assignBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
-            assignBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
-        } else {
-            assignBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
-            assignBtn.classList.add('bg-green-600', 'hover:bg-green-700');
+        const count = visibleCheckedCheckboxes.length;
+        
+        console.log(`📊 Empleados seleccionados: ${count}`);
+        
+        // Actualizar texto del contador
+        if (selectedCount) {
+            selectedCount.textContent = count;
         }
-    }
-    
-    // Event listeners
-    if (searchInput) {
-        searchInput.addEventListener('input', filterEmployees);
-    }
-    
-    // Checkboxes
-    document.querySelectorAll('.employee-checkbox').forEach(function(checkbox) {
-        checkbox.addEventListener('change', updateSelectedCount);
-    });
-    
-    // Seleccionar todos
-    if (selectAllBtn) {
-        selectAllBtn.addEventListener('click', function() {
+        
+        // Actualizar estado del botón de asignar
+        if (assignBtn) {
+            if (count === 0) {
+                assignBtn.disabled = true;
+                assignBtn.classList.add('bg-gray-400', 'cursor-not-allowed');
+                assignBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
+            } else {
+                assignBtn.disabled = false;
+                assignBtn.classList.remove('bg-gray-400', 'cursor-not-allowed');
+                assignBtn.classList.add('bg-green-600', 'hover:bg-green-700');
+            }
+        }
+        
+        // Actualizar texto del botón "Seleccionar todos"
+        if (selectAllBtn) {
             const visibleCheckboxes = [];
-            document.querySelectorAll('.employee-item').forEach(function(item) {
-                if (item.style.display !== 'none') {
-                    const checkbox = item.querySelector('.employee-checkbox');
-                    if (checkbox) {
-                        visibleCheckboxes.push(checkbox);
-                    }
+            allCheckboxes.forEach(function(checkbox) {
+                const employeeItem = checkbox.closest('.employee-item');
+                if (employeeItem && employeeItem.style.display !== 'none') {
+                    visibleCheckboxes.push(checkbox);
                 }
             });
             
-            visibleCheckboxes.forEach(function(checkbox) {
-                checkbox.checked = true;
+            const allVisibleSelected = visibleCheckboxes.length > 0 && 
+                visibleCheckboxes.every(function(checkbox) {
+                    return checkbox.checked;
+                });
+            
+            if (allVisibleSelected && visibleCheckboxes.length > 0) {
+                selectAllBtn.textContent = 'Deseleccionar todos';
+            } else {
+                selectAllBtn.textContent = 'Seleccionar todos';
+            }
+        }
+    }
+    
+    // ==================== FUNCIÓN PARA OBTENER CHECKBOXES VISIBLES ====================
+    function getVisibleCheckboxes() {
+        const visibleCheckboxes = [];
+        document.querySelectorAll('.employee-checkbox').forEach(function(checkbox) {
+            const employeeItem = checkbox.closest('.employee-item');
+            if (employeeItem && employeeItem.style.display !== 'none') {
+                visibleCheckboxes.push(checkbox);
+            }
+        });
+        return visibleCheckboxes;
+    }
+    
+    // ==================== EVENT LISTENERS ====================
+    
+    // Búsqueda
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            filterEmployees();
+        });
+        
+        // Limpiar búsqueda con Escape
+        searchInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                this.value = '';
+                filterEmployees();
+            }
+        });
+    }
+    
+    // Checkboxes de empleados
+    document.querySelectorAll('.employee-checkbox').forEach(function(checkbox) {
+        checkbox.addEventListener('change', function() {
+            console.log(`☑️ Checkbox ${this.value} cambiado a: ${this.checked}`);
+            updateSelectedCount();
+        });
+    });
+    
+    // Botón "Seleccionar todos"
+    if (selectAllBtn) {
+        selectAllBtn.addEventListener('click', function() {
+            const visibleCheckboxes = getVisibleCheckboxes();
+            
+            if (visibleCheckboxes.length === 0) {
+                console.warn('⚠️ No hay empleados visibles para seleccionar');
+                return;
+            }
+            
+            // Verificar si todos los visibles están seleccionados
+            const allSelected = visibleCheckboxes.every(function(checkbox) {
+                return checkbox.checked;
             });
+            
+            if (allSelected) {
+                console.log('🔄 Deseleccionando todos los empleados visibles');
+                visibleCheckboxes.forEach(function(checkbox) {
+                    checkbox.checked = false;
+                });
+            } else {
+                console.log('✅ Seleccionando todos los empleados visibles');
+                visibleCheckboxes.forEach(function(checkbox) {
+                    checkbox.checked = true;
+                });
+            }
             
             updateSelectedCount();
         });
     }
     
-    // Limpiar
+    // Botón "Limpiar"
     if (clearAllBtn) {
         clearAllBtn.addEventListener('click', function() {
+            console.log('🧹 Limpiando todas las selecciones');
             document.querySelectorAll('.employee-checkbox').forEach(function(checkbox) {
                 checkbox.checked = false;
             });
@@ -451,30 +552,142 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Formulario
-    const assignForm = document.getElementById('assign-form');
+    // ==================== MANEJO DEL FORMULARIO ====================
     if (assignForm) {
         assignForm.addEventListener('submit', function(e) {
-            const selectedEmployees = document.querySelectorAll('.employee-checkbox:checked');
+            console.log('📤 Enviando formulario de asignación');
             
-            if (selectedEmployees.length === 0) {
+            const selectedEmployees = document.querySelectorAll('.employee-checkbox:checked');
+            const selectedIds = [];
+            
+            selectedEmployees.forEach(function(checkbox) {
+                selectedIds.push(checkbox.value);
+            });
+            
+            console.log(`👥 Empleados seleccionados: ${selectedIds.length}`);
+            console.log(`🆔 IDs: [${selectedIds.join(', ')}]`);
+            
+            if (selectedIds.length === 0) {
                 e.preventDefault();
-                alert('Por favor selecciona al menos un empleado para asignar.');
+                alert('❌ Por favor selecciona al menos un empleado para asignar.');
+                console.error('❌ No hay empleados seleccionados');
                 return false;
             }
             
+            // Verificar que el formulario tiene todos los campos necesarios
+            const formData = new FormData(assignForm);
+            const hasAssignAction = formData.has('assign_employees');
+            const hasEmployees = formData.getAll('employees').length > 0;
+            
+            console.log('📋 Datos del formulario:');
+            console.log(`  - assign_employees: ${hasAssignAction}`);
+            console.log(`  - employees: ${formData.getAll('employees')}`);
+            console.log(`  - csrf_token: ${formData.has('csrfmiddlewaretoken')}`);
+            
+            if (!hasAssignAction) {
+                console.error('❌ Falta el campo assign_employees');
+                e.preventDefault();
+                alert('Error: Falta información del formulario. Recarga la página e intenta nuevamente.');
+                return false;
+            }
+            
+            if (!hasEmployees) {
+                console.error('❌ No se enviaron empleados en el formulario');
+                e.preventDefault();
+                alert('Error: No se pudieron enviar los empleados seleccionados. Intenta nuevamente.');
+                return false;
+            }
+            
+            // Deshabilitar botón y mostrar loading
             const submitBtn = assignForm.querySelector('button[type="submit"]');
             if (submitBtn) {
+                const originalText = submitBtn.innerHTML;
                 submitBtn.disabled = true;
-                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Asignando...';
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Asignando empleados...';
+                
+                // Restaurar botón después de un tiempo si algo sale mal
+                setTimeout(function() {
+                    if (submitBtn.disabled) {
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalText;
+                        console.warn('⚠️ Timeout: Restaurando botón de envío');
+                    }
+                }, 30000); // 30 segundos
             }
+            
+            console.log('✅ Formulario válido, enviando...');
+            return true;
         });
     }
     
-    // Inicializar contador
+    // ==================== FUNCIONES ADICIONALES ====================
+    
+    // Función para mostrar estadísticas
+    function showStats() {
+        const totalEmployees = document.querySelectorAll('.employee-checkbox').length;
+        const selectedEmployees = document.querySelectorAll('.employee-checkbox:checked').length;
+        const visibleEmployees = getVisibleCheckboxes().length;
+        
+        console.log('📊 Estadísticas:');
+        console.log(`  - Total empleados: ${totalEmployees}`);
+        console.log(`  - Empleados visibles: ${visibleEmployees}`);
+        console.log(`  - Empleados seleccionados: ${selectedEmployees}`);
+    }
+    
+    // Atajos de teclado
+    document.addEventListener('keydown', function(e) {
+        // Ctrl+A o Cmd+A para seleccionar todos
+        if ((e.ctrlKey || e.metaKey) && e.key === 'a' && e.target !== searchInput) {
+            e.preventDefault();
+            if (selectAllBtn) {
+                selectAllBtn.click();
+            }
+        }
+        
+        // Escape para limpiar búsqueda
+        if (e.key === 'Escape' && searchInput && document.activeElement !== searchInput) {
+            searchInput.value = '';
+            filterEmployees();
+            searchInput.focus();
+        }
+        
+        // F1 para mostrar estadísticas en consola
+        if (e.key === 'F1') {
+            e.preventDefault();
+            showStats();
+        }
+    });
+    
+    // ==================== INICIALIZACIÓN ====================
+    
+    // Inicializar contador y estado
     updateSelectedCount();
     
-    console.log('Asignación de empleados inicializada correctamente');
+    // Log inicial
+    console.log('✅ Asignación de empleados inicializada correctamente');
+    console.log('💡 Atajos disponibles:');
+    console.log('  - Ctrl/Cmd+A: Seleccionar/deseleccionar todos');
+    console.log('  - Escape: Limpiar búsqueda');
+    console.log('  - F1: Mostrar estadísticas');
+    
+    showStats();
+    
+    // ==================== FUNCIONES GLOBALES PARA DEBUG ====================
+    
+    // Hacer algunas funciones disponibles globalmente para debug
+    window.employeeAssignDebug = {
+        showStats: showStats,
+        updateCount: updateSelectedCount,
+        filter: filterEmployees,
+        selectAll: function() {
+            if (selectAllBtn) selectAllBtn.click();
+        },
+        clearAll: function() {
+            if (clearAllBtn) clearAllBtn.click();
+        }
+    };
+    
+    console.log('🔧 Funciones de debug disponibles en window.employeeAssignDebug');
 });
 </script>
 {% endblock %}

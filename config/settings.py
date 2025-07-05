@@ -35,13 +35,13 @@ INSTALLED_APPS = [
     #APPS
     'core.users',
     'core.employees',
-    'core.benefits',
     'core.payroll',
     'core.reports',
     'core.attendance',
     'core.leaves',
     'core.notifications',
     'core.tasks',
+    'core.external_payments',
 ]
 
 MIDDLEWARE = [

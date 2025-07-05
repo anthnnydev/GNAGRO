@@ -1,0 +1,281 @@
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block title %}Seleccionar Rubro - {{ payroll.employee.user.get_full_name }}{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">Seleccionar Rubro</h1>
+                    <p class="text-gray-600 mt-1">
+                        {{ payroll.employee.user.get_full_name }} - {{ payroll.period.name }}
+                    </p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'payroll:payroll_detail' payroll.pk %}" 
+                       class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i>
+                        Volver
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Panel de Selección -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            <i class="fas fa-list-alt text-blue-600 mr-2"></i>
+                            Rubros Disponibles ({{ total_disponibles }})
+                        </h3>
+                    </div>
+                    <div class="p-6">
+                        {% if rubros_por_tipo %}
+                            {% for tipo, rubros in rubros_por_tipo.items %}
+                                <div class="mb-6">
+                                    <h4 class="text-md font-medium text-gray-700 mb-3 flex items-center">
+                                        {% if 'Ingreso' in tipo %}
+                                            <i class="fas fa-arrow-up text-green-600 mr-2"></i>
+                                        {% else %}
+                                            <i class="fas fa-arrow-down text-red-600 mr-2"></i>
+                                        {% endif %}
+                                        {{ tipo }}
+                                    </h4>
+                                    <div class="grid grid-cols-1 gap-3">
+                                        {% for rubro in rubros %}
+                                            <div class="border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-sm transition-all cursor-pointer rubro-card"
+                                                 data-rubro-id="{{ rubro.id }}"
+                                                 onclick="selectRubro({{ rubro.id }})">
+                                                <div class="flex justify-between items-start">
+                                                    <div class="flex-1">
+                                                        <h5 class="font-medium text-gray-900">{{ rubro.nombre }}</h5>
+                                                        <p class="text-sm text-gray-500">{{ rubro.codigo }}</p>
+                                                        {% if rubro.descripcion %}
+                                                            <p class="text-sm text-gray-600 mt-1">{{ rubro.descripcion }}</p>
+                                                        {% endif %}
+                                                    </div>
+                                                    <div class="text-right">
+                                                        {% if rubro.tipo_calculo == 'porcentaje' or rubro.tipo_calculo == 'porcentaje_bruto' %}
+                                                            <span class="text-sm font-medium text-blue-600">
+                                                                {{ rubro.porcentaje_default }}%
+                                                            </span>
+                                                            <p class="text-xs text-gray-500">
+                                                                {% if rubro.tipo_calculo == 'porcentaje' %}
+                                                                    del salario base
+                                                                {% else %}
+                                                                    del salario bruto
+                                                                {% endif %}
+                                                            </p>
+                                                        {% elif rubro.tipo_calculo == 'fijo' %}
+                                                            <span class="text-sm font-medium text-green-600">
+                                                                ${{ rubro.monto_default|floatformat:2 }}
+                                                            </span>
+                                                            <p class="text-xs text-gray-500">Monto fijo</p>
+                                                        {% else %}
+                                                            <span class="text-sm font-medium text-gray-600">
+                                                                {{ rubro.get_tipo_calculo_display }}
+                                                            </span>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center py-8">
+                                <i class="fas fa-check-circle text-green-600 text-4xl mb-4"></i>
+                                <h4 class="text-lg font-medium text-gray-900 mb-2">Todos los rubros aplicados</h4>
+                                <p class="text-gray-600">No hay más rubros disponibles para esta nómina.</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel de Aplicación -->
+            <div class="lg:col-span-1">
+                <!-- Información de la Nómina -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                            Información
+                        </h3>
+                    </div>
+                    <div class="p-6">
+                        <div class="space-y-3 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Salario Base:</span>
+                                <span class="font-medium">${{ payroll.base_salary|floatformat:2 }}</span>
+                            </div>
+                            {% if payroll.overtime_pay > 0 %}
+                            <div class="flex justify-between">
+                                <span class="text-gray-600">Horas Extra:</span>
+                                <span class="font-medium">${{ payroll.overtime_pay|floatformat:2 }}</span>
+                            </div>
+                            {% endif %}
+                            <div class="flex justify-between border-t pt-2">
+                                <span class="text-gray-600">Salario Bruto:</span>
+                                <span class="font-medium text-green-600">${{ payroll.gross_pay|floatformat:2 }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Formulario de Aplicación -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200" id="application-panel" style="display: none;">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            <i class="fas fa-plus-circle text-green-600 mr-2"></i>
+                            Aplicar Rubro
+                        </h3>
+                    </div>
+                    <div class="p-6">
+                        <form method="post" id="apply-rubro-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="rubro_id" id="selected-rubro-id">
+                            
+                            <!-- Información del Rubro Seleccionado -->
+                            <div id="rubro-info" class="mb-4">
+                                <!-- Se llenará dinámicamente -->
+                            </div>
+
+                            <!-- Campo de Monto Manual (solo para rubros fijos) -->
+                            <div id="monto-field" class="mb-4" style="display: none;">
+                                <label for="monto_manual" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Monto Manual ($)
+                                </label>
+                                <input type="number" 
+                                       name="monto_manual" 
+                                       id="monto_manual"
+                                       step="0.01" 
+                                       min="0"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+
+                            <!-- Observaciones -->
+                            <div class="mb-4">
+                                <label for="observaciones" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Observaciones (opcional)
+                                </label>
+                                <textarea name="observaciones" 
+                                          id="observaciones"
+                                          rows="3"
+                                          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
+                                          placeholder="Observaciones adicionales..."></textarea>
+                            </div>
+
+                            <!-- Botones -->
+                            <div class="flex space-x-3">
+                                <button type="submit" 
+                                        class="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                                    <i class="fas fa-plus mr-2"></i>
+                                    Aplicar Rubro
+                                </button>
+                                <button type="button" 
+                                        onclick="cancelSelection()"
+                                        class="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
+                                    Cancelar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let selectedRubroId = null;
+
+function selectRubro(rubroId) {
+    // Remover selección previa
+    document.querySelectorAll('.rubro-card').forEach(card => {
+        card.classList.remove('border-blue-500', 'bg-blue-50');
+    });
+    
+    // Marcar como seleccionado
+    const selectedCard = document.querySelector(`[data-rubro-id="${rubroId}"]`);
+    selectedCard.classList.add('border-blue-500', 'bg-blue-50');
+    
+    selectedRubroId = rubroId;
+    document.getElementById('selected-rubro-id').value = rubroId;
+    
+    // Obtener información del rubro
+    fetch(`/payroll/admin/api/rubros/${rubroId}/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showRubroInfo(data.rubro);
+                document.getElementById('application-panel').style.display = 'block';
+            } else {
+                alert('Error al obtener información del rubro');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al obtener información del rubro');
+        });
+}
+
+function showRubroInfo(rubro) {
+    const infoDiv = document.getElementById('rubro-info');
+    const montoField = document.getElementById('monto-field');
+    
+    let calculoInfo = '';
+    let montoCalculado = 0;
+    
+    // CORREGIDO: Usar variables del template de Django correctamente
+    const salarioBase = parseFloat('{{ payroll.base_salary|floatformat:2 }}');
+    const salarioBruto = parseFloat('{{ payroll.gross_pay|floatformat:2 }}');
+    
+    if (rubro.tipo_calculo === 'porcentaje') {
+        montoCalculado = (salarioBase * rubro.porcentaje_default) / 100;
+        calculoInfo = `${rubro.porcentaje_default}% del salario base = ${montoCalculado.toFixed(2)}`;
+        montoField.style.display = 'none';
+    } else if (rubro.tipo_calculo === 'porcentaje_bruto') {
+        montoCalculado = (salarioBruto * rubro.porcentaje_default) / 100;
+        calculoInfo = `${rubro.porcentaje_default}% del salario bruto = ${montoCalculado.toFixed(2)}`;
+        montoField.style.display = 'none';
+    } else if (rubro.tipo_calculo === 'fijo') {
+        if (rubro.monto_default) {
+            calculoInfo = `Monto por defecto: ${rubro.monto_default}`;
+            document.getElementById('monto_manual').value = rubro.monto_default;
+        } else {
+            calculoInfo = 'Requiere monto manual';
+        }
+        montoField.style.display = 'block';
+    }
+    
+    infoDiv.innerHTML = `
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <h4 class="font-medium text-blue-900">${rubro.nombre}</h4>
+            <p class="text-sm text-blue-700 mt-1">${rubro.descripcion || ''}</p>
+            <p class="text-sm font-medium text-blue-800 mt-2">${calculoInfo}</p>
+        </div>
+    `;
+}
+
+function cancelSelection() {
+    // Remover selección
+    document.querySelectorAll('.rubro-card').forEach(card => {
+        card.classList.remove('border-blue-500', 'bg-blue-50');
+    });
+    
+    selectedRubroId = null;
+    document.getElementById('selected-rubro-id').value = '';
+    document.getElementById('application-panel').style.display = 'none';
+}
+</script>
+{% endblock %}

@@ -277,17 +277,26 @@ class TaskAssignView(SupervisorRequiredMixin, LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         supervisor = self.request.user.employee_profile
         
-        # Empleados ya asignados
-        assigned_employees = self.object.assigned_employees.select_related(
-            'user', 'position', 'department'
-        )
+        # CORREGIDO: Obtener asignaciones en lugar de solo empleados
+        task_assignments = TaskAssignment.objects.filter(
+            task=self.object
+        ).select_related(
+            'employee__user', 
+            'employee__position', 
+            'employee__department'
+        ).order_by('-assigned_at')
         
-        # NUEVO: Empleados disponibles (no asignados ya a esta tarea)
+        # Empleados ya asignados (para compatibilidad)
+        assigned_employees = Employee.objects.filter(
+            id__in=task_assignments.values_list('employee_id', flat=True)
+        ).select_related('user', 'position', 'department')
+        
+        # Empleados disponibles (no asignados ya a esta tarea)
         available_employees = Employee.objects.filter(
             Q(supervisor=supervisor) |
             Q(department=supervisor.department, user__user_type='employee')
         ).filter(status='active').exclude(
-            id__in=self.object.assigned_employees.values_list('id', flat=True)
+            id__in=assigned_employees.values_list('id', flat=True)
         ).select_related('user', 'position', 'department')
         
         # Formulario de asignación
@@ -297,9 +306,10 @@ class TaskAssignView(SupervisorRequiredMixin, LoginRequiredMixin, DetailView):
         )
         
         context.update({
-            'assigned_employees': assigned_employees,
+            'task_assignments': task_assignments,  # NUEVO: Asignaciones completas
+            'assigned_employees': assigned_employees,  # Mantener para compatibilidad
             'assignment_form': assignment_form,
-            'available_employees': available_employees,  # NUEVO: Agregar empleados disponibles
+            'available_employees': available_employees,
         })
         
         return context
@@ -426,57 +436,56 @@ class TaskAssignView(SupervisorRequiredMixin, LoginRequiredMixin, DetailView):
         elif 'remove_assignment' in request.POST:
             print("\n🗑️ PROCESANDO REMOCIÓN DE ASIGNACIÓN")
             assignment_id = request.POST.get('assignment_id')
+            employee_id = request.POST.get('employee_id')  # Fallback
+            
             print(f"Assignment ID: {assignment_id}")
+            print(f"Employee ID: {employee_id}")
             
             try:
-                assignment = TaskAssignment.objects.get(
-                    id=assignment_id,
-                    task=self.object
-                )
-                employee_name = assignment.employee.user.get_full_name()
-                assignment.delete()
+                assignment = None
                 
-                messages.success(
-                    request,
-                    f'Asignación de {employee_name} removida exitosamente.'
-                )
-                print(f"✅ Asignación removida: {employee_name}")
+                # Intentar primero con assignment_id
+                if assignment_id:
+                    try:
+                        assignment = TaskAssignment.objects.get(
+                            id=assignment_id,
+                            task=self.object
+                        )
+                        print(f"✅ Asignación encontrada por ID: {assignment_id}")
+                    except TaskAssignment.DoesNotExist:
+                        print(f"❌ No se encontró asignación con ID: {assignment_id}")
                 
-            except TaskAssignment.DoesNotExist:
-                print("❌ ERROR: Asignación no encontrada")
-                messages.error(request, 'Asignación no encontrada.')
-            except Exception as e:
-                print(f"❌ ERROR removiendo asignación: {e}")
-                messages.error(request, f'Error al remover asignación: {str(e)}')
-            
-            return redirect('tasks:task_assign', pk=self.object.pk)
-        
-        elif 'remove_all_assignments' in request.POST:
-            print("\n🗑️ PROCESANDO REMOCIÓN DE TODAS LAS ASIGNACIONES")
-            
-            try:
-                removed_count = TaskAssignment.objects.filter(task=self.object).count()
-                TaskAssignment.objects.filter(task=self.object).delete()
+                # Si no se encontró, intentar con employee_id
+                if not assignment and employee_id:
+                    try:
+                        assignment = TaskAssignment.objects.get(
+                            employee_id=employee_id,
+                            task=self.object
+                        )
+                        print(f"✅ Asignación encontrada por Employee ID: {employee_id}")
+                    except TaskAssignment.DoesNotExist:
+                        print(f"❌ No se encontró asignación para Employee ID: {employee_id}")
                 
-                # Actualizar estado de la tarea a borrador si no quedan asignaciones
-                if removed_count > 0:
-                    self.object.status = 'draft'
-                    self.object.save()
+                if assignment:
+                    employee_name = assignment.employee.user.get_full_name()
+                    assignment_id_used = assignment.id
+                    assignment.delete()
+                    
                     messages.success(
                         request,
-                        f'Se removieron todas las asignaciones ({removed_count} empleados).'
+                        f'Asignación de {employee_name} removida exitosamente.'
                     )
-                    print(f"✅ Removidas todas las asignaciones: {removed_count}")
-                
+                    print(f"✅ Asignación removida: {employee_name} (Assignment ID: {assignment_id_used})")
+                else:
+                    print("❌ ERROR: No se pudo encontrar la asignación")
+                    messages.error(request, 'No se pudo encontrar la asignación a remover.')
+                    
             except Exception as e:
-                print(f"❌ ERROR removiendo todas las asignaciones: {e}")
-                messages.error(request, f'Error al remover asignaciones: {str(e)}')
+                print(f"❌ ERROR removiendo asignación: {e}")
+                import traceback
+                traceback.print_exc()
+                messages.error(request, f'Error al remover asignación: {str(e)}')
             
-            return redirect('tasks:task_assign', pk=self.object.pk)
-        
-        else:
-            print(f"\n❓ ACCIÓN NO RECONOCIDA. POST keys: {list(request.POST.keys())}")
-            messages.warning(request, 'Acción no reconocida.')
             return redirect('tasks:task_assign', pk=self.object.pk)
         
         print("=" * 50)

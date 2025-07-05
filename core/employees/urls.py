@@ -2,6 +2,7 @@
 from django.urls import path, include
 from core.employees.views import employee, department, position
 from core.employees.views import employee_portal, attendance_ajax, supervisor_portal
+from django.views.generic import TemplateView
 
 app_name = 'employees'
 
@@ -13,6 +14,7 @@ urlpatterns = [
     path('admin/<int:pk>/', employee.EmployeeDetailView.as_view(), name='employee_detail'),
     path('admin/<int:pk>/update/', employee.EmployeeUpdateView.as_view(), name='employee_update'),
     path('admin/<int:pk>/delete/', employee.EmployeeDeleteView.as_view(), name='employee_delete'),
+    path('admin/<int:pk>/reactivate/', employee.EmployeeReactivateView.as_view(), name='employee_reactivate'),  # NUEVO
     
     path('admin/<int:employee_pk>/documents/create/', 
          employee.EmployeeDocumentCreateView.as_view(), 
@@ -41,10 +43,12 @@ urlpatterns = [
     path('supervisor/team/', supervisor_portal.SupervisorTeamView.as_view(), name='supervisor_team'),
     path('supervisor/team/<int:pk>/', supervisor_portal.SupervisorEmployeeDetailView.as_view(), name='supervisor_employee_detail'),
     path('supervisor/reports/', supervisor_portal.SupervisorReportsView.as_view(), name='supervisor_reports'),
+    path('supervisor/payroll/', supervisor_portal.SupervisorPayrollView.as_view(), name='supervisor_payroll'),
     
     # APIs del supervisor
     path('supervisor/api/stats/', supervisor_portal.supervisor_stats_api, name='supervisor_stats_api'),
     path('supervisor/api/team-performance/', supervisor_portal.supervisor_team_performance_api, name='supervisor_team_performance_api'),
+    path('supervisor/api/payroll/', supervisor_portal.supervisor_payroll_api, name='supervisor_payroll_api'),
     
     # ===== PORTAL DEL EMPLEADO =====
     path('dashboard/', employee_portal.EmployeeDashboardView.as_view(), name='employee_dashboard'),
@@ -54,9 +58,9 @@ urlpatterns = [
     path('time/', employee_portal.EmployeeTimeView.as_view(), name='employee_time'),
     path('requests/', employee_portal.EmployeeRequestsView.as_view(), name='employee_requests'),
     
-    # ===== NUEVAS URLs PARA GESTIÓN DE SOLICITUDES DE LICENCIA =====
     path('requests/leave/create/', employee_portal.EmployeeLeaveRequestCreateView.as_view(), name='employee_leave_request_create'),
     path('requests/leave/<int:pk>/', employee_portal.EmployeeLeaveRequestDetailView.as_view(), name='employee_leave_request_detail'),
+    path('requests/leave/<int:pk>/edit/', employee_portal.EmployeeLeaveRequestUpdateView.as_view(), name='employee_leave_request_edit'),
     
     path('settings/', employee_portal.EmployeeSettingsView.as_view(), name='employee_settings'),
     path('notifications/', employee_portal.EmployeeNotificationsView.as_view(), name='employee_notifications'),
@@ -71,10 +75,22 @@ urlpatterns = [
         path('break-start/', attendance_ajax.break_start_api, name='api_break_start'),
         path('break-end/', attendance_ajax.break_end_api, name='api_break_end'),
         path('status/', attendance_ajax.attendance_status_api, name='api_attendance_status'),
+        path('sw.js', TemplateView.as_view(template_name='sw.js', content_type='application/javascript'), name='service_worker'),
+        path('offline/', TemplateView.as_view(template_name='offline.html'), name='offline'),
     ])),
+    
+    
     
     # Descargas
     path('documents/<int:document_id>/download/', 
          employee_portal.employee_download_document, 
          name='employee_download_document'),
+    
+    path('payroll/receipt/<int:payroll_id>/download/', 
+         employee_portal.employee_payroll_receipt_download, 
+         name='employee_payroll_receipt_download'),
+    
+    path('payroll/export/', 
+         employee_portal.employee_payroll_export, 
+         name='employee_payroll_export'),
 ]

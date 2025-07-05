@@ -15,7 +15,7 @@ urlpatterns = [
     path('employees/', include('core.employees.urls')),
     path('leaves/', include('core.leaves.urls')),
     path('attendance/', include('core.attendance.urls')),
-    
+    path('payroll/', include('core.payroll.urls')),
     path('tasks/', include('core.tasks.urls')),
 ]
 

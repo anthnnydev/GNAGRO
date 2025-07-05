@@ -1,4 +1,4 @@
-# core/employees/views.py (SECCIÓN ACTUALIZADA)
+# core/employees/views.py (SECCIÓN CORREGIDA)
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
@@ -8,7 +8,7 @@ from django.db import transaction
 from django.contrib.auth import get_user_model
 from django.core.paginator import Paginator
 from django.db.models import Q, Count
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseRedirect
 from django.views import View
 
 from core.employees.utils import send_employee_credentials_email
@@ -45,12 +45,25 @@ class EmployeeListView(LoginRequiredMixin, ListView):
         if department:
             queryset = queryset.filter(department_id=department)
         
-        # Filtro por estado
+        # CORREGIDO: Lógica de filtrado por estado
         status = self.request.GET.get('status')
-        if status:
-            queryset = queryset.filter(status=status)
+        show_all = self.request.GET.get('show_all')
         
-        # NUEVO: Filtro por tipo de usuario
+        # Prioridad: show_all > status específico > default (solo activos)
+        if show_all == '1':
+            # Mostrar todos los empleados, sin filtrar por estado
+            pass
+        elif status and status != 'all':
+            # Filtrar por un estado específico
+            queryset = queryset.filter(status=status)
+        elif status == 'all':
+            # Mostrar todos (equivalente a show_all=1)
+            pass
+        else:
+            # Por defecto, mostrar solo activos
+            queryset = queryset.filter(status='active')
+        
+        # Filtro por tipo de usuario
         user_type = self.request.GET.get('user_type')
         if user_type:
             queryset = queryset.filter(user__user_type=user_type)
@@ -66,13 +79,15 @@ class EmployeeListView(LoginRequiredMixin, ListView):
         context['search_query'] = self.request.GET.get('search', '')
         context['selected_department'] = self.request.GET.get('department', '')
         context['selected_status'] = self.request.GET.get('status', '')
-        context['selected_user_type'] = self.request.GET.get('user_type', '')  # NUEVO
+        context['selected_user_type'] = self.request.GET.get('user_type', '')
+        context['show_all'] = self.request.GET.get('show_all', '')
         
-        # NUEVAS: Estadísticas para el dashboard
+        # Estadísticas para el dashboard (sin filtros aplicados)
         all_employees = Employee.objects.select_related('user')
         
         context['total_employees'] = all_employees.count()
         context['active_employees'] = all_employees.filter(status='active').count()
+        context['inactive_employees'] = all_employees.exclude(status='active').count()
         context['supervisor_count'] = all_employees.filter(user__user_type='supervisor').count()
         context['admin_count'] = all_employees.filter(
             user__user_type__in=['admin', 'hr']
@@ -110,7 +125,6 @@ class EmployeeCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView
                 with transaction.atomic():
                     # Crear el usuario
                     user = user_form.save(commit=False)
-                    # NUEVO: El tipo de usuario ya se maneja en el formulario
                     user.is_active = True
                     
                     # Marcar que necesita cambiar contraseña si se generó una temporal
@@ -259,6 +273,7 @@ class EmployeeDetailView(LoginRequiredMixin, DetailView):
         return context
 
 
+
 class EmployeeDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView):
     """Vista para eliminar un empleado"""
     model = Employee
@@ -266,12 +281,32 @@ class EmployeeDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView
     success_url = reverse_lazy('employees:employee_list')
     permission_required = 'employees.delete_employee'
     
-    def delete(self, request, *args, **kwargs):
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['can_reactivate'] = self.object.status == 'terminated'
+        return context
+    
+    def post(self, request, *args, **kwargs):
+        """Maneja la desactivación del empleado cuando se envía el formulario"""
         employee = self.get_object()
+        
         try:
             with transaction.atomic():
+                # Obtener datos del formulario
+                termination_reason = request.POST.get('termination_reason', '').strip()
+                termination_type = request.POST.get('termination_type', '')
+                confirm_deactivation = request.POST.get('confirm_deactivation', '')
+                
+                # Verificar que se confirmó la desactivación
+                if not confirm_deactivation:
+                    messages.error(request, 'Debe confirmar la desactivación marcando la casilla.')
+                    return self.get(request, *args, **kwargs)
+                
+                # Cambiar el estado del empleado
                 employee.status = 'terminated'
                 employee.user.is_active = False
+                
+                # Guardar cambios
                 employee.save()
                 employee.user.save()
                 
@@ -279,7 +314,7 @@ class EmployeeDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView
                 user_type_messages = {
                     'employee': 'Empleado',
                     'supervisor': 'Supervisor',
-                    'hr': 'Personal de Recursos Humanos',
+                    'hr': 'Personal de RH',
                     'admin': 'Administrador'
                 }
                 
@@ -289,14 +324,51 @@ class EmployeeDeleteView(LoginRequiredMixin, PermissionRequiredMixin, DeleteView
                     request, 
                     f'{user_type_msg} {employee.user.get_full_name()} desactivado exitosamente.'
                 )
+                
+                # Guardar información adicional si se proporcionó motivo
+                # Si tienes un campo para motivo en el modelo, descomenta estas líneas:
+                # if termination_reason:
+                #     employee.termination_reason = termination_reason
+                #     employee.termination_type = termination_type
+                #     employee.save()
+                
         except Exception as e:
             messages.error(request, f'Error al desactivar el empleado: {str(e)}')
+            return self.get(request, *args, **kwargs)
         
-        return redirect(self.success_url)
+        return HttpResponseRedirect(self.success_url)
+    
+    def delete(self, request, *args, **kwargs):
+        """Método delete que redirige a post para consistencia"""
+        return self.post(request, *args, **kwargs)
 
 
-# NUEVAS: APIs mejoradas con información de tipos de usuario
+# NUEVA: Vista para reactivar empleados
+class EmployeeReactivateView(LoginRequiredMixin, PermissionRequiredMixin, View):
+    """Vista para reactivar un empleado desactivado"""
+    permission_required = 'employees.change_employee'
+    
+    def post(self, request, pk):
+        employee = get_object_or_404(Employee, pk=pk)
+        
+        try:
+            with transaction.atomic():
+                employee.status = 'active'
+                employee.user.is_active = True
+                employee.save()
+                employee.user.save()
+                
+                messages.success(
+                    request, 
+                    f'Empleado {employee.user.get_full_name()} reactivado exitosamente.'
+                )
+        except Exception as e:
+            messages.error(request, f'Error al reactivar el empleado: {str(e)}')
+        
+        return redirect('employees:employee_detail', pk=pk)
 
+
+# APIs mejoradas con información de tipos de usuario
 class EmployeeStatsView(LoginRequiredMixin, View):
     """Vista para estadísticas de empleados (para dashboard)"""
     
@@ -307,8 +379,9 @@ class EmployeeStatsView(LoginRequiredMixin, View):
         # Estadísticas básicas
         total_employees = Employee.objects.count()
         active_employees = Employee.objects.filter(status='active').count()
+        inactive_employees = total_employees - active_employees
         
-        # NUEVAS: Estadísticas por tipo de usuario
+        # Estadísticas por tipo de usuario
         user_type_stats = Employee.objects.values('user__user_type').annotate(
             count=Count('id')
         ).order_by('user__user_type')
@@ -356,14 +429,14 @@ class EmployeeStatsView(LoginRequiredMixin, View):
         data = {
             'total_employees': total_employees,
             'active_employees': active_employees,
-            'inactive_employees': total_employees - active_employees,
+            'inactive_employees': inactive_employees,
             'recent_hires': recent_hires,
             'upcoming_birthdays': upcoming_birthdays,
             'department_stats': list(dept_stats),
-            'user_type_stats': formatted_user_types,  # NUEVO
+            'user_type_stats': formatted_user_types,
             'active_percentage': round((active_employees / total_employees * 100) if total_employees > 0 else 0, 1),
-            'supervisor_count': Employee.objects.filter(user__user_type='supervisor').count(),  # NUEVO
-            'admin_count': Employee.objects.filter(user__user_type__in=['admin', 'hr']).count()  # NUEVO
+            'supervisor_count': Employee.objects.filter(user__user_type='supervisor').count(),
+            'admin_count': Employee.objects.filter(user__user_type__in=['admin', 'hr']).count()
         }
         
         return JsonResponse(data)
@@ -374,18 +447,22 @@ class EmployeeAjaxSearchView(LoginRequiredMixin, View):
     
     def get(self, request):
         query = request.GET.get('q', '')
-        user_type_filter = request.GET.get('user_type', '')  # NUEVO
+        user_type_filter = request.GET.get('user_type', '')
+        include_inactive = request.GET.get('include_inactive', False)  # NUEVO
         employees = []
         
         if len(query) >= 2:
             employee_list = Employee.objects.filter(
                 Q(user__first_name__icontains=query) |
                 Q(user__last_name__icontains=query) |
-                Q(employee_number__icontains=query),
-                status='active'
+                Q(employee_number__icontains=query)
             ).select_related('user', 'position')
             
-            # NUEVO: Filtrar por tipo de usuario si se especifica
+            # Filtrar por estado
+            if not include_inactive:
+                employee_list = employee_list.filter(status='active')
+            
+            # Filtrar por tipo de usuario si se especifica
             if user_type_filter:
                 employee_list = employee_list.filter(user__user_type=user_type_filter)
             
@@ -404,9 +481,11 @@ class EmployeeAjaxSearchView(LoginRequiredMixin, View):
                 'text': f"{emp.user.get_full_name()} ({emp.employee_number})",
                 'position': emp.position.title,
                 'department': emp.department.name,
-                'user_type': emp.user.user_type,  # NUEVO
-                'user_type_display': emp.user.get_user_type_display(),  # NUEVO
-                'user_type_icon': user_type_icons.get(emp.user.user_type, 'fas fa-user')  # NUEVO
+                'user_type': emp.user.user_type,
+                'user_type_display': emp.user.get_user_type_display(),
+                'user_type_icon': user_type_icons.get(emp.user.user_type, 'fas fa-user'),
+                'status': emp.status,  # NUEVO
+                'is_active': emp.status == 'active'  # NUEVO
             } for emp in employee_list]
         
         return JsonResponse({'results': employees})
@@ -423,9 +502,10 @@ class DashboardView(LoginRequiredMixin, View):
         # Estadísticas para el dashboard
         total_employees = Employee.objects.count()
         active_employees = Employee.objects.filter(status='active').count()
+        inactive_employees = total_employees - active_employees
         active_percentage = round((active_employees / total_employees * 100) if total_employees > 0 else 0, 1)
         
-        # NUEVAS: Estadísticas por tipo de usuario
+        # Estadísticas por tipo de usuario
         supervisor_count = Employee.objects.filter(user__user_type='supervisor').count()
         admin_count = Employee.objects.filter(user__user_type__in=['admin', 'hr']).count()
         employee_count = Employee.objects.filter(user__user_type='employee').count()
@@ -444,10 +524,11 @@ class DashboardView(LoginRequiredMixin, View):
         context = {
             'total_employees': total_employees,
             'active_employees': active_employees,
+            'inactive_employees': inactive_employees,  # NUEVO
             'active_percentage': active_percentage,
-            'supervisor_count': supervisor_count,  # NUEVO
-            'admin_count': admin_count,  # NUEVO
-            'employee_count': employee_count,  # NUEVO
+            'supervisor_count': supervisor_count,
+            'admin_count': admin_count,
+            'employee_count': employee_count,
             'monthly_payroll': monthly_payroll,
             'pending_requests': pending_requests,
             'recent_employees': recent_employees,

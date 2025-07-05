@@ -1,0 +1,358 @@
+<!-- pages/admin/periods/payroll_report.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte de Nóminas - {{ period.name }}</title>
+    <style>
+        @media print {
+            body { margin: 0; }
+            .no-print { display: none; }
+            .page-break { page-break-before: always; }
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 12px;
+            line-height: 1.4;
+            margin: 20px;
+            color: #333;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #333;
+            padding-bottom: 20px;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            color: #2563eb;
+        }
+        
+        .header p {
+            margin: 5px 0;
+            color: #666;
+        }
+        
+        .summary {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .summary h2 {
+            margin-top: 0;
+            color: #495057;
+            font-size: 18px;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .summary-item {
+            text-align: center;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+            border: 1px solid #e9ecef;
+        }
+        
+        .summary-value {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .summary-value.positive { color: #28a745; }
+        .summary-value.negative { color: #dc3545; }
+        .summary-value.neutral { color: #007bff; }
+        
+        .summary-label {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .payroll-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+            font-size: 11px;
+        }
+        
+        .payroll-table th,
+        .payroll-table td {
+            border: 1px solid #dee2e6;
+            padding: 8px;
+            text-align: left;
+        }
+        
+        .payroll-table th {
+            background-color: #e9ecef;
+            font-weight: bold;
+            text-align: center;
+            color: #495057;
+        }
+        
+        .payroll-table tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        .payroll-table tr:hover {
+            background-color: #e2e6ea;
+        }
+        
+        .text-right { text-align: right; }
+        .text-center { text-align: center; }
+        
+        .amount {
+            font-weight: bold;
+            font-family: monospace;
+        }
+        
+        .amount.positive { color: #28a745; }
+        .amount.negative { color: #dc3545; }
+        
+        .status-badge {
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        .status-paid {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .status-pending {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            color: #6c757d;
+            font-size: 10px;
+            border-top: 1px solid #dee2e6;
+            padding-top: 15px;
+        }
+        
+        .print-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        .print-button:hover {
+            background: #0056b3;
+        }
+        
+        @media screen and (max-width: 768px) {
+            body { margin: 10px; }
+            .payroll-table { font-size: 10px; }
+            .summary-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Botón de impresión -->
+    <button class="print-button no-print" onclick="window.print()">
+        🖨️ Imprimir / Guardar PDF
+    </button>
+
+    <!-- Header -->
+    <div class="header">
+        <h1>Reporte de Nóminas</h1>
+        <p><strong>{{ period.name }}</strong></p>
+        <p>Período: {{ period.start_date|date:"d/m/Y" }} al {{ period.end_date|date:"d/m/Y" }}</p>
+        <p>Fecha de generación: {{ generation_date|date:"d/m/Y H:i" }}</p>
+    </div>
+
+    <!-- Resumen General -->
+    <div class="summary">
+        <h2>📊 Resumen General</h2>
+        <div class="summary-grid">
+            <div class="summary-item">
+                <div class="summary-value neutral">{{ payrolls.count }}</div>
+                <div class="summary-label">Total Empleados</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-value positive">${{ total_gross|floatformat:2 }}</div>
+                <div class="summary-label">Total Bruto</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-value negative">${{ total_deductions|floatformat:2 }}</div>
+                <div class="summary-label">Total Deducciones</div>
+            </div>
+            <div class="summary-item">
+                <div class="summary-value neutral">${{ total_net|floatformat:2 }}</div>
+                <div class="summary-label">Total Neto</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla Detallada -->
+    <h2>📋 Detalle de Nóminas</h2>
+    <table class="payroll-table">
+        <thead>
+            <tr>
+                <th style="width: 5%">#</th>
+                <th style="width: 25%">Empleado</th>
+                <th style="width: 15%">Departamento</th>
+                <th style="width: 12%">Salario Base</th>
+                <th style="width: 8%">H. Extra</th>
+                <th style="width: 12%">Pago Bruto</th>
+                <th style="width: 12%">Deducciones</th>
+                <th style="width: 12%">Pago Neto</th>
+                <th style="width: 10%">Estado</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for payroll in payrolls %}
+            <tr>
+                <td class="text-center">{{ forloop.counter }}</td>
+                <td>
+                    <div style="font-weight: bold;">{{ payroll.employee.user.get_full_name }}</div>
+                    <div style="font-size: 9px; color: #666;">{{ payroll.employee.employee_number }}</div>
+                </td>
+                <td>{{ payroll.employee.department.name|default:"Sin asignar" }}</td>
+                <td class="text-right amount">${{ payroll.base_salary|floatformat:2 }}</td>
+                <td class="text-center">
+                    {% if payroll.overtime_hours > 0 %}
+                        {{ payroll.overtime_hours|floatformat:1 }}h
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td class="text-right amount positive">${{ payroll.gross_pay|floatformat:2 }}</td>
+                <td class="text-right amount negative">${{ payroll.total_deductions|floatformat:2 }}</td>
+                <td class="text-right amount neutral">${{ payroll.net_pay|floatformat:2 }}</td>
+                <td class="text-center">
+                    {% if payroll.is_paid %}
+                        <span class="status-badge status-paid">Pagada</span>
+                    {% else %}
+                        <span class="status-badge status-pending">Pendiente</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr style="background-color: #e9ecef; font-weight: bold;">
+                <td colspan="5" class="text-right">TOTALES:</td>
+                <td class="text-right amount positive">${{ total_gross|floatformat:2 }}</td>
+                <td class="text-right amount negative">${{ total_deductions|floatformat:2 }}</td>
+                <td class="text-right amount neutral">${{ total_net|floatformat:2 }}</td>
+                <td></td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <!-- Desglose por Estado de Pago -->
+    <div class="page-break">
+        <h2>💰 Desglose por Estado de Pago</h2>
+        <table class="payroll-table">
+            <thead>
+                <tr>
+                    <th>Estado</th>
+                    <th class="text-center">Cantidad</th>
+                    <th class="text-right">Monto Total</th>
+                    <th class="text-right">Porcentaje</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% with paid_payrolls=payrolls|dictsort:"is_paid" %}
+                {% for is_paid, group in paid_payrolls|groupby:"is_paid" %}
+                <tr>
+                    <td>
+                        {% if is_paid %}
+                            <span class="status-badge status-paid">Pagadas</span>
+                        {% else %}
+                            <span class="status-badge status-pending">Pendientes</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">{{ group|length }}</td>
+                    <td class="text-right amount">
+                        ${% for payroll in group %}{{ payroll.net_pay|add:0 }}{% if not forloop.last %}+{% endif %}{% endfor %}
+                    </td>
+                    <td class="text-right">
+                        {% widthratio group|length payrolls.count 100 %}%
+                    </td>
+                </tr>
+                {% endfor %}
+                {% endwith %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Rubros Aplicados (resumen) -->
+    {% if payrolls.first.rubros_aplicados.exists %}
+    <div class="page-break">
+        <h2>📊 Rubros Más Aplicados</h2>
+        <div style="font-size: 11px; color: #666; margin-bottom: 15px;">
+            Resumen de los rubros adicionales más frecuentemente aplicados en este período
+        </div>
+        
+        <!-- Aquí podrías agregar lógica para agrupar rubros por frecuencia -->
+        <p style="color: #666; font-style: italic;">
+            Para ver el detalle completo de rubros por empleado, consulte el sistema individual de cada nómina.
+        </p>
+    </div>
+    {% endif %}
+
+    <!-- Footer -->
+    <div class="footer">
+        <p>📄 Reporte generado automáticamente por el Sistema de Nóminas</p>
+        <p>Usuario: {{ request.user.get_full_name|default:request.user.username }} | 
+           Fecha: {{ generation_date|date:"d/m/Y H:i" }}</p>
+        <p style="margin-top: 10px; font-size: 9px;">
+            Este documento contiene información confidencial. Manéjelo según las políticas de privacidad de la empresa.
+        </p>
+    </div>
+
+    <script>
+        // Auto-print en modo de reporte
+        {% if is_print_view %}
+        window.addEventListener('load', function() {
+            // Opcional: auto-imprimir después de cargar
+            // setTimeout(() => window.print(), 1000);
+        });
+        {% endif %}
+        
+        // Función para imprimir
+        function printReport() {
+            window.print();
+        }
+        
+        // Atajos de teclado
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'p') {
+                e.preventDefault();
+                printReport();
+            }
+        });
+    </script>
+</body>
+</html>

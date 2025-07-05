@@ -61,6 +61,31 @@ def send_payroll_notification_email(employee, payroll_data):
     try:
         subject = f'Comprobante de Nómina - {payroll_data.get("period", "Período Actual")}'
         
+        # CORREGIDO: Verificar si los egresos adicionales ya están incluidos en total_deductions
+        total_egresos_adicionales = 0
+        
+        if 'egresos_adicionales' in payroll_data:
+            # Calcular suma de egresos adicionales
+            total_egresos_adicionales = sum(
+                egreso.get('monto', 0) for egreso in payroll_data['egresos_adicionales']
+            )
+            
+            # Verificar si ya están incluidos en total_deductions
+            current_total_deductions = payroll_data.get('total_deductions', 0)
+            
+            # Si total_deductions ya incluye los egresos adicionales, no los sumamos
+            if abs(current_total_deductions - total_egresos_adicionales) < 0.01:
+                # Los egresos adicionales YA están incluidos en total_deductions
+                payroll_data['total_deducciones_completo'] = current_total_deductions
+                logger.info(f"Los egresos adicionales ya están incluidos en total_deductions: ${current_total_deductions}")
+            else:
+                # Los egresos adicionales NO están incluidos, los sumamos
+                payroll_data['total_deducciones_completo'] = current_total_deductions + total_egresos_adicionales
+                logger.info(f"Sumando egresos adicionales: ${current_total_deductions} + ${total_egresos_adicionales} = ${payroll_data['total_deducciones_completo']}")
+        else:
+            # No hay egresos adicionales, usar total_deductions tal como está
+            payroll_data['total_deducciones_completo'] = payroll_data.get('total_deductions', 0)
+        
         # Renderizar template HTML
         html_message = render_to_string('components/emails/payroll_notification.html', {
             'employee': employee,

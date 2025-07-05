@@ -1,4 +1,4 @@
-# core/employees/views/employee_portal.py (ACTUALIZADO)
+# core/employees/views/employee_portal.py
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -6,11 +6,18 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import update_session_auth_hash
 from django.views.generic import TemplateView, UpdateView, CreateView, DetailView
 from django.urls import reverse_lazy, reverse
-from django.db.models import Q, Sum, Count  # Agregar Sum y Count
-from django.http import JsonResponse
+from django.db.models import Q, Sum, Count
+from django.template.loader import render_to_string
+from django.http import JsonResponse, HttpResponse, FileResponse
 from django.views import View
 from django.utils import timezone
 from datetime import date, timedelta
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+from io import BytesIO
+
+import csv
+import json
 
 from core.employees.models import Employee, EmployeeDocument
 from core.employees.forms.EmployeePortalForms import EmployeePasswordChangeForm, EmployeeProfileForm
@@ -37,6 +44,13 @@ try:
     LEAVES_APP_AVAILABLE = True
 except ImportError:
     LEAVES_APP_AVAILABLE = False 
+    
+# IMPORTACIONES PARA PAYROLL - AGREGAR ESTO AL INICIO DEL ARCHIVO
+try:
+    from core.payroll.models import Payroll, PayrollPeriod, PayrollRubro, AdelantoQuincena
+    PAYROLL_APP_AVAILABLE = True
+except ImportError:
+    PAYROLL_APP_AVAILABLE = False
 
 
 class EmployeePasswordChangeRequiredMixin:
@@ -284,7 +298,7 @@ class EmployeeDocumentsView(EmployeeLoginRequiredMixin, EmployeePasswordChangeRe
 
 
 class EmployeePayrollView(EmployeeLoginRequiredMixin, EmployeePasswordChangeRequiredMixin, TemplateView):
-    """Vista de información de nómina del empleado"""
+    """Vista de información de nómina del empleado COMPLETAMENTE CORREGIDA PARA RUBROS"""
     template_name = 'pages/employee/payroll/payroll.html'
     
     def get_context_data(self, **kwargs):
@@ -293,14 +307,161 @@ class EmployeePayrollView(EmployeeLoginRequiredMixin, EmployeePasswordChangeRequ
         
         context['employee'] = employee
         
-        # Información salarial básica
-        context['current_salary'] = employee.salary
-        context['position_base_salary'] = employee.position.base_salary
-        
-        # Placeholder para registros de nómina (implementar según tu modelo de nómina)
-        context['payroll_records'] = []  # Aquí irían los registros reales
-        context['current_month_earnings'] = employee.salary  # Cálculo real según tu lógica
-        context['ytd_earnings'] = employee.salary * 12  # Placeholder
+        if PAYROLL_APP_AVAILABLE:
+            # Información salarial básica
+            context['current_salary'] = employee.salary
+            context['position_base_salary'] = employee.position.base_salary if employee.position else employee.salary
+            
+            # Obtener registros de nómina del empleado (últimos 12 meses)
+            one_year_ago = timezone.now().date() - timedelta(days=365)
+            payroll_records = Payroll.objects.filter(
+                employee=employee,
+                period__start_date__gte=one_year_ago
+            ).select_related('period').prefetch_related('rubros_aplicados__rubro__tipo_rubro').order_by('-period__start_date')
+            
+            # Formatear los registros para el template
+            formatted_records = []
+            for payroll in payroll_records:
+                # Calcular bonos y extras usando properties del modelo
+                total_bonuses = (
+                    payroll.overtime_pay + 
+                    payroll.total_ingresos_rubros
+                )
+                
+                # Calcular deducciones usando properties del modelo
+                total_deductions = payroll.total_egresos_rubros
+                
+                formatted_records.append({
+                    'id': payroll.id,
+                    'period': f"{payroll.period.start_date.strftime('%b %Y')}",
+                    'period_full': f"{payroll.period.start_date.strftime('%d/%m/%Y')} - {payroll.period.end_date.strftime('%d/%m/%Y')}",
+                    'base_salary': payroll.base_salary,
+                    'bonuses': total_bonuses,
+                    'deductions': total_deductions,
+                    'net_total': payroll.net_pay,  # Usar property
+                    'is_paid': payroll.is_paid,
+                    'payment_date': payroll.payment_date,
+                    'start_date': payroll.period.start_date,
+                    'end_date': payroll.period.end_date,
+                })
+            
+            context['payroll_records'] = formatted_records
+            
+            # Cálculos para el mes actual
+            current_month_start = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0).date()
+            current_month_payroll = None
+            
+            # Buscar nómina del mes actual
+            for payroll in payroll_records:
+                if payroll.period.start_date >= current_month_start:
+                    current_month_payroll = payroll
+                    break
+            
+            if current_month_payroll:
+                # Si hay nómina del mes actual, usar esos datos
+                context['current_month_earnings'] = current_month_payroll.net_pay
+                
+                # Desglose detallado del mes actual usando properties
+                context['current_month_bonuses'] = (
+                    current_month_payroll.overtime_pay + 
+                    current_month_payroll.total_ingresos_rubros
+                )
+                
+                context['current_month_deductions'] = current_month_payroll.total_egresos_rubros
+                context['current_month_overtime'] = current_month_payroll.overtime_pay
+                
+            else:
+                # Si no hay nómina del mes actual, usar salario base
+                context['current_month_earnings'] = employee.salary
+                context['current_month_bonuses'] = 0
+                context['current_month_deductions'] = 0
+                context['current_month_overtime'] = 0
+            
+            # Cálculos anuales
+            current_year = timezone.now().year
+            year_payrolls = [p for p in payroll_records if p.period.start_date.year == current_year]
+            
+            # Ganancia total del año (calcular usando properties en Python)
+            ytd_earnings = sum(payroll.net_pay for payroll in year_payrolls)
+            context['ytd_earnings'] = ytd_earnings
+            
+            # Estadísticas adicionales
+            context['months_worked_this_year'] = len(year_payrolls)
+            
+            # Promedio mensual basado en nóminas reales
+            if context['months_worked_this_year'] > 0:
+                context['monthly_average'] = ytd_earnings / context['months_worked_this_year']
+            else:
+                context['monthly_average'] = employee.salary
+            
+            # Bonos y deducciones totales del año usando properties
+            year_bonuses = sum(
+                payroll.overtime_pay + payroll.total_ingresos_rubros 
+                for payroll in year_payrolls
+            )
+            year_deductions = sum(
+                payroll.total_egresos_rubros 
+                for payroll in year_payrolls
+            )
+            
+            context['ytd_bonuses'] = year_bonuses
+            context['ytd_deductions'] = year_deductions
+            
+            # Adelantos pendientes del empleado
+            adelantos_pendientes = AdelantoQuincena.objects.filter(
+                employee=employee,
+                is_descontado=False
+            ).order_by('-fecha_adelanto')
+            
+            context['adelantos_pendientes'] = adelantos_pendientes
+            context['total_adelantos_pendientes'] = sum(
+                adelanto.monto for adelanto in adelantos_pendientes
+            ) if adelantos_pendientes else 0
+            
+            # Próximo período de pago
+            try:
+                next_period = PayrollPeriod.objects.filter(
+                    start_date__gt=timezone.now().date(),
+                    status='draft'
+                ).order_by('start_date').first()
+                
+                if next_period:
+                    context['next_pay_date'] = next_period.pay_date
+                    context['next_period_name'] = next_period.name
+                else:
+                    # Si no hay período futuro, estimar fin de mes
+                    today = timezone.now().date()
+                    if today.month == 12:
+                        next_month = today.replace(year=today.year + 1, month=1, day=1)
+                    else:
+                        next_month = today.replace(month=today.month + 1, day=1)
+                    
+                    last_day = next_month - timedelta(days=1)
+                    context['next_pay_date'] = last_day
+                    context['next_period_name'] = f"Estimado - {last_day.strftime('%B %Y')}"
+                    
+            except Exception:
+                context['next_pay_date'] = None
+                context['next_period_name'] = "Por definir"
+            
+        else:
+            # Si no hay app de payroll, usar valores por defecto
+            context['current_salary'] = employee.salary
+            context['position_base_salary'] = employee.position.base_salary if employee.position else employee.salary
+            context['payroll_records'] = []
+            context['current_month_earnings'] = employee.salary
+            context['current_month_bonuses'] = 0
+            context['current_month_deductions'] = 0
+            context['current_month_overtime'] = 0
+            context['ytd_earnings'] = employee.salary * timezone.now().month
+            context['months_worked_this_year'] = timezone.now().month
+            context['monthly_average'] = employee.salary
+            context['ytd_bonuses'] = 0
+            context['ytd_deductions'] = 0
+            context['adelantos_pendientes'] = []
+            context['total_adelantos_pendientes'] = 0
+            context['next_pay_date'] = None
+            context['next_period_name'] = "Por configurar"
         
         return context
 
@@ -473,15 +634,11 @@ class EmployeeRequestsView(EmployeeLoginRequiredMixin, EmployeePasswordChangeReq
         return context
 
 
-# AGREGAR ESTA NUEVA VISTA DESPUÉS DE EmployeeRequestsView:
-
-# REEMPLAZAR LA CLASE EmployeeLeaveRequestCreateView CON ESTA VERSIÓN MEJORADA:
-
 class EmployeeLeaveRequestCreateView(EmployeeLoginRequiredMixin, EmployeePasswordChangeRequiredMixin, CreateView):
     """Vista para que el empleado cree solicitudes de licencia desde su portal"""
     model = LeaveRequest
     form_class = LeaveRequestForm
-    template_name = 'pages/employee/requests/create_leave_request.html'
+    template_name = 'pages/employee/requests/form_leave_request.html'
     
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
@@ -594,9 +751,140 @@ class EmployeeLeaveRequestCreateView(EmployeeLoginRequiredMixin, EmployeePasswor
             context['leave_balances'] = []
         
         return context
+    
+class EmployeeLeaveRequestUpdateView(EmployeeLoginRequiredMixin, EmployeePasswordChangeRequiredMixin, UpdateView):
+    """Vista para que el empleado edite solicitudes de licencia pendientes"""
+    model = LeaveRequest
+    form_class = LeaveRequestForm
+    template_name = 'pages/employee/requests/form_leave_request.html'
+    
+    def get_queryset(self):
+        # Solo permitir editar propias solicitudes pendientes
+        return LeaveRequest.objects.filter(
+            employee=self.request.user.employee_profile,
+            status='pending'  # Solo pendientes se pueden editar
+        )
+    
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+    
+    def form_valid(self, form):
+        try:
+            # Recalcular días solicitados
+            start_date = form.cleaned_data['start_date']
+            end_date = form.cleaned_data['end_date']
+            
+            if start_date and end_date:
+                form.instance.days_requested = (end_date - start_date).days + 1
+            
+            # Validaciones adicionales
+            leave_type = form.cleaned_data['leave_type']
+            
+            # Validar anticipación para vacaciones
+            if leave_type.code == 'VAC':  # Código para vacaciones
+                days_ahead = (start_date - timezone.now().date()).days
+                if days_ahead < 15:
+                    messages.error(
+                        self.request, 
+                        'Las vacaciones deben solicitarse con al menos 15 días de anticipación.'
+                    )
+                    return self.form_invalid(form)
+            
+            # Validar balance disponible
+            if LEAVES_APP_AVAILABLE:
+                try:
+                    balance = LeaveBalance.objects.get(
+                        employee=form.instance.employee,
+                        leave_type=leave_type,
+                        year=start_date.year
+                    )
+                    
+                    # Considerar los días de la solicitud original (si cambió el tipo de licencia)
+                    original_days = 0
+                    if self.object.leave_type == leave_type:
+                        original_days = self.object.days_requested
+                    
+                    available_days = balance.remaining_days + original_days
+                    
+                    if available_days < form.instance.days_requested:
+                        messages.error(
+                            self.request, 
+                            f'No tienes suficientes días disponibles. '
+                            f'Disponible: {available_days} días, '
+                            f'Solicitado: {form.instance.days_requested} días.'
+                        )
+                        return self.form_invalid(form)
+                        
+                except LeaveBalance.DoesNotExist:
+                    # Si no existe balance, usar los días permitidos del tipo
+                    if leave_type.days_allowed < form.instance.days_requested:
+                        messages.error(
+                            self.request, 
+                            f'Los días solicitados ({form.instance.days_requested}) '
+                            f'exceden el límite permitido ({leave_type.days_allowed} días).'
+                        )
+                        return self.form_invalid(form)
+            
+            # Marcar como modificada
+            form.instance.modified_at = timezone.now()
+            
+            # Intentar guardar
+            response = super().form_valid(form)
+            
+            messages.success(
+                self.request, 
+                f'Tu solicitud de {leave_type.name} ha sido actualizada correctamente. '
+                f'Los cambios serán revisados por tu supervisor.'
+            )
+            
+            return response
+            
+        except Exception as e:
+            messages.error(
+                self.request, 
+                f'Error al actualizar la solicitud: {str(e)}'
+            )
+            return self.form_invalid(form)
+    
+    def form_invalid(self, form):
+        # Mostrar errores específicos del formulario
+        if form.errors:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(
+                        self.request, 
+                        f'Error en {field}: {error}'
+                    )
+        
+        if form.non_field_errors():
+            for error in form.non_field_errors():
+                messages.error(self.request, f'Error: {error}')
+        
+        return super().form_invalid(form)
+    
+    def get_success_url(self):
+        return reverse('employees:employee_leave_request_detail', kwargs={'pk': self.object.pk})
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['employee'] = self.request.user.employee_profile
+        context['title'] = 'Editar Solicitud de Licencia'
+        context['is_edit'] = True  # Flag para indicar que es edición
+        
+        # Obtener balances disponibles
+        if LEAVES_APP_AVAILABLE:
+            current_year = timezone.now().year
+            context['leave_balances'] = LeaveBalance.objects.filter(
+                employee=self.request.user.employee_profile,
+                year=current_year
+            ).select_related('leave_type')
+        else:
+            context['leave_balances'] = []
+        
+        return context
 
-
-# AGREGAR ESTA VISTA PARA VER DETALLES DE UNA SOLICITUD:
 
 class EmployeeLeaveRequestDetailView(EmployeeLoginRequiredMixin, EmployeePasswordChangeRequiredMixin, DetailView):
     """Vista para ver detalles de una solicitud de licencia del empleado"""
@@ -768,3 +1056,268 @@ def employee_task_stats_api(request):
         'category_stats': list(category_stats),
         'earnings': list(reversed(earnings_data))
     })
+    
+@login_required
+def employee_payroll_receipt_download(request, payroll_id):
+    """Descargar recibo de pago individual"""
+    
+    if not hasattr(request.user, 'employee_profile'):
+        messages.error(request, 'No tienes permisos para acceder a este documento.')
+        return redirect('core:home')
+    
+    if not PAYROLL_APP_AVAILABLE:
+        messages.error(request, 'Funcionalidad de nómina no disponible.')
+        return redirect('employees:employee_payroll')
+    
+    try:
+        # Verificar que el recibo pertenezca al empleado
+        payroll = get_object_or_404(
+            Payroll, 
+            id=payroll_id, 
+            employee=request.user.employee_profile
+        )
+        
+        # Generar PDF del recibo
+        buffer = BytesIO()
+        p = canvas.Canvas(buffer, pagesize=letter)
+        width, height = letter
+        
+        # Header de la empresa
+        p.setFont("Helvetica-Bold", 16)
+        p.drawString(50, height - 50, "GNAGRO S.A.")
+        p.setFont("Helvetica", 12)
+        p.drawString(50, height - 70, "Recibo de Pago")
+        
+        # Información del empleado
+        y_position = height - 120
+        p.setFont("Helvetica-Bold", 12)
+        p.drawString(50, y_position, "INFORMACIÓN DEL EMPLEADO")
+        
+        y_position -= 25
+        p.setFont("Helvetica", 10)
+        p.drawString(50, y_position, f"Nombre: {payroll.employee.user.get_full_name()}")
+        y_position -= 15
+        p.drawString(50, y_position, f"ID Empleado: {payroll.employee.employee_number}")
+        y_position -= 15
+        p.drawString(50, y_position, f"Departamento: {payroll.employee.department.name if payroll.employee.department else 'N/A'}")
+        y_position -= 15
+        p.drawString(50, y_position, f"Período: {payroll.period.start_date.strftime('%d/%m/%Y')} - {payroll.period.end_date.strftime('%d/%m/%Y')}")
+        
+        # Detalles del pago
+        y_position -= 40
+        p.setFont("Helvetica-Bold", 12)
+        p.drawString(50, y_position, "DETALLES DEL PAGO")
+        
+        y_position -= 25
+        p.setFont("Helvetica", 10)
+        
+        # Ingresos
+        p.drawString(50, y_position, "INGRESOS:")
+        y_position -= 15
+        p.drawString(70, y_position, f"Salario Base: ${payroll.base_salary:,.2f}")
+        y_position -= 15
+        
+        if payroll.overtime_pay > 0:
+            p.drawString(70, y_position, f"Horas Extras: ${payroll.overtime_pay:,.2f}")
+            y_position -= 15
+        
+        if payroll.bonus > 0:
+            p.drawString(70, y_position, f"Bonificaciones: ${payroll.bonus:,.2f}")
+            y_position -= 15
+        
+        if payroll.commission > 0:
+            p.drawString(70, y_position, f"Comisiones: ${payroll.commission:,.2f}")
+            y_position -= 15
+        
+        if payroll.allowances > 0:
+            p.drawString(70, y_position, f"Subsidios: ${payroll.allowances:,.2f}")
+            y_position -= 15
+        
+        # Rubros adicionales de ingreso
+        ingresos_adicionales = payroll.rubros_aplicados.filter(
+            rubro__tipo_rubro__tipo='ingreso'
+        )
+        for rubro in ingresos_adicionales:
+            p.drawString(70, y_position, f"{rubro.rubro.nombre}: ${rubro.monto:,.2f}")
+            y_position -= 15
+        
+        # Total bruto
+        y_position -= 10
+        p.setFont("Helvetica-Bold", 10)
+        p.drawString(70, y_position, f"TOTAL BRUTO: ${payroll.gross_pay:,.2f}")
+        
+        # Deducciones
+        y_position -= 25
+        p.setFont("Helvetica", 10)
+        p.drawString(50, y_position, "DEDUCCIONES:")
+        y_position -= 15
+        
+        if payroll.income_tax > 0:
+            p.drawString(70, y_position, f"Impuesto a la Renta: ${payroll.income_tax:,.2f}")
+            y_position -= 15
+        
+        if payroll.social_security > 0:
+            p.drawString(70, y_position, f"Seguridad Social: ${payroll.social_security:,.2f}")
+            y_position -= 15
+        
+        if payroll.health_insurance > 0:
+            p.drawString(70, y_position, f"Seguro de Salud: ${payroll.health_insurance:,.2f}")
+            y_position -= 15
+        
+        if payroll.other_deductions > 0:
+            p.drawString(70, y_position, f"Otras Deducciones: ${payroll.other_deductions:,.2f}")
+            y_position -= 15
+        
+        # Rubros adicionales de egreso
+        egresos_adicionales = payroll.rubros_aplicados.filter(
+            rubro__tipo_rubro__tipo='egreso'
+        )
+        for rubro in egresos_adicionales:
+            p.drawString(70, y_position, f"{rubro.rubro.nombre}: ${rubro.monto:,.2f}")
+            if rubro.es_adelanto and rubro.fecha_adelanto:
+                p.drawString(90, y_position - 10, f"(Adelanto del {rubro.fecha_adelanto.strftime('%d/%m/%Y')})")
+                y_position -= 10
+            y_position -= 15
+        
+        # Total deducciones
+        y_position -= 10
+        p.setFont("Helvetica-Bold", 10)
+        total_deducciones = payroll.total_deductions
+        egresos_total = sum(rubro.monto for rubro in egresos_adicionales)
+        total_deducciones += egresos_total
+        
+        p.drawString(70, y_position, f"TOTAL DEDUCCIONES: ${total_deducciones:,.2f}")
+        
+        # Total neto (destacado)
+        y_position -= 30
+        p.setFont("Helvetica-Bold", 14)
+        p.drawString(50, y_position, f"TOTAL NETO: ${payroll.net_pay:,.2f}")
+        
+        # Información de pago
+        y_position -= 40
+        p.setFont("Helvetica", 10)
+        if payroll.is_paid and payroll.payment_date:
+            p.drawString(50, y_position, f"Fecha de Pago: {payroll.payment_date.strftime('%d/%m/%Y')}")
+            y_position -= 15
+            if payroll.payment_method:
+                p.drawString(50, y_position, f"Método de Pago: {payroll.payment_method}")
+        else:
+            p.drawString(50, y_position, "Estado: Pendiente de Pago")
+        
+        # Footer
+        p.setFont("Helvetica", 8)
+        p.drawString(50, 50, f"Generado el {timezone.now().strftime('%d/%m/%Y %H:%M')}")
+        p.drawString(50, 35, "Este es un documento generado automáticamente.")
+        
+        p.showPage()
+        p.save()
+        
+        buffer.seek(0)
+        
+        # Crear respuesta HTTP con el PDF
+        response = HttpResponse(buffer.getvalue(), content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="recibo_pago_{payroll.employee.employee_number}_{payroll.period.start_date.strftime("%Y%m")}.pdf"'
+        
+        return response
+        
+    except Exception as e:
+        messages.error(request, f'Error al generar el recibo: {str(e)}')
+        return redirect('employees:employee_payroll')
+
+
+@login_required
+def employee_payroll_export(request):
+    """Exportar historial de nómina del empleado"""
+    
+    if not hasattr(request.user, 'employee_profile'):
+        messages.error(request, 'No tienes permisos para acceder a esta funcionalidad.')
+        return redirect('core:home')
+    
+    if not PAYROLL_APP_AVAILABLE:
+        messages.error(request, 'Funcionalidad de nómina no disponible.')
+        return redirect('employees:employee_payroll')
+    
+    employee = request.user.employee_profile
+    export_format = request.GET.get('export', 'csv')
+    
+    try:
+        # Obtener registros de nómina (último año)
+        one_year_ago = timezone.now().date() - timedelta(days=365)
+        payrolls = Payroll.objects.filter(
+            employee=employee,
+            period__start_date__gte=one_year_ago
+        ).select_related('period').order_by('-period__start_date')
+        
+        if export_format == 'csv':
+            response = HttpResponse(content_type='text/csv')
+            response['Content-Disposition'] = f'attachment; filename="nomina_{employee.employee_number}_{timezone.now().strftime("%Y%m%d")}.csv"'
+            
+            writer = csv.writer(response)
+            writer.writerow([
+                'Período', 'Fecha Inicio', 'Fecha Fin',
+                'Salario Base', 'Horas Extras', 'Bonos', 'Comisiones', 'Subsidios',
+                'Total Bruto', 'Imp. Renta', 'Seg. Social', 'Seg. Salud', 'Otras Deducciones',
+                'Total Deducciones', 'Total Neto', 'Estado', 'Fecha Pago'
+            ])
+            
+            for payroll in payrolls:
+                writer.writerow([
+                    payroll.period.name,
+                    payroll.period.start_date.strftime('%d/%m/%Y'),
+                    payroll.period.end_date.strftime('%d/%m/%Y'),
+                    f"{payroll.base_salary:.2f}",
+                    f"{payroll.overtime_pay:.2f}",
+                    f"{payroll.bonus:.2f}",
+                    f"{payroll.commission:.2f}",
+                    f"{payroll.allowances:.2f}",
+                    f"{payroll.gross_pay:.2f}",
+                    f"{payroll.income_tax:.2f}",
+                    f"{payroll.social_security:.2f}",
+                    f"{payroll.health_insurance:.2f}",
+                    f"{payroll.other_deductions:.2f}",
+                    f"{payroll.total_deductions:.2f}",
+                    f"{payroll.net_pay:.2f}",
+                    'Pagado' if payroll.is_paid else 'Pendiente',
+                    payroll.payment_date.strftime('%d/%m/%Y') if payroll.payment_date else ''
+                ])
+            
+            return response
+            
+        elif export_format == 'json':
+            data = []
+            for payroll in payrolls:
+                data.append({
+                    'periodo': payroll.period.name,
+                    'fecha_inicio': payroll.period.start_date.isoformat(),
+                    'fecha_fin': payroll.period.end_date.isoformat(),
+                    'salario_base': float(payroll.base_salary),
+                    'horas_extras': float(payroll.overtime_pay),
+                    'bonos': float(payroll.bonus),
+                    'comisiones': float(payroll.commission),
+                    'subsidios': float(payroll.allowances),
+                    'total_bruto': float(payroll.gross_pay),
+                    'impuesto_renta': float(payroll.income_tax),
+                    'seguridad_social': float(payroll.social_security),
+                    'seguro_salud': float(payroll.health_insurance),
+                    'otras_deducciones': float(payroll.other_deductions),
+                    'total_deducciones': float(payroll.total_deductions),
+                    'total_neto': float(payroll.net_pay),
+                    'estado': 'pagado' if payroll.is_paid else 'pendiente',
+                    'fecha_pago': payroll.payment_date.isoformat() if payroll.payment_date else None
+                })
+            
+            response = HttpResponse(
+                json.dumps(data, indent=2, ensure_ascii=False), 
+                content_type='application/json'
+            )
+            response['Content-Disposition'] = f'attachment; filename="nomina_{employee.employee_number}_{timezone.now().strftime("%Y%m%d")}.json"'
+            
+            return response
+        
+        else:
+            messages.error(request, 'Formato de exportación no válido.')
+            return redirect('employees:employee_payroll')
+            
+    except Exception as e:
+        messages.error(request, f'Error al exportar datos: {str(e)}')
+        return redirect('employees:employee_payroll')

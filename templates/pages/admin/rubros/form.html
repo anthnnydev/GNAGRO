@@ -1,0 +1,606 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}
+    {% if is_edit %}Editar Rubro{% else %}Nuevo Rubro{% endif %} - Sistema de Nómina
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">
+                        {% if is_edit %}Editar Rubro{% else %}Nuevo Rubro{% endif %}
+                    </h1>
+                    <p class="text-gray-600 mt-1">
+                        {% if is_edit %}
+                            Modifica los datos del rubro "{{ rubro.nombre }}"
+                        {% else %}
+                            Crea un nuevo concepto para aplicar en las nóminas
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'payroll:rubro_list' %}" 
+                       class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i>
+                        Volver a Lista
+                    </a>
+                    <a href="{% url 'payroll:tipo_rubro_list' %}" 
+                       class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-tags mr-2"></i>
+                        Gestionar Tipos
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Verificación de Tipos de Rubro -->
+        {% if not tipos_rubro %}
+        <div class="bg-orange-50 rounded-xl border border-orange-200 p-6 mb-8">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-exclamation-triangle text-orange-400 text-xl"></i>
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-lg font-medium text-orange-800 mb-2">No hay tipos de rubro disponibles</h3>
+                    <p class="text-orange-700 text-sm mb-4">
+                        Antes de crear rubros, necesitas crear al menos un tipo de rubro para categorizarlos.
+                    </p>
+                    <a href="{% url 'payroll:tipo_rubro_form' %}" 
+                       class="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors">
+                        <i class="fas fa-plus mr-2"></i>
+                        Crear Tipo de Rubro
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        
+        <!-- Información sobre Rubros -->
+        <div class="bg-blue-50 rounded-xl border border-blue-200 p-6 mb-8">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-info-circle text-blue-400 text-xl"></i>
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-lg font-medium text-blue-800 mb-2">¿Qué son los Rubros?</h3>
+                    <div class="text-blue-700 text-sm space-y-1">
+                        <p>• Los rubros son conceptos específicos que se aplican en las nóminas</p>
+                        <p>• Pueden ser ingresos (bonos, comisiones) o egresos (descuentos, impuestos)</p>
+                        <p>• Cada rubro define cómo se calcula: monto fijo, porcentaje o manual</p>
+                        <p>• Los rubros automáticos se aplican en todas las nóminas nuevas</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Formulario Principal -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">
+                    <i class="fas fa-cogs text-blue-600 mr-2"></i>
+                    Configuración del Rubro
+                </h3>
+            </div>
+            
+            <form method="post" class="p-6" id="rubroForm">
+                {% csrf_token %}
+                
+                <!-- Mensajes de Error Global -->
+                {% if form.non_field_errors %}
+                <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-exclamation-circle text-red-400"></i>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-red-800">Errores en el formulario:</h3>
+                            <div class="mt-2 text-sm text-red-700">
+                                <ul class="list-disc space-y-1 pl-5">
+                                    {% for error in form.non_field_errors %}
+                                    <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Sección: Información Básica -->
+                <div class="mb-8">
+                    <h4 class="text-lg font-medium text-gray-900 mb-4 border-b border-gray-200 pb-2">
+                        <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                        Información Básica
+                    </h4>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Tipo de Rubro -->
+                        <div class="md:col-span-1">
+                            <label for="id_tipo_rubro" class="block text-sm font-medium text-gray-700 mb-2">
+                                Tipo de Rubro <span class="text-red-500">*</span>
+                            </label>
+                            <select name="tipo_rubro" id="id_tipo_rubro" 
+                                    class="w-full py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="">Seleccionar tipo...</option>
+                                {% for tipo in tipos_rubro %}
+                                <option value="{{ tipo.pk }}" 
+                                        {% if form.tipo_rubro.value == tipo.pk %}selected{% endif %}
+                                        data-tipo="{{ tipo.tipo }}">
+                                    {{ tipo.nombre }} ({{ tipo.get_tipo_display }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                            {% if form.tipo_rubro.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.tipo_rubro.errors.0 }}</p>
+                            {% endif %}
+                            <p class="mt-1 text-sm text-gray-500">Categoría a la que pertenece este rubro</p>
+                        </div>
+
+                        <!-- Código -->
+                        <div class="md:col-span-1">
+                            <label for="id_codigo" class="block text-sm font-medium text-gray-700 mb-2">
+                                Código <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" name="codigo" id="id_codigo"
+                                   value="{{ form.codigo.value|default:'' }}"
+                                   maxlength="10" 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 uppercase"
+                                   placeholder="Ej: IESS, BON_PROD"
+                                   style="text-transform: uppercase;">
+                            {% if form.codigo.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.codigo.errors.0 }}</p>
+                            {% endif %}
+                            <p class="mt-1 text-sm text-gray-500">Código único para identificar el rubro</p>
+                        </div>
+
+                        <!-- Nombre -->
+                        <div class="md:col-span-2">
+                            <label for="id_nombre" class="block text-sm font-medium text-gray-700 mb-2">
+                                Nombre del Rubro <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" name="nombre" id="id_nombre"
+                                   value="{{ form.nombre.value|default:'' }}"
+                                   maxlength="100" 
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                   placeholder="Ej: Aporte IESS">
+                            {% if form.nombre.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.nombre.errors.0 }}</p>
+                            {% endif %}
+                            <p class="mt-1 text-sm text-gray-500">Nombre descriptivo que aparecerá en las nóminas</p>
+                        </div>
+
+                        <!-- Descripción -->
+                        <div class="md:col-span-2">
+                            <label for="id_descripcion" class="block text-sm font-medium text-gray-700 mb-2">
+                                Descripción
+                            </label>
+                            <textarea name="descripcion" id="id_descripcion" rows="3" 
+                                      class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical"
+                                      placeholder="Descripción detallada del propósito del rubro...">{{ form.descripcion.value|default:'' }}</textarea>
+                            {% if form.descripcion.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.descripcion.errors.0 }}</p>
+                            {% endif %}
+                            <p class="mt-1 text-sm text-gray-500">Descripción detallada del propósito del rubro</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sección: Configuración de Cálculo -->
+                <div class="mb-8">
+                    <h4 class="text-lg font-medium text-gray-900 mb-4 border-b border-gray-200 pb-2">
+                        <i class="fas fa-calculator text-green-600 mr-2"></i>
+                        Configuración de Cálculo
+                    </h4>
+                    
+                    <div class="grid grid-cols-1 gap-6">
+                        <!-- Tipo de Cálculo -->
+                        <div>
+                            <label for="id_tipo_calculo" class="block text-sm font-medium text-gray-700 mb-2">
+                                Tipo de Cálculo <span class="text-red-500">*</span>
+                            </label>
+                            <select name="tipo_calculo" id="id_tipo_calculo" 
+                                    class="w-full py-2 px-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <option value="">Seleccionar tipo de cálculo...</option>
+                                <option value="fijo" {% if form.tipo_calculo.value == 'fijo' %}selected{% endif %}>Monto Fijo</option>
+                                <option value="porcentaje" {% if form.tipo_calculo.value == 'porcentaje' %}selected{% endif %}>Porcentaje del Salario Base</option>
+                                <option value="porcentaje_bruto" {% if form.tipo_calculo.value == 'porcentaje_bruto' %}selected{% endif %}>Porcentaje del Salario Bruto</option>
+                                <option value="horas" {% if form.tipo_calculo.value == 'horas' %}selected{% endif %}>Por Horas</option>
+                            </select>
+                            {% if form.tipo_calculo.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.tipo_calculo.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                        <!-- Porcentaje por Defecto -->
+                        <div id="porcentaje-field" style="display: none;">
+                            <label for="id_porcentaje_default" class="block text-sm font-medium text-gray-700 mb-2">
+                                Porcentaje por Defecto
+                            </label>
+                            <div class="relative">
+                                <input type="number" name="porcentaje_default" id="id_porcentaje_default"
+                                       value="{{ form.porcentaje_default.value|default:'' }}"
+                                       step="0.01" min="0" max="100" 
+                                       class="w-full pl-4 pr-8 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                    <span class="text-gray-500 sm:text-sm">%</span>
+                                </div>
+                            </div>
+                            {% if form.porcentaje_default.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.porcentaje_default.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+
+                        <!-- Monto por Defecto -->
+                        <div id="monto-field" style="display: none;">
+                            <label for="id_monto_default" class="block text-sm font-medium text-gray-700 mb-2">
+                                Monto por Defecto
+                            </label>
+                            <div class="relative">
+                                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span class="text-gray-500 sm:text-sm">$</span>
+                                </div>
+                                <input type="number" name="monto_default" id="id_monto_default"
+                                       value="{{ form.monto_default.value|default:'' }}"
+                                       step="0.01" min="0" 
+                                       class="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            {% if form.monto_default.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.monto_default.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Explicación del Tipo de Cálculo -->
+                    <div class="mt-4 p-4 bg-gray-50 rounded-lg" id="calculo-info">
+                        <div class="text-sm text-gray-600">
+                            <div id="info-fijo" style="display: none;">
+                                <strong>Monto Fijo:</strong> Se aplica exactamente el monto especificado, sin importar el salario base.
+                            </div>
+                            <div id="info-porcentaje" style="display: none;">
+                                <strong>Porcentaje del Salario:</strong> Se calcula como porcentaje del salario base del empleado.
+                            </div>
+                            <div id="info-porcentaje-bruto" style="display: none;">
+                                <strong>Porcentaje del Bruto:</strong> Se calcula como porcentaje del salario bruto (incluyendo otros ingresos).
+                            </div>
+                            <div id="info-horas" style="display: none;">
+                                <strong>Por Horas:</strong> Se calcula multiplicando las horas por la tarifa por hora.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sección: Configuración de Aplicación -->
+                <div class="mb-8">
+                    <h4 class="text-lg font-medium text-gray-900 mb-4 border-b border-gray-200 pb-2">
+                        <i class="fas fa-cog text-purple-600 mr-2"></i>
+                        Configuración de Aplicación
+                    </h4>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-6">
+                            <!-- Es Obligatorio -->
+                            <div class="flex items-start">
+                                <div class="flex items-center h-5">
+                                    <input type="checkbox" name="es_obligatorio" id="id_es_obligatorio"
+                                           {% if form.es_obligatorio.value %}checked{% endif %}
+                                           class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                </div>
+                                <div class="ml-3">
+                                    <label for="id_es_obligatorio" class="text-sm font-medium text-gray-700">
+                                        Es Obligatorio
+                                    </label>
+                                    <p class="text-sm text-gray-500">Este rubro debe aplicarse en todas las nóminas</p>
+                                </div>
+                            </div>
+
+                            <!-- Aplicar Automáticamente -->
+                            <div class="flex items-start">
+                                <div class="flex items-center h-5">
+                                    <input type="checkbox" name="aplicar_automaticamente" id="id_aplicar_automaticamente"
+                                           {% if form.aplicar_automaticamente.value %}checked{% endif %}
+                                           class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                </div>
+                                <div class="ml-3">
+                                    <label for="id_aplicar_automaticamente" class="text-sm font-medium text-gray-700">
+                                        Aplicar Automáticamente
+                                    </label>
+                                    <p class="text-sm text-gray-500">Se aplica automáticamente al crear nuevas nóminas</p>
+                                </div>
+                            </div>
+
+                            <!-- Estado Activo -->
+                            <div class="flex items-start">
+                                <div class="flex items-center h-5">
+                                    <input type="checkbox" name="is_active" id="id_is_active"
+                                           {% if form.is_active.value|default:True %}checked{% endif %}
+                                           class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                                </div>
+                                <div class="ml-3">
+                                    <label for="id_is_active" class="text-sm font-medium text-gray-700">
+                                        Rubro Activo
+                                    </label>
+                                    <p class="text-sm text-gray-500">Los rubros inactivos no se pueden aplicar en nóminas</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Resumen de Configuración -->
+                        <div class="bg-blue-50 rounded-lg p-4">
+                            <h5 class="font-medium text-blue-900 mb-2">Resumen de Configuración</h5>
+                            <div id="config-summary" class="text-sm text-blue-700 space-y-1">
+                                Configure los campos para ver el resumen
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Vista Previa del Rubro -->
+                <div class="mt-8" id="rubroPreview" style="display: none;">
+                    <div class="bg-green-50 rounded-lg p-4 border border-green-200">
+                        <h4 class="font-medium text-green-900 mb-2">
+                            <i class="fas fa-eye text-green-600 mr-2"></i>
+                            Vista Previa del Rubro
+                        </h4>
+                        <div id="previewDetails" class="text-sm text-green-700"></div>
+                    </div>
+                </div>
+
+                <!-- Botones de Acción -->
+                <div class="flex items-center justify-end space-x-4 pt-6 border-t border-gray-200 mt-8">
+                    <a href="{% url 'payroll:rubro_list' %}" 
+                       class="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-300 transition-colors">
+                        <i class="fas fa-times mr-2"></i>
+                        Cancelar
+                    </a>
+                    <button type="submit" 
+                            class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-save mr-2"></i>
+                        {% if is_edit %}Actualizar Rubro{% else %}Crear Rubro{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Ejemplos de Rubros -->
+        <div class="mt-8 bg-yellow-50 rounded-xl border border-yellow-200 p-6">
+            <h4 class="text-lg font-medium text-yellow-900 mb-4">
+                <i class="fas fa-lightbulb text-yellow-600 mr-2"></i>
+                Ejemplos de Rubros Comunes
+            </h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <h5 class="font-medium text-yellow-800 mb-2">
+                        <i class="fas fa-plus-circle text-green-600 mr-1"></i>
+                        Rubros de Ingreso
+                    </h5>
+                    <div class="space-y-2">
+                        <div class="bg-white rounded p-3 text-sm">
+                            <strong>Bono de Productividad:</strong> Porcentaje del salario (5-15%)
+                        </div>
+                        <div class="bg-white rounded p-3 text-sm">
+                            <strong>Comisiones por Ventas:</strong> Porcentaje de ventas o monto fijo
+                        </div>
+                        <div class="bg-white rounded p-3 text-sm">
+                            <strong>Horas Extra:</strong> Cálculo basado en horas trabajadas
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <h5 class="font-medium text-yellow-800 mb-2">
+                        <i class="fas fa-minus-circle text-red-600 mr-1"></i>
+                        Rubros de Egreso
+                    </h5>
+                    <div class="space-y-2">
+                        <div class="bg-white rounded p-3 text-sm">
+                            <strong>Aporte IESS:</strong> 9.45% del salario base
+                        </div>
+                        <div class="bg-white rounded p-3 text-sm">
+                            <strong>Impuesto a la Renta:</strong> Según tabla progresiva
+                        </div>
+                        <div class="bg-white rounded p-3 text-sm">
+                            <strong>Préstamo Quirografario:</strong> Monto fijo mensual
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const tipoCalculoSelect = document.querySelector('#id_tipo_calculo');
+        const porcentajeField = document.getElementById('porcentaje-field');
+        const montoField = document.getElementById('monto-field');
+        const porcentajeInput = document.querySelector('#id_porcentaje_default');
+        const montoInput = document.querySelector('#id_monto_default');
+        
+        const nombreInput = document.querySelector('#id_nombre');
+        const codigoInput = document.querySelector('#id_codigo');
+        const tipoRubroSelect = document.querySelector('#id_tipo_rubro');
+        const esObligatorioInput = document.querySelector('#id_es_obligatorio');
+        const aplicarAutomaticamenteInput = document.querySelector('#id_aplicar_automaticamente');
+        const isActiveInput = document.querySelector('#id_is_active');
+        
+        const rubroPreview = document.getElementById('rubroPreview');
+        const configSummary = document.getElementById('config-summary');
+
+        function updateCalculoFields() {
+            const tipoCalculo = tipoCalculoSelect ? tipoCalculoSelect.value : '';
+            
+            // Ocultar todos los campos
+            if (porcentajeField) porcentajeField.style.display = 'none';
+            if (montoField) montoField.style.display = 'none';
+            
+            // Ocultar todas las explicaciones
+            document.querySelectorAll('[id^="info-"]').forEach(el => el.style.display = 'none');
+            
+            // Mostrar campos relevantes
+            if (tipoCalculo === 'porcentaje' || tipoCalculo === 'porcentaje_bruto') {
+                if (porcentajeField) porcentajeField.style.display = 'block';
+                const infoElement = document.getElementById('info-' + tipoCalculo.replace('_', '-'));
+                if (infoElement) infoElement.style.display = 'block';
+            } else if (tipoCalculo === 'fijo') {
+                if (montoField) montoField.style.display = 'block';
+                const infoElement = document.getElementById('info-fijo');
+                if (infoElement) infoElement.style.display = 'block';
+            } else if (tipoCalculo === 'horas') {
+                const infoElement = document.getElementById('info-horas');
+                if (infoElement) infoElement.style.display = 'block';
+            }
+            
+            updateConfigSummary();
+        }
+
+        function updateConfigSummary() {
+            if (!configSummary) return;
+            
+            const tipoCalculo = tipoCalculoSelect && tipoCalculoSelect.selectedIndex >= 0 ? 
+                tipoCalculoSelect.options[tipoCalculoSelect.selectedIndex].text : '';
+            const porcentaje = porcentajeInput ? porcentajeInput.value : '';
+            const monto = montoInput ? montoInput.value : '';
+            const esObligatorio = esObligatorioInput ? esObligatorioInput.checked : false;
+            const aplicarAuto = aplicarAutomaticamenteInput ? aplicarAutomaticamenteInput.checked : false;
+            const isActive = isActiveInput ? isActiveInput.checked : true;
+            
+            let summary = [];
+            
+            if (tipoCalculo) {
+                summary.push(`• Tipo: ${tipoCalculo}`);
+                
+                if (tipoCalculoSelect && (tipoCalculoSelect.value === 'porcentaje' || tipoCalculoSelect.value === 'porcentaje_bruto')) {
+                    if (porcentaje) {
+                        summary.push(`• Porcentaje: ${porcentaje}%`);
+                    }
+                } else if (tipoCalculoSelect && tipoCalculoSelect.value === 'fijo') {
+                    if (monto) {
+                        summary.push(`• Monto: $${monto}`);
+                    }
+                }
+            }
+            
+            if (esObligatorio) summary.push('• Es obligatorio');
+            if (aplicarAuto) summary.push('• Se aplica automáticamente');
+            if (!isActive) summary.push('• Estado: Inactivo');
+            
+            configSummary.innerHTML = summary.join('<br>') || 'Configure los campos para ver el resumen';
+        }
+
+        function updatePreview() {
+            if (!rubroPreview) return;
+            
+            const nombre = nombreInput ? nombreInput.value.trim() : '';
+            const codigo = codigoInput ? codigoInput.value.trim() : '';
+            const tipoRubro = tipoRubroSelect && tipoRubroSelect.selectedIndex >= 0 ? 
+                tipoRubroSelect.options[tipoRubroSelect.selectedIndex].text : '';
+            
+            if (nombre && codigo && tipoRubro) {
+                const previewDetails = document.getElementById('previewDetails');
+                if (previewDetails) {
+                    previewDetails.innerHTML = `
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <strong>Nombre:</strong> ${nombre}<br>
+                                <strong>Código:</strong> ${codigo}<br>
+                                <strong>Tipo:</strong> ${tipoRubro}
+                            </div>
+                            <div id="preview-config">
+                                ${configSummary ? configSummary.innerHTML : ''}
+                            </div>
+                        </div>
+                    `;
+                }
+                rubroPreview.style.display = 'block';
+            } else {
+                rubroPreview.style.display = 'none';
+            }
+        }
+
+        function autoGenerateCode() {
+            if (codigoInput && nombreInput && !codigoInput.value.trim() && nombreInput.value.trim()) {
+                const nombre = nombreInput.value.trim();
+                let codigo = nombre
+                    .toUpperCase()
+                    .replace(/[^A-Z0-9\s]/g, '')
+                    .split(' ')
+                    .map(word => word.substring(0, 3))
+                    .join('_')
+                    .substring(0, 10);
+                
+                codigoInput.value = codigo;
+                updatePreview();
+            }
+        }
+
+        // Event listeners
+        if (tipoCalculoSelect) {
+            tipoCalculoSelect.addEventListener('change', updateCalculoFields);
+        }
+
+        [porcentajeInput, montoInput, esObligatorioInput, aplicarAutomaticamenteInput, isActiveInput].forEach(input => {
+            if (input) {
+                input.addEventListener('input', updateConfigSummary);
+                input.addEventListener('change', updateConfigSummary);
+            }
+        });
+
+        [nombreInput, codigoInput, tipoRubroSelect].forEach(input => {
+            if (input) {
+                input.addEventListener('input', updatePreview);
+                input.addEventListener('change', updatePreview);
+            }
+        });
+
+        if (nombreInput) {
+            nombreInput.addEventListener('blur', autoGenerateCode);
+        }
+
+        // Validación del formulario
+        const form = document.getElementById('rubroForm');
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                const nombre = nombreInput ? nombreInput.value.trim() : '';
+                const codigo = codigoInput ? codigoInput.value.trim() : '';
+                const tipoRubro = tipoRubroSelect ? tipoRubroSelect.value : '';
+                const tipoCalculo = tipoCalculoSelect ? tipoCalculoSelect.value : '';
+
+                if (!nombre || !codigo || !tipoRubro || !tipoCalculo) {
+                    e.preventDefault();
+                    alert('Debe completar todos los campos obligatorios');
+                    return;
+                }
+
+                // Validar valores según tipo de cálculo
+                if ((tipoCalculo === 'porcentaje' || tipoCalculo === 'porcentaje_bruto') && porcentajeInput && !porcentajeInput.value) {
+                    e.preventDefault();
+                    alert('Debe especificar un porcentaje para este tipo de cálculo');
+                    return;
+                }
+
+                if (tipoCalculo === 'fijo' && montoInput && !montoInput.value) {
+                    e.preventDefault();
+                    alert('Debe especificar un monto para este tipo de cálculo');
+                    return;
+                }
+            });
+        }
+
+        // Inicializar
+        updateCalculoFields();
+        updateConfigSummary();
+        updatePreview();
+    });
+</script>
+{% endblock %}

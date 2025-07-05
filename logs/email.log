@@ -19,3 +19,40 @@ INFO 2025-06-16 14:03:58,267 utils 8268 18220 Credenciales enviadas por email a:
 INFO 2025-06-18 15:33:54,596 utils 15980 15984 Enviando email desde: Sistema de Nómina <onboarding@resend.dev>
 INFO 2025-06-18 15:33:54,611 utils 15980 15984 Support email configurado: onboarding@resend.dev
 INFO 2025-06-18 15:33:56,381 utils 15980 15984 Credenciales enviadas por email a: zanthonygg@gmail.com
+INFO 2025-06-22 23:10:19,665 utils 8992 22156 Enviando email desde: Sistema de Nómina <onboarding@resend.dev>
+INFO 2025-06-22 23:10:19,676 utils 8992 22156 Support email configurado: onboarding@resend.dev
+INFO 2025-06-22 23:10:21,513 utils 8992 22156 Credenciales enviadas por email a: zanthonygg@gmail.com
+INFO 2025-06-24 09:54:51,043 utils 9648 11428 Enviando email desde: Sistema de Nómina <onboarding@resend.dev>
+INFO 2025-06-24 09:54:51,398 utils 9648 11428 Support email configurado: onboarding@resend.dev
+INFO 2025-06-24 09:54:53,401 utils 9648 11428 Credenciales enviadas por email a: zanthonygg@gmail.com
+INFO 2025-06-24 09:59:41,751 utils 8488 3836 Enviando email desde: Sistema de Nómina <onboarding@resend.dev>
+INFO 2025-06-24 09:59:41,752 utils 8488 3836 Support email configurado: onboarding@resend.dev
+INFO 2025-06-24 09:59:43,473 utils 8488 3836 Credenciales enviadas por email a: zanthonygg@gmail.com
+ERROR 2025-06-26 16:26:27,738 utils 7264 16736 Error enviando notificación de nómina a zanthonygg@gmail.com: Invalid block tag on line 467: 'add', expected 'empty' or 'endfor'. Did you forget to register or load this tag?
+ERROR 2025-06-26 16:28:09,166 utils 7264 16736 Error enviando notificación de nómina a zanthonygg@gmail.com: Invalid block tag on line 467: 'add', expected 'empty' or 'endfor'. Did you forget to register or load this tag?
+ERROR 2025-06-26 16:29:50,523 utils 7264 16736 Error enviando notificación de nómina a zanthonygg@gmail.com: Invalid block tag on line 467: 'add', expected 'empty' or 'endfor'. Did you forget to register or load this tag?
+ERROR 2025-07-01 08:42:12,323 utils 24752 23696 Error enviando notificación de nómina a zanthonygg@gmail.com: Invalid block tag on line 467: 'add', expected 'empty' or 'endfor'. Did you forget to register or load this tag?
+ERROR 2025-07-01 08:42:48,623 utils 24752 23696 Error enviando notificación de nómina a zanthonygg@gmail.com: Invalid block tag on line 467: 'add', expected 'empty' or 'endfor'. Did you forget to register or load this tag?
+ERROR 2025-07-01 08:42:55,956 utils 24752 23696 Error enviando notificación de nómina a zanthonygg@gmail.com: Invalid block tag on line 467: 'add', expected 'empty' or 'endfor'. Did you forget to register or load this tag?
+ERROR 2025-07-01 08:51:51,921 utils 16920 22224 Error enviando notificación de nómina a zanthonygg@gmail.com: 'mathfilters' is not a registered tag library. Must be one of:
+admin_list
+admin_modify
+admin_urls
+cache
+i18n
+l10n
+log
+payroll_tags
+static
+tz
+INFO 2025-07-01 08:53:45,347 utils 25244 15480 Notificación de nómina enviada a: zanthonygg@gmail.com
+INFO 2025-07-01 09:00:09,240 utils 19428 23072 Notificación de nómina enviada a: zanthonygg@gmail.com
+INFO 2025-07-01 09:04:57,138 utils 14772 21756 Notificación de nómina enviada a: zanthonygg@gmail.com
+INFO 2025-07-01 09:07:28,313 utils 24372 340 Los egresos adicionales ya están incluidos en total_deductions: $250.50
+INFO 2025-07-01 09:07:30,289 utils 24372 340 Notificación de nómina enviada a: zanthonygg@gmail.com
+INFO 2025-07-02 22:02:23,433 utils 2124 22792 Los egresos adicionales ya están incluidos en total_deductions: $250.50
+INFO 2025-07-02 22:02:25,992 utils 2124 22792 Notificación de nómina enviada a: zanthonygg@gmail.com
+INFO 2025-07-04 10:29:55,968 utils 16288 7540 Los egresos adicionales ya están incluidos en total_deductions: $125.25
+INFO 2025-07-04 10:29:58,117 utils 16288 7540 Notificación de nómina enviada a: zanthonygg@gmail.com
+INFO 2025-07-04 10:45:05,056 utils 6960 12240 Los egresos adicionales ya están incluidos en total_deductions: $125.25
+INFO 2025-07-04 10:45:07,038 utils 6960 12240 Notificación de nómina enviada a: zanthonygg@gmail.com

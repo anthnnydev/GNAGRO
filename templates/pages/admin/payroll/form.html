@@ -1,0 +1,528 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}
+    {% if is_edit %}Editar Nómina{% else %}Nueva Nómina{% endif %} - Sistema de Nómina
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">
+                        {% if is_edit %}Editar Nómina{% else %}Nueva Nómina{% endif %}
+                    </h1>
+                    <p class="text-gray-600 mt-1">
+                        {% if is_edit %}
+                            Modifica los datos de la nómina de {{ payroll.employee.user.get_full_name }}
+                        {% else %}
+                            Completa la información para crear una nueva nómina (los rubros se aplicarán automáticamente)
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'payroll:payroll_list' %}" 
+                       class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i>
+                        Volver a Lista
+                    </a>
+                    {% if is_edit %}
+                    <a href="{% url 'payroll:payroll_detail' payroll.pk %}" 
+                       class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-eye mr-2"></i>
+                        Ver Detalles
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Información del Empleado (si estamos editando) -->
+        {% if is_edit and payroll.employee %}
+        <div class="bg-blue-50 rounded-xl border border-blue-200 p-6 mb-8">
+            <div class="flex items-center">
+                {% if payroll.employee.user.profile_picture %}
+                    <img class="h-16 w-16 rounded-full object-cover" 
+                         src="{{ payroll.employee.user.profile_picture.url }}" 
+                         alt="{{ payroll.employee.user.get_full_name }}">
+                {% else %}
+                    <div class="h-16 w-16 bg-primary-600 text-white rounded-full flex items-center justify-center font-bold text-lg">
+                        {{ payroll.employee.user.first_name|first|upper }}{{ payroll.employee.user.last_name|first|upper }}
+                    </div>
+                {% endif %}
+                <div class="ml-4">
+                    <h3 class="text-xl font-semibold text-blue-900">{{ payroll.employee.user.get_full_name }}</h3>
+                    <p class="text-blue-700">{{ payroll.employee.employee_number }} • {{ payroll.employee.department.name }}</p>
+                    <p class="text-blue-600 text-sm">{{ payroll.employee.position.title }} • {{ payroll.employee.user.email }}</p>
+                    {% if payroll.employee.salary %}
+                    <p class="text-blue-800 font-medium">Salario Base: ${{ payroll.employee.salary|floatformat:2 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Formulario Principal -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            <i class="fas fa-file-invoice-dollar text-primary-600 mr-2"></i>
+                            Información Básica de la Nómina
+                        </h3>
+                    </div>
+                    
+                    <form method="post" class="p-6" id="payroll-form">
+                        {% csrf_token %}
+                        
+                        <!-- Mensajes de Error Global -->
+                        {% if form.non_field_errors %}
+                        <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-exclamation-circle text-red-400"></i>
+                                </div>
+                                <div class="ml-3">
+                                    <h3 class="text-sm font-medium text-red-800">Errores en el formulario:</h3>
+                                    <div class="mt-2 text-sm text-red-700">
+                                        <ul class="list-disc space-y-1 pl-5">
+                                            {% for error in form.non_field_errors %}
+                                            <li>{{ error }}</li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <div class="space-y-6">
+                            <!-- Empleado y Período -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label for="{{ form.employee.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                        Empleado <span class="text-red-500">*</span>
+                                    </label>
+                                    {{ form.employee }}
+                                    {% if form.employee.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ form.employee.errors.0 }}</p>
+                                    {% endif %}
+                                    <p class="mt-1 text-sm text-gray-500">{{ form.employee.help_text }}</p>
+                                </div>
+
+                                <div>
+                                    <label for="{{ form.period.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                        Período <span class="text-red-500">*</span>
+                                    </label>
+                                    {{ form.period }}
+                                    {% if form.period.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ form.period.errors.0 }}</p>
+                                    {% endif %}
+                                    <p class="mt-1 text-sm text-gray-500">{{ form.period.help_text }}</p>
+                                </div>
+                            </div>
+
+                            <!-- Salario Base -->
+                            <div>
+                                <label for="{{ form.base_salary.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Salario Base <span class="text-red-500">*</span>
+                                </label>
+                                <div class="relative">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span class="text-gray-500 sm:text-sm">$</span>
+                                    </div>
+                                    {{ form.base_salary }}
+                                </div>
+                                {% if form.base_salary.errors %}
+                                    <p class="mt-1 text-sm text-red-600">{{ form.base_salary.errors.0 }}</p>
+                                {% endif %}
+                                <p class="mt-1 text-sm text-blue-600">
+                                    <i class="fas fa-info-circle mr-1"></i>
+                                    {{ form.base_salary.help_text }}
+                                </p>
+                            </div>
+
+                            <!-- Horas Extra -->
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label for="{{ form.overtime_hours.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                        Horas Extra
+                                    </label>
+                                    {{ form.overtime_hours }}
+                                    {% if form.overtime_hours.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ form.overtime_hours.errors.0 }}</p>
+                                    {% endif %}
+                                    <p class="mt-1 text-sm text-gray-500">{{ form.overtime_hours.help_text }}</p>
+                                </div>
+
+                                <div>
+                                    <label for="{{ form.overtime_rate.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                        Factor Horas Extra
+                                    </label>
+                                    {{ form.overtime_rate }}
+                                    {% if form.overtime_rate.errors %}
+                                        <p class="mt-1 text-sm text-red-600">{{ form.overtime_rate.errors.0 }}</p>
+                                    {% endif %}
+                                    <p class="mt-1 text-sm text-gray-500">{{ form.overtime_rate.help_text }}</p>
+                                </div>
+                            </div>
+
+                            <!-- Información Adicional -->
+                            <div class="border-t border-gray-200 pt-6">
+                                <h4 class="text-lg font-medium text-gray-900 mb-4">
+                                    <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                                    Información Adicional
+                                </h4>
+                                
+                                <div class="space-y-4">
+                                    <div>
+                                        <label for="{{ form.payment_method.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                            Método de Pago
+                                        </label>
+                                        {{ form.payment_method }}
+                                        {% if form.payment_method.errors %}
+                                            <p class="mt-1 text-sm text-red-600">{{ form.payment_method.errors.0 }}</p>
+                                        {% endif %}
+                                    </div>
+
+                                    <div>
+                                        <label for="{{ form.notes.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                            Notas
+                                        </label>
+                                        {{ form.notes }}
+                                        {% if form.notes.errors %}
+                                            <p class="mt-1 text-sm text-red-600">{{ form.notes.errors.0 }}</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Botones de Acción -->
+                        <div class="flex items-center justify-end space-x-4 pt-6 border-t border-gray-200 mt-8">
+                            <a href="{% url 'payroll:payroll_list' %}" 
+                               class="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-300 transition-colors">
+                                <i class="fas fa-times mr-2"></i>
+                                Cancelar
+                            </a>
+                            <button type="submit" 
+                                    class="bg-primary-600 text-gray-600 px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors">
+                                <i class="fas fa-save mr-2"></i>
+                                {% if is_edit %}Actualizar Nómina{% else %}Crear Nómina{% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Panel Lateral -->
+            <div class="lg:col-span-1 space-y-6">
+                <!-- Calculadora en Tiempo Real -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h4 class="text-lg font-medium text-gray-900 mb-4">
+                        <i class="fas fa-calculator text-green-600 mr-2"></i>
+                        Calculadora en Tiempo Real
+                    </h4>
+                    
+                    <div id="live-calculator" class="space-y-4">
+                        <div class="bg-green-50 rounded-lg p-3">
+                            <p class="text-sm text-green-700">Pago Bruto</p>
+                            <p class="text-xl font-bold text-green-600" id="gross-pay">$0.00</p>
+                        </div>
+                        <div class="bg-red-50 rounded-lg p-3">
+                            <p class="text-sm text-red-700">Descuentos Estimados</p>
+                            <p class="text-xl font-bold text-red-600" id="deductions">$0.00</p>
+                        </div>
+                        <div class="bg-blue-50 rounded-lg p-3">
+                            <p class="text-sm text-blue-700">Pago Neto Estimado</p>
+                            <p class="text-xl font-bold text-blue-600" id="net-pay">$0.00</p>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 text-xs text-gray-500">
+                        <p><strong>Nota:</strong> Cálculos estimados. Los rubros automáticos se aplicarán al guardar.</p>
+                    </div>
+                </div>
+
+                <!-- Rubros Automáticos Preview -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <h4 class="text-lg font-medium text-gray-900 mb-4">
+                        <i class="fas fa-cogs text-purple-600 mr-2"></i>
+                        Rubros Automáticos
+                    </h4>
+                    
+                    <div class="space-y-3" id="automatic-rubros">
+                        <div class="text-center text-gray-500 py-4">
+                            <i class="fas fa-spinner fa-spin text-gray-400 text-2xl mb-2"></i>
+                            <p>Seleccione un empleado para ver rubros</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Información del Empleado Seleccionado -->
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6" id="employee-info" style="display: none;">
+                    <h4 class="text-lg font-medium text-gray-900 mb-4">
+                        <i class="fas fa-user text-blue-600 mr-2"></i>
+                        Información del Empleado
+                    </h4>
+                    
+                    <div id="employee-details" class="space-y-3">
+                        <!-- Se llenará dinámicamente -->
+                    </div>
+                </div>
+
+                <!-- Ayuda y Tips -->
+                <div class="bg-yellow-50 rounded-xl border border-yellow-200 p-6">
+                    <h4 class="text-lg font-medium text-yellow-900 mb-3">
+                        <i class="fas fa-lightbulb text-yellow-600 mr-2"></i>
+                        Tips
+                    </h4>
+                    <ul class="text-sm text-yellow-800 space-y-2">
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-yellow-600 mr-2 mt-0.5"></i>
+                            El salario base se toma automáticamente del perfil del empleado
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-yellow-600 mr-2 mt-0.5"></i>
+                            Los rubros configurados como automáticos se aplicarán al guardar
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-yellow-600 mr-2 mt-0.5"></i>
+                            Puede agregar rubros adicionales después de crear la nómina
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fas fa-check text-yellow-600 mr-2 mt-0.5"></i>
+                            Las horas extra se calculan automáticamente según el factor
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const baseSalaryField = document.querySelector('[name="base_salary"]');
+    const overtimeHoursField = document.querySelector('[name="overtime_hours"]');
+    const overtimeRateField = document.querySelector('[name="overtime_rate"]');
+    const employeeField = document.querySelector('[name="employee"]');
+    
+    // Actualizar cálculos en tiempo real
+    function updateCalculations() {
+        const baseSalary = parseFloat(baseSalaryField?.value) || 0;
+        const overtimeHours = parseFloat(overtimeHoursField?.value) || 0;
+        const overtimeRate = parseFloat(overtimeRateField?.value) || 1.5;
+        
+        // Calcular pago por horas extra (baseSalary/160 * hours * rate)
+        const overtimePay = (baseSalary / 160) * overtimeHours * overtimeRate;
+        
+        // Pago bruto básico
+        const grossPay = baseSalary + overtimePay;
+        
+        // Descuentos estimados (IESS 9.45%)
+        const iessDeduction = grossPay * 0.0945;
+        
+        // Pago neto estimado
+        const netPay = grossPay - iessDeduction;
+        
+        // Actualizar display
+        const grossPayElement = document.getElementById('gross-pay');
+        const deductionsElement = document.getElementById('deductions');
+        const netPayElement = document.getElementById('net-pay');
+        
+        if (grossPayElement) grossPayElement.textContent = `$${grossPay.toFixed(2)}`;
+        if (deductionsElement) deductionsElement.textContent = `$${iessDeduction.toFixed(2)}`;
+        if (netPayElement) netPayElement.textContent = `$${netPay.toFixed(2)}`;
+    }
+    
+    // Cargar información del empleado
+    function loadEmployeeInfo(employeeId) {
+        const employeeInfoDiv = document.getElementById('employee-info');
+        const automaticRubrosDiv = document.getElementById('automatic-rubros');
+        
+        if (!employeeId) {
+            if (employeeInfoDiv) employeeInfoDiv.style.display = 'none';
+            if (automaticRubrosDiv) {
+                automaticRubrosDiv.innerHTML = `
+                    <div class="text-center text-gray-500 py-4">
+                        <i class="fas fa-user-plus text-gray-400 text-2xl mb-2"></i>
+                        <p>Seleccione un empleado para ver información</p>
+                    </div>
+                `;
+            }
+            return;
+        }
+        
+        // CORREGIDO: Construir URL correctamente usando la base URL actual
+        const baseUrl = window.location.origin;
+        const apiUrl = `${baseUrl}/payroll/admin/api/empleados/${employeeId}/info/`;
+        
+        fetch(apiUrl, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json',
+            },
+            credentials: 'same-origin'  // Incluir cookies de sesión
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // Actualizar salario base
+                if (baseSalaryField && data.employee.salary) {
+                    baseSalaryField.value = data.employee.salary;
+                    updateCalculations();
+                }
+                
+                // Mostrar información del empleado
+                const employeeDetailsDiv = document.getElementById('employee-details');
+                if (employeeDetailsDiv) {
+                    employeeDetailsDiv.innerHTML = `
+                        <div class="space-y-2 text-sm">
+                            <div>
+                                <span class="font-medium text-gray-700">Departamento:</span>
+                                <span class="text-gray-900">${data.employee.department || 'Sin asignar'}</span>
+                            </div>
+                            <div>
+                                <span class="font-medium text-gray-700">Cargo:</span>
+                                <span class="text-gray-900">${data.employee.position || 'Sin asignar'}</span>
+                            </div>
+                            <div>
+                                <span class="font-medium text-gray-700">Salario:</span>
+                                <span class="text-gray-900 font-semibold">$${parseFloat(data.employee.salary || 0).toFixed(2)}</span>
+                            </div>
+                            <div>
+                                <span class="font-medium text-gray-700">Email:</span>
+                                <span class="text-gray-900">${data.employee.email}</span>
+                            </div>
+                            <div>
+                                <span class="font-medium text-gray-700">Estado:</span>
+                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                    ${data.employee.status_display}
+                                </span>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // Mostrar rubros automáticos
+                if (automaticRubrosDiv) {
+                    let rubrosHtml = '';
+                    if (data.automatic_rubros && data.automatic_rubros.length > 0) {
+                        rubrosHtml = data.automatic_rubros.map(rubro => `
+                            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div class="flex items-center">
+                                    <div class="w-3 h-3 rounded-full mr-3 ${rubro.tipo === 'ingreso' ? 'bg-green-500' : 'bg-red-500'}"></div>
+                                    <div>
+                                        <p class="font-medium text-gray-900 text-sm">${rubro.nombre}</p>
+                                        <p class="text-xs text-gray-500">${rubro.tipo_display}</p>
+                                    </div>
+                                </div>
+                                <div class="text-sm text-gray-600">
+                                    ${rubro.calculo_display}
+                                </div>
+                            </div>
+                        `).join('');
+                    } else {
+                        rubrosHtml = `
+                            <div class="text-center text-gray-500 py-4">
+                                <i class="fas fa-info-circle text-gray-400 text-xl mb-2"></i>
+                                <p class="text-sm">No hay rubros automáticos configurados</p>
+                            </div>
+                        `;
+                    }
+                    
+                    automaticRubrosDiv.innerHTML = rubrosHtml;
+                }
+                
+                if (employeeInfoDiv) employeeInfoDiv.style.display = 'block';
+            } else {
+                throw new Error(data.error || 'Error desconocido');
+            }
+        })
+        .catch(error => {
+            console.error('Error al cargar información del empleado:', error);
+            
+            if (automaticRubrosDiv) {
+                automaticRubrosDiv.innerHTML = `
+                    <div class="text-center text-red-500 py-4">
+                        <i class="fas fa-exclamation-triangle text-red-400 text-xl mb-2"></i>
+                        <p class="text-sm">Error al cargar información</p>
+                        <p class="text-xs">${error.message}</p>
+                    </div>
+                `;
+            }
+            
+            if (employeeInfoDiv) employeeInfoDiv.style.display = 'none';
+        });
+    }
+    
+    // Event listeners
+    if (baseSalaryField) {
+        baseSalaryField.addEventListener('input', updateCalculations);
+    }
+    if (overtimeHoursField) {
+        overtimeHoursField.addEventListener('input', updateCalculations);
+    }
+    if (overtimeRateField) {
+        overtimeRateField.addEventListener('input', updateCalculations);
+    }
+    if (employeeField) {
+        employeeField.addEventListener('change', function() {
+            loadEmployeeInfo(this.value);
+        });
+        
+        // Cargar info inicial si hay empleado seleccionado
+        if (employeeField.value) {
+            loadEmployeeInfo(employeeField.value);
+        }
+    }
+    
+    // Cálculo inicial
+    updateCalculations();
+    
+    // Validación de formulario
+    const payrollForm = document.getElementById('payroll-form');
+    if (payrollForm) {
+        payrollForm.addEventListener('submit', function(e) {
+            const employee = employeeField?.value;
+            const period = document.querySelector('[name="period"]')?.value;
+            const baseSalary = baseSalaryField?.value;
+            
+            let errors = [];
+            
+            if (!employee) {
+                errors.push('Debe seleccionar un empleado');
+            }
+            
+            if (!period) {
+                errors.push('Debe seleccionar un período');
+            }
+            
+            if (!baseSalary || parseFloat(baseSalary) <= 0) {
+                errors.push('Debe especificar un salario base válido');
+            }
+            
+            if (errors.length > 0) {
+                e.preventDefault();
+                alert('Errores en el formulario:\n\n' + errors.join('\n'));
+                return;
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

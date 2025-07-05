@@ -423,6 +423,214 @@ class SupervisorReportsView(SupervisorRequiredMixin, LoginRequiredMixin, Employe
             context['monthly_stats'] = []
         
         return context
+    
+
+class SupervisorPayrollView(SupervisorRequiredMixin, LoginRequiredMixin, EmployeePasswordChangeRequiredMixin, TemplateView):
+    """Vista de nómina del supervisor"""
+    template_name = 'pages/supervisor/payroll/supervisor_payroll.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        supervisor = self.request.user.employee_profile
+        
+        # IMPORTACIONES PARA NÓMINA
+        try:
+            from core.payroll.models import Payroll, PayrollPeriod, AdelantoQuincena
+            PAYROLL_APP_AVAILABLE = True
+        except ImportError:
+            PAYROLL_APP_AVAILABLE = False
+        
+        context['supervisor'] = supervisor
+        context['employee'] = supervisor  # Para compatibilidad con templates
+        
+        # ==================== INFORMACIÓN SALARIAL ACTUAL ====================
+        context['current_salary'] = supervisor.salary or 0
+        context['position_base_salary'] = supervisor.position.base_salary if hasattr(supervisor.position, 'base_salary') else supervisor.salary or 0
+        
+        if PAYROLL_APP_AVAILABLE:
+            # ==================== NÓMINAS Y PAGOS ====================
+            current_month = timezone.now().replace(day=1)
+            current_year = timezone.now().year
+            
+            # Nóminas del supervisor
+            supervisor_payrolls = Payroll.objects.filter(
+                employee=supervisor
+            ).select_related('period').order_by('-period__start_date')
+            
+            # Nómina del mes actual
+            current_month_payroll = supervisor_payrolls.filter(
+                period__start_date__gte=current_month
+            ).first()
+            
+            if current_month_payroll:
+                context['current_month_earnings'] = current_month_payroll.net_pay
+                context['current_month_bonuses'] = current_month_payroll.total_ingresos_rubros
+                context['current_month_overtime'] = current_month_payroll.overtime_pay
+                context['current_month_deductions'] = current_month_payroll.total_deductions
+            else:
+                context['current_month_earnings'] = supervisor.salary or 0
+                context['current_month_bonuses'] = 0
+                context['current_month_overtime'] = 0
+                context['current_month_deductions'] = 0
+            
+            # ==================== ESTADÍSTICAS ANUALES ====================
+            # Nóminas del año actual
+            ytd_payrolls = supervisor_payrolls.filter(
+                period__start_date__year=current_year,
+                is_paid=True
+            )
+            
+            context['ytd_earnings'] = sum(p.net_pay for p in ytd_payrolls)
+            context['ytd_bonuses'] = sum(p.total_ingresos_rubros for p in ytd_payrolls)
+            context['ytd_deductions'] = sum(p.total_deductions for p in ytd_payrolls)
+            context['months_worked_this_year'] = ytd_payrolls.count()
+            
+            # Promedio mensual
+            if context['months_worked_this_year'] > 0:
+                context['monthly_average'] = context['ytd_earnings'] / context['months_worked_this_year']
+            else:
+                context['monthly_average'] = supervisor.salary or 0
+            
+            # ==================== ADELANTOS PENDIENTES ====================
+            adelantos_pendientes = AdelantoQuincena.objects.filter(
+                employee=supervisor,
+                is_descontado=False
+            ).order_by('-fecha_adelanto')
+            
+            context['adelantos_pendientes'] = adelantos_pendientes
+            context['total_adelantos_pendientes'] = sum(a.monto for a in adelantos_pendientes)
+            
+            # ==================== PRÓXIMO PAGO ====================
+            # Buscar el próximo período
+            next_period = PayrollPeriod.objects.filter(
+                start_date__gt=timezone.now(),
+                status__in=['draft', 'processing']
+            ).order_by('start_date').first()
+            
+            if next_period:
+                context['next_pay_date'] = next_period.pay_date
+                context['next_period_name'] = next_period.name
+            
+            # ==================== HISTORIAL DE PAGOS ====================
+            # Preparar datos para el historial
+            payroll_records = []
+            for payroll in supervisor_payrolls[:12]:  # Últimos 12 registros
+                record = {
+                    'id': payroll.id,
+                    'period': payroll.period.name,
+                    'period_full': f"{payroll.period.start_date.strftime('%d/%m/%Y')} - {payroll.period.end_date.strftime('%d/%m/%Y')}",
+                    'base_salary': payroll.base_salary,
+                    'bonuses': payroll.total_ingresos_rubros,
+                    'deductions': payroll.total_deductions,
+                    'net_total': payroll.net_pay,
+                    'is_paid': payroll.is_paid,
+                    'payment_date': payroll.payment_date,
+                    'overtime_pay': payroll.overtime_pay,
+                }
+                payroll_records.append(record)
+            
+            context['payroll_records'] = payroll_records
+            
+            # ==================== INFORMACIÓN ADICIONAL COMO SUPERVISOR ====================
+            # Nóminas del equipo pendientes de aprobación
+            subordinates = Employee.objects.filter(
+                Q(supervisor=supervisor) |
+                Q(department=supervisor.department, user__user_type='employee')
+            ).filter(status='active')
+            
+            pending_team_payrolls = Payroll.objects.filter(
+                employee__in=subordinates,
+                is_paid=False
+            ).select_related('employee__user', 'period').order_by('-period__start_date')[:5]
+            
+            context['pending_team_payrolls'] = pending_team_payrolls
+            
+            # Total a pagar al equipo este mes
+            team_payroll_total = sum(p.net_pay for p in pending_team_payrolls)
+            context['team_payroll_total'] = team_payroll_total
+            
+            # Estadísticas del equipo
+            context['team_stats'] = {
+                'total_employees': subordinates.count(),
+                'pending_payrolls': pending_team_payrolls.count(),
+                'total_amount': team_payroll_total,
+                'average_salary': team_payroll_total / subordinates.count() if subordinates.count() > 0 else 0
+            }
+            
+        else:
+            # Valores por defecto si no hay app de nómina
+            context.update({
+                'current_month_earnings': supervisor.salary or 0,
+                'current_month_bonuses': 0,
+                'current_month_overtime': 0,
+                'current_month_deductions': 0,
+                'ytd_earnings': (supervisor.salary or 0) * 12,
+                'ytd_bonuses': 0,
+                'ytd_deductions': 0,
+                'months_worked_this_year': 12,
+                'monthly_average': supervisor.salary or 0,
+                'adelantos_pendientes': [],
+                'total_adelantos_pendientes': 0,
+                'payroll_records': [],
+                'pending_team_payrolls': [],
+                'team_payroll_total': 0,
+                'team_stats': {
+                    'total_employees': 0,
+                    'pending_payrolls': 0,
+                    'total_amount': 0,
+                    'average_salary': 0
+                }
+            })
+        
+        return context
+
+
+# También agregar esta función API para obtener datos de nómina
+@login_required
+def supervisor_payroll_api(request):
+    """API para datos de nómina del supervisor"""
+    if not hasattr(request.user, 'employee_profile'):
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+    
+    # Verificar permisos de supervisor
+    user_type = getattr(request.user, 'user_type', 'employee')
+    if user_type not in ['supervisor', 'admin', 'hr']:
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+    
+    supervisor = request.user.employee_profile
+    
+    try:
+        from core.payroll.models import Payroll, PayrollPeriod
+        
+        # Estadísticas básicas
+        current_month = timezone.now().replace(day=1)
+        current_payroll = Payroll.objects.filter(
+            employee=supervisor,
+            period__start_date__gte=current_month
+        ).first()
+        
+        stats = {
+            'current_salary': float(supervisor.salary or 0),
+            'current_month_net': float(current_payroll.net_pay) if current_payroll else float(supervisor.salary or 0),
+            'current_month_gross': float(current_payroll.gross_pay) if current_payroll else float(supervisor.salary or 0),
+            'current_month_deductions': float(current_payroll.total_deductions) if current_payroll else 0,
+            'is_paid': current_payroll.is_paid if current_payroll else False,
+            'payment_date': current_payroll.payment_date.strftime('%Y-%m-%d') if current_payroll and current_payroll.payment_date else None
+        }
+        
+        return JsonResponse(stats)
+        
+    except ImportError:
+        return JsonResponse({
+            'current_salary': float(supervisor.salary or 0),
+            'current_month_net': float(supervisor.salary or 0),
+            'current_month_gross': float(supervisor.salary or 0),
+            'current_month_deductions': 0,
+            'is_paid': False,
+            'payment_date': None
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 
 # APIs y funciones auxiliares

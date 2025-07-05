@@ -1,0 +1,345 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}Períodos de Nómina - Sistema de Nómina{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">Períodos de Nómina</h1>
+                    <p class="text-gray-600 mt-1">Gestiona los períodos de pago de nómina</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'payroll:nomina_dashboard' %}" 
+                       class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i>
+                        Volver al Panel
+                    </a>
+                    {% if perms.payroll.add_payrollperiod %}
+                    <a href="{% url 'payroll:period_form' %}" 
+                       class="bg-primary-600 text-black px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors">
+                        <i class="fas fa-plus mr-2"></i>
+                        Nuevo Período
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Estadísticas Rápidas -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center">
+                    <div class="bg-blue-100 p-3 rounded-full">
+                        <i class="fas fa-calendar-alt text-blue-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Total Períodos</p>
+                        <p class="text-2xl font-bold text-blue-600">{{ page_obj.paginator.count }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center">
+                    <div class="bg-yellow-100 p-3 rounded-full">
+                        <i class="fas fa-clock text-yellow-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">En Proceso</p>
+                        <p class="text-2xl font-bold text-yellow-600">
+                            {{ page_obj.object_list|length|add:"-1" }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center">
+                    <div class="bg-green-100 p-3 rounded-full">
+                        <i class="fas fa-check-circle text-green-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Completados</p>
+                        <p class="text-2xl font-bold text-green-600">0</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center">
+                    <div class="bg-purple-100 p-3 rounded-full">
+                        <i class="fas fa-dollar-sign text-purple-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Pagados</p>
+                        <p class="text-2xl font-bold text-purple-600">0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lista de Períodos -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-900">
+                        Lista de Períodos 
+                        <span class="text-sm font-normal text-gray-500">({{ page_obj.paginator.count }} total)</span>
+                    </h3>
+                    <div class="flex space-x-2">
+                        <button class="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors">
+                            <i class="fas fa-filter mr-2"></i>
+                            Filtrar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {% if page_obj %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Período
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Tipo
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Fechas
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Fecha de Pago
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Estado
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Nóminas
+                            </th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Acciones
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for period in page_obj %}
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="bg-primary-100 p-2 rounded-full mr-3">
+                                        <i class="fas fa-calendar text-primary-600"></i>
+                                    </div>
+                                    <div>
+                                        <div class="text-sm font-medium text-gray-900">{{ period.name }}</div>
+                                        <div class="text-xs text-gray-500">
+                                            Creado {{ period.created_at|date:"d/m/Y" }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
+                                    {% if period.period_type == 'monthly' %}bg-blue-100 text-blue-800
+                                    {% elif period.period_type == 'biweekly' %}bg-green-100 text-green-800
+                                    {% elif period.period_type == 'weekly' %}bg-yellow-100 text-yellow-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ period.get_period_type_display }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">
+                                    {{ period.start_date|date:"d/m/Y" }} - {{ period.end_date|date:"d/m/Y" }}
+                                </div>
+                                <div class="text-xs text-gray-500">
+                                    {{ period.start_date|timesince:period.end_date }}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm text-gray-900">{{ period.pay_date|date:"d/m/Y" }}</div>
+                                <div class="text-xs text-gray-500">
+                                    {% if period.pay_date > today %}
+                                        En {{ period.pay_date|timeuntil }}
+                                    {% else %}
+                                        Hace {{ period.pay_date|timesince }}
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
+                                    {% if period.status == 'draft' %}bg-yellow-100 text-yellow-800
+                                    {% elif period.status == 'processing' %}bg-blue-100 text-blue-800
+                                    {% elif period.status == 'completed' %}bg-green-100 text-green-800
+                                    {% elif period.status == 'paid' %}bg-purple-100 text-purple-800
+                                    {% elif period.status == 'cancelled' %}bg-red-100 text-red-800
+                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                    {{ period.get_status_display }}
+                                </span>
+                                {% if period.is_closed %}
+                                <div class="mt-1">
+                                    <span class="inline-flex px-1 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-800">
+                                        <i class="fas fa-lock mr-1"></i>
+                                        Cerrado
+                                    </span>
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    <div class="text-sm font-medium text-gray-900">
+                                        {{ period.total_employees|default:0 }}
+                                    </div>
+                                    {% if period.total_employees > 0 %}
+                                    <div class="ml-2">
+                                        <span class="text-xs text-gray-500">empleados</span>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% if period.total_net_pay > 0 %}
+                                <div class="text-xs text-gray-500">
+                                    Total: ${{ period.total_net_pay|floatformat:2 }}
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <div class="flex items-center justify-end space-x-2">
+                                    <a href="{% url 'payroll:period_detail' period.pk %}" 
+                                       class="text-primary-600 hover:text-primary-700 p-1 rounded" 
+                                       title="Ver detalles">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    
+                                    {% if perms.payroll.change_payrollperiod %}
+                                    <a href="{% url 'payroll:period_form' period.pk %}" 
+                                       class="text-blue-600 hover:text-blue-700 p-1 rounded" 
+                                       title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    {% endif %}
+                                    
+                                    {% if period.status == 'draft' and perms.payroll.change_payrollperiod %}
+                                    <a href="{% url 'payroll:period_generate_payrolls' period.pk %}" 
+                                       class="text-green-600 hover:text-green-700 p-1 rounded" 
+                                       title="Generar nóminas">
+                                        <i class="fas fa-cogs"></i>
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Paginación -->
+            {% if page_obj.has_other_pages %}
+            <div class="bg-gray-50 px-6 py-3 border-t border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div class="text-sm text-gray-700">
+                        Mostrando 
+                        <span class="font-medium">{{ page_obj.start_index }}</span>
+                        a 
+                        <span class="font-medium">{{ page_obj.end_index }}</span>
+                        de 
+                        <span class="font-medium">{{ page_obj.paginator.count }}</span>
+                        resultados
+                    </div>
+                    <div class="flex items-center space-x-1">
+                        {% if page_obj.has_previous %}
+                            <a href="?page=1" 
+                               class="px-3 py-2 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                                Primera
+                            </a>
+                            <a href="?page={{ page_obj.previous_page_number }}" 
+                               class="px-3 py-2 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        {% endif %}
+                        
+                        <span class="px-3 py-2 text-sm bg-primary-600 text-white border border-primary-600 rounded-md">
+                            {{ page_obj.number }}
+                        </span>
+                        
+                        {% if page_obj.has_next %}
+                            <a href="?page={{ page_obj.next_page_number }}" 
+                               class="px-3 py-2 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                            <a href="?page={{ page_obj.paginator.num_pages }}" 
+                               class="px-3 py-2 text-sm bg-white border border-gray-300 rounded-md hover:bg-gray-50">
+                                Última
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% else %}
+            <!-- Estado vacío -->
+            <div class="px-6 py-12 text-center">
+                <div class="text-gray-400 mb-4">
+                    <i class="fas fa-calendar-alt text-6xl"></i>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">No hay períodos registrados</h3>
+                <p class="text-gray-500 mb-6">
+                    Comienza creando tu primer período de nómina.
+                </p>
+                {% if perms.payroll.add_payrollperiod %}
+                <a href="{% url 'payroll:period_create' %}" 
+                   class="bg-primary-600 text-black px-6 py-3 rounded-lg hover:bg-primary-700 transition-colors inline-flex items-center">
+                    <i class="fas fa-plus mr-2"></i>
+                    Crear Período
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Animación de entrada para las tarjetas de estadísticas
+    const statCards = document.querySelectorAll('.grid > .bg-white');
+    statCards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+            card.style.transition = 'all 0.5s ease';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
+
+    // Efectos hover para las filas de la tabla
+    const tableRows = document.querySelectorAll('tbody tr');
+    tableRows.forEach(row => {
+        row.addEventListener('mouseenter', function() {
+            this.style.transform = 'scale(1.01)';
+            this.style.transition = 'transform 0.2s ease';
+        });
+        
+        row.addEventListener('mouseleave', function() {
+            this.style.transform = 'scale(1)';
+        });
+    });
+
+    // Tooltip para mostrar información adicional
+    document.querySelectorAll('[title]').forEach(element => {
+        element.addEventListener('mouseenter', function() {
+            // Aquí podrías agregar tooltips más avanzados si es necesario
+        });
+    });
+</script>
+{% endblock %}

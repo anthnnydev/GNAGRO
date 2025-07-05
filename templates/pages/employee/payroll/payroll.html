@@ -53,7 +53,7 @@
                         <p class="text-3xl font-bold text-blue-600">${{ position_base_salary|floatformat:2|default:"0.00" }}</p>
                         <p class="text-sm text-blue-600 mt-1">
                             <i class="fas fa-briefcase mr-1"></i>
-                            {{ employee.position.title }}
+                            {{ employee.position.title|default:"Sin cargo asignado" }}
                         </p>
                     </div>
                     <div class="bg-blue-100 p-3 rounded-full">
@@ -70,7 +70,7 @@
                         <p class="text-3xl font-bold text-purple-600">${{ current_month_earnings|floatformat:2|default:"0.00" }}</p>
                         <p class="text-sm text-purple-600 mt-1">
                             <i class="fas fa-chart-line mr-1"></i>
-                            Incluye extras
+                            Neto
                         </p>
                     </div>
                     <div class="bg-purple-100 p-3 rounded-full">
@@ -100,11 +100,11 @@
                     </div>
                     <div class="flex justify-between items-center">
                         <span class="text-sm text-gray-600">Departamento:</span>
-                        <span class="text-sm font-medium text-gray-900">{{ employee.department.name }}</span>
+                        <span class="text-sm font-medium text-gray-900">{{ employee.department.name|default:"N/A" }}</span>
                     </div>
                     <div class="flex justify-between items-center">
                         <span class="text-sm text-gray-600">Cargo:</span>
-                        <span class="text-sm font-medium text-gray-900">{{ employee.position.title }}</span>
+                        <span class="text-sm font-medium text-gray-900">{{ employee.position.title|default:"N/A" }}</span>
                     </div>
                     <div class="flex justify-between items-center">
                         <span class="text-sm text-gray-600">Fecha de ingreso:</span>
@@ -117,11 +117,11 @@
                 </div>
             </div>
 
-            <!-- Desglose salarial -->
+            <!-- Desglose salarial del mes actual -->
             <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
                 <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                     <i class="fas fa-calculator text-green-500 mr-2"></i>
-                    Desglose Salarial
+                    Desglose Este Mes
                 </h3>
                 
                 <div class="space-y-4">
@@ -131,20 +131,26 @@
                     </div>
                     <div class="flex justify-between items-center">
                         <span class="text-sm text-gray-600">Bonos y extras:</span>
-                        <span class="text-sm font-medium text-green-600">$0.00</span>
+                        <span class="text-sm font-medium text-green-600">${{ current_month_bonuses|floatformat:2|default:"0.00" }}</span>
                     </div>
                     <div class="flex justify-between items-center">
                         <span class="text-sm text-gray-600">Horas extra:</span>
-                        <span class="text-sm font-medium text-green-600">$0.00</span>
+                        <span class="text-sm font-medium text-green-600">${{ current_month_overtime|floatformat:2|default:"0.00" }}</span>
                     </div>
                     <div class="flex justify-between items-center">
                         <span class="text-sm text-gray-600">Descuentos:</span>
-                        <span class="text-sm font-medium text-red-600">-$0.00</span>
+                        <span class="text-sm font-medium text-red-600">-${{ current_month_deductions|floatformat:2|default:"0.00" }}</span>
                     </div>
+                    {% if total_adelantos_pendientes > 0 %}
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm text-gray-600">Adelantos pendientes:</span>
+                        <span class="text-sm font-medium text-orange-600">-${{ total_adelantos_pendientes|floatformat:2 }}</span>
+                    </div>
+                    {% endif %}
                     <hr class="my-3">
                     <div class="flex justify-between items-center">
                         <span class="text-base font-medium text-gray-900">Total neto:</span>
-                        <span class="text-lg font-bold text-green-600">${{ current_salary|floatformat:2 }}</span>
+                        <span class="text-lg font-bold text-green-600">${{ current_month_earnings|floatformat:2 }}</span>
                     </div>
                 </div>
             </div>
@@ -153,33 +159,86 @@
             <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
                 <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
                     <i class="fas fa-chart-bar text-purple-500 mr-2"></i>
-                    Resumen Anual
+                    Resumen Anual {{ "now"|date:"Y" }}
                 </h3>
                 
                 <div class="space-y-4">
                     <div class="flex justify-between items-center">
-                        <span class="text-sm text-gray-600">Ganancia total {{ "now"|date:"Y" }}:</span>
+                        <span class="text-sm text-gray-600">Ganancia total:</span>
                         <span class="text-sm font-medium text-gray-900">${{ ytd_earnings|floatformat:2 }}</span>
                     </div>
                     <div class="flex justify-between items-center">
                         <span class="text-sm text-gray-600">Meses trabajados:</span>
-                        <span class="text-sm font-medium text-gray-900">{{ "now"|date:"n" }}</span>
+                        <span class="text-sm font-medium text-gray-900">{{ months_worked_this_year|default:"0" }}</span>
                     </div>
                     <div class="flex justify-between items-center">
                         <span class="text-sm text-gray-600">Promedio mensual:</span>
-                        <span class="text-sm font-medium text-gray-900">${{ current_salary|floatformat:2 }}</span>
+                        <span class="text-sm font-medium text-gray-900">${{ monthly_average|floatformat:2 }}</span>
                     </div>
                     <div class="flex justify-between items-center">
                         <span class="text-sm text-gray-600">Bonos totales:</span>
-                        <span class="text-sm font-medium text-green-600">$0.00</span>
+                        <span class="text-sm font-medium text-green-600">${{ ytd_bonuses|floatformat:2|default:"0.00" }}</span>
                     </div>
                     <div class="flex justify-between items-center">
                         <span class="text-sm text-gray-600">Descuentos totales:</span>
-                        <span class="text-sm font-medium text-red-600">$0.00</span>
+                        <span class="text-sm font-medium text-red-600">-${{ ytd_deductions|floatformat:2|default:"0.00" }}</span>
                     </div>
+                    {% if next_pay_date %}
+                    <hr class="my-3">
+                    <div class="text-center p-2 bg-blue-50 rounded-lg">
+                        <p class="text-xs text-blue-600 font-medium">Próximo Pago</p>
+                        <p class="text-sm text-blue-800">{{ next_pay_date|date:"d/m/Y" }}</p>
+                        <p class="text-xs text-blue-600">{{ next_period_name }}</p>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
+
+        <!-- Adelantos pendientes (si los hay) -->
+        {% if adelantos_pendientes %}
+        <div class="bg-white rounded-xl shadow-lg border border-orange-200 p-6 mb-8">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <i class="fas fa-exclamation-triangle text-orange-500 mr-2"></i>
+                Adelantos Pendientes de Descuento
+            </h3>
+            
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Monto</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Motivo</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for adelanto in adelantos_pendientes %}
+                        <tr>
+                            <td class="px-4 py-3 text-sm text-gray-900">{{ adelanto.fecha_adelanto|date:"d/m/Y" }}</td>
+                            <td class="px-4 py-3 text-sm font-medium text-orange-600">${{ adelanto.monto|floatformat:2 }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-600">{{ adelanto.motivo|default:"Sin motivo especificado" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="bg-gray-50">
+                        <tr>
+                            <td class="px-4 py-3 text-sm font-medium text-gray-900">Total Pendiente:</td>
+                            <td class="px-4 py-3 text-sm font-bold text-orange-600">${{ total_adelantos_pendientes|floatformat:2 }}</td>
+                            <td class="px-4 py-3"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            
+            <div class="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                <p class="text-sm text-orange-800">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    Estos adelantos serán descontados automáticamente en tu próxima nómina.
+                </p>
+            </div>
+        </div>
+        {% endif %}
 
         <!-- Historial de pagos -->
         <div class="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
@@ -189,7 +248,7 @@
                     Historial de Pagos
                 </h3>
                 <div class="flex items-center space-x-2">
-                    <button class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                    <button class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm" onclick="exportPayrollData()">
                         <i class="fas fa-download mr-2"></i>Exportar
                     </button>
                 </div>
@@ -227,7 +286,10 @@
                         {% for record in payroll_records %}
                         <tr class="hover:bg-gray-50">
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                {{ record.period }}
+                                <div>
+                                    <div class="font-semibold">{{ record.period }}</div>
+                                    <div class="text-xs text-gray-500">{{ record.period_full }}</div>
+                                </div>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                                 ${{ record.base_salary|floatformat:2 }}
@@ -236,18 +298,27 @@
                                 ${{ record.bonuses|floatformat:2 }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-red-600">
-                                ${{ record.deductions|floatformat:2 }}
+                                -${{ record.deductions|floatformat:2 }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                                 ${{ record.net_total|floatformat:2 }}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap">
+                                {% if record.is_paid %}
                                 <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
-                                    Pagado
+                                    <i class="fas fa-check-circle mr-1"></i>Pagado
                                 </span>
+                                {% if record.payment_date %}
+                                <div class="text-xs text-gray-500 mt-1">{{ record.payment_date|date:"d/m/Y" }}</div>
+                                {% endif %}
+                                {% else %}
+                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                    <i class="fas fa-clock mr-1"></i>Pendiente
+                                </span>
+                                {% endif %}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
-                                <button class="hover:text-blue-800">
+                                <button class="hover:text-blue-800" onclick="downloadReceipt('{{ record.id }}')">
                                     <i class="fas fa-download mr-1"></i>Recibo
                                 </button>
                             </td>
@@ -268,7 +339,12 @@
                 <!-- Información del próximo pago -->
                 <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
                     <h4 class="text-sm font-medium text-blue-900 mb-2">Próximo Pago</h4>
+                    {% if next_pay_date %}
+                    <p class="text-sm text-blue-700">El próximo pago está programado para {{ next_pay_date|date:"d/m/Y" }}.</p>
+                    <p class="text-xs text-blue-600 mt-1">Período: {{ next_period_name }}</p>
+                    {% else %}
                     <p class="text-sm text-blue-700">El próximo pago está programado para fin de mes.</p>
+                    {% endif %}
                     <p class="text-xs text-blue-600 mt-1">Monto estimado: ${{ current_salary|floatformat:2 }}</p>
                 </div>
             </div>
@@ -295,15 +371,21 @@
                     <div class="space-y-2">
                         <div class="flex justify-between items-center">
                             <span class="text-sm text-gray-600">Banco:</span>
-                            <span class="text-sm font-medium text-gray-900">Por configurar</span>
+                            <span class="text-sm font-medium text-gray-900">{{ employee.bank_name|default:"Por configurar" }}</span>
                         </div>
                         <div class="flex justify-between items-center">
                             <span class="text-sm text-gray-600">Tipo de cuenta:</span>
-                            <span class="text-sm font-medium text-gray-900">Por configurar</span>
+                            <span class="text-sm font-medium text-gray-900">{{ employee.account_type|default:"Por configurar" }}</span>
                         </div>
                         <div class="flex justify-between items-center">
                             <span class="text-sm text-gray-600">Número de cuenta:</span>
-                            <span class="text-sm font-medium text-gray-900">****</span>
+                            <span class="text-sm font-medium text-gray-900">
+                                {% if employee.account_number %}
+                                    ****{{ employee.account_number|slice:"-4:" }}
+                                {% else %}
+                                    ****
+                                {% endif %}
+                            </span>
                         </div>
                     </div>
                 </div>
@@ -377,15 +459,78 @@
             }, index * 100);
         });
 
-        // Función para exportar datos (placeholder)
+        // Función para exportar datos
         window.exportPayrollData = function() {
-            alert('Funcionalidad de exportación en desarrollo');
+            // Aquí puedes implementar la lógica de exportación real
+            // Por ejemplo, redirigir a una URL de exportación
+            window.location.href = '{% url "employees:employee_payroll" %}?export=pdf';
         };
 
-        // Función para descargar recibos (placeholder)
+        // Función para descargar recibos
         window.downloadReceipt = function(recordId) {
+            // Implementar descarga real de recibos
+            // window.location.href = `/employee/payroll/receipt/${recordId}/download/`;
             alert('Descargando recibo para el período ' + recordId);
         };
+
+        // Mostrar/ocultar detalles de pagos en móvil
+        const payrollRows = document.querySelectorAll('tbody tr');
+        payrollRows.forEach(row => {
+            row.addEventListener('click', function() {
+                // En móvil, mostrar modal con detalles completos
+                if (window.innerWidth < 768) {
+                    const period = this.querySelector('td:first-child').textContent.trim();
+                    const netTotal = this.querySelector('td:nth-child(5)').textContent.trim();
+                    const status = this.querySelector('td:nth-child(6)').textContent.trim();
+                    
+                    // Crear modal simple
+                    const modal = document.createElement('div');
+                    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50';
+                    modal.innerHTML = `
+                        <div class="bg-white rounded-lg p-6 max-w-sm w-full">
+                            <h3 class="text-lg font-semibold mb-4">Detalle de Nómina</h3>
+                            <div class="space-y-2">
+                                <div><strong>Período:</strong> ${period}</div>
+                                <div><strong>Total Neto:</strong> ${netTotal}</div>
+                                <div><strong>Estado:</strong> ${status}</div>
+                            </div>
+                            <button onclick="this.parentElement.parentElement.remove()" 
+                                    class="mt-4 w-full bg-blue-600 text-white py-2 rounded-lg">
+                                Cerrar
+                            </button>
+                        </div>
+                    `;
+                    document.body.appendChild(modal);
+                }
+            });
+        });
+
+        // Actualizar totales en tiempo real (si fuera necesario)
+        function updateSummaryCards() {
+            // Esta función podría hacer llamadas AJAX para actualizar datos en tiempo real
+            // Por ejemplo, para mostrar adelantos recientes o cambios de estado de pagos
+        }
+
+        // Llamar cada 5 minutos para datos actualizados
+        // setInterval(updateSummaryCards, 300000);
     });
+
+    // Función para imprimir recibo específico
+    function printReceipt(recordId) {
+        window.open(`/employee/payroll/receipt/${recordId}/print/`, '_blank');
+    }
+
+    // Función para exportar a diferentes formatos
+    function exportData(format) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('export', format);
+        window.location.href = url.toString();
+    }
+
+    // Mostrar tooltip con información adicional
+    function showTooltip(element, text) {
+        // Implementar tooltips para mostrar información adicional
+        element.title = text;
+    }
 </script>
 {% endblock %}

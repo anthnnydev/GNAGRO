@@ -1,0 +1,406 @@
+<!-- pages/admin/payroll/dashboard.html -->
+{% extends 'layouts/base.html' %}
+
+{% block title %}Dashboard de Nómina - Sistema de Nómina{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">Dashboard de Nómina</h1>
+                    <p class="text-gray-600 mt-1">Resumen general del sistema de nómina</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'payroll:payroll_create' %}" 
+                       class="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors">
+                        <i class="fas fa-plus mr-2"></i>
+                        Nueva Nómina
+                    </a>
+                    <a href="{% url 'payroll:period_form' %}" 
+                       class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-calendar-plus mr-2"></i>
+                        Nuevo Período
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Estadísticas Principales -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center">
+                    <div class="bg-blue-100 p-3 rounded-full">
+                        <i class="fas fa-users text-blue-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Empleados en Nómina</p>
+                        <p class="text-2xl font-bold text-blue-600">{{ total_employees_with_payroll|default:0 }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center">
+                    <div class="bg-green-100 p-3 rounded-full">
+                        <i class="fas fa-dollar-sign text-green-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Total Pagado</p>
+                        <p class="text-2xl font-bold text-green-600">${{ total_paid|floatformat:2|default:"0.00" }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center">
+                    <div class="bg-orange-100 p-3 rounded-full">
+                        <i class="fas fa-calendar-alt text-orange-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Períodos Creados</p>
+                        <p class="text-2xl font-bold text-orange-600">{{ total_periods|default:0 }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center">
+                    <div class="bg-red-100 p-3 rounded-full">
+                        <i class="fas fa-clock text-red-600"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-600">Pagos Pendientes</p>
+                        <p class="text-2xl font-bold text-red-600">{{ pending_payments|default:0 }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Grid de Contenido Principal -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Períodos Recientes -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-gray-900">Períodos Recientes</h3>
+                        <a href="{% url 'payroll:period_list' %}" 
+                           class="text-primary-600 hover:text-primary-700 text-sm font-medium">
+                            Ver todos
+                        </a>
+                    </div>
+                </div>
+                <div class="p-6">
+                    {% if recent_periods %}
+                        <div class="space-y-4">
+                            {% for period in recent_periods %}
+                            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                <div class="flex items-center">
+                                    <div class="bg-primary-100 p-2 rounded-full mr-3">
+                                        <i class="fas fa-calendar text-primary-600"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium text-gray-900">{{ period.name }}</h4>
+                                        <p class="text-sm text-gray-500">
+                                            {{ period.start_date|date:"d/m/Y" }} - {{ period.end_date|date:"d/m/Y" }}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
+                                        {% if period.status == 'draft' %}bg-yellow-100 text-yellow-800
+                                        {% elif period.status == 'processing' %}bg-blue-100 text-blue-800
+                                        {% elif period.status == 'completed' %}bg-green-100 text-green-800
+                                        {% elif period.status == 'paid' %}bg-purple-100 text-purple-800
+                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        {{ period.get_status_display }}
+                                    </span>
+                                    <div class="mt-1">
+                                        <a href="{% url 'payroll:period_detail' period.pk %}" 
+                                           class="text-primary-600 hover:text-primary-700 text-sm">
+                                            Ver detalles
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-8">
+                            <div class="text-gray-400 mb-4">
+                                <i class="fas fa-calendar text-4xl"></i>
+                            </div>
+                            <p class="text-gray-500 mb-4">No hay períodos registrados</p>
+                            <a href="{% url 'payroll:period_form' %}" 
+                               class="text-primary-600 hover:text-primary-700 font-medium">
+                                Crear primer período
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Rubros Más Utilizados -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-semibold text-gray-900">Rubros Más Utilizados</h3>
+                        <a href="{% url 'payroll:rubro_list' %}" 
+                           class="text-primary-600 hover:text-primary-700 text-sm font-medium">
+                            Ver todos
+                        </a>
+                    </div>
+                </div>
+                <div class="p-6">
+                    {% if top_rubros %}
+                        <div class="space-y-4">
+                            {% for rubro in top_rubros %}
+                            <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                                <div class="flex items-center">
+                                    <div class="w-3 h-3 rounded-full mr-3 
+                                        {% if rubro.rubro__tipo_rubro__tipo == 'ingreso' %}bg-green-500
+                                        {% else %}bg-red-500{% endif %}">
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium text-gray-900">{{ rubro.rubro__nombre }}</h4>
+                                        <p class="text-sm text-gray-500 capitalize">
+                                            {{ rubro.rubro__tipo_rubro__tipo }}
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <p class="font-semibold text-gray-900">{{ rubro.total_aplicaciones }}</p>
+                                    <p class="text-sm text-gray-500">aplicaciones</p>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <div class="text-center py-8">
+                            <div class="text-gray-400 mb-4">
+                                <i class="fas fa-list text-4xl"></i>
+                            </div>
+                            <p class="text-gray-500 mb-4">No hay rubros aplicados</p>
+                            <a href="{% url 'payroll:rubro_create' %}" 
+                               class="text-primary-600 hover:text-primary-700 font-medium">
+                                Crear primer rubro
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Acciones Rápidas -->
+        <div class="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-6">Acciones Rápidas</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <a href="{% url 'payroll:payroll_list' %}" 
+                   class="flex items-center p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors group">
+                    <div class="bg-blue-600 p-3 rounded-full group-hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-file-invoice-dollar text-white"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="font-medium text-blue-900">Ver Nóminas</p>
+                        <p class="text-sm text-blue-600">Gestionar nóminas</p>
+                    </div>
+                </a>
+
+                <a href="{% url 'payroll:adelanto_list' %}" 
+                   class="flex items-center p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors group">
+                    <div class="bg-green-600 p-3 rounded-full group-hover:bg-green-700 transition-colors">
+                        <i class="fas fa-hand-holding-usd text-white"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="font-medium text-green-900">Adelantos</p>
+                        <p class="text-sm text-green-600">Gestionar adelantos</p>
+                    </div>
+                </a>
+
+                <a href="{% url 'payroll:rubro_list' %}" 
+                   class="flex items-center p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors group">
+                    <div class="bg-purple-600 p-3 rounded-full group-hover:bg-purple-700 transition-colors">
+                        <i class="fas fa-tags text-white"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="font-medium text-purple-900">Rubros</p>
+                        <p class="text-sm text-purple-600">Configurar rubros</p>
+                    </div>
+                </a>
+
+                <a href="{% url 'payroll:reports' %}" 
+                   class="flex items-center p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors group">
+                    <div class="bg-orange-600 p-3 rounded-full group-hover:bg-orange-700 transition-colors">
+                        <i class="fas fa-chart-bar text-white"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="font-medium text-orange-900">Reportes</p>
+                        <p class="text-sm text-orange-600">Ver estadísticas</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Alertas y Notificaciones -->
+        {% if pending_payments > 0 %}
+        <div class="mt-8 bg-yellow-50 border-l-4 border-yellow-400 p-4">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-exclamation-triangle text-yellow-400"></i>
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm text-yellow-700">
+                        <strong>Atención:</strong> Tienes {{ pending_payments }} pago{{ pending_payments|pluralize }} pendiente{{ pending_payments|pluralize }}.
+                        <a href="{% url 'payroll:payroll_list' %}?status=unpaid" class="font-medium underline">
+                            Ver nóminas pendientes
+                        </a>
+                    </p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Animación de entrada para las tarjetas de estadísticas
+    const statCards = document.querySelectorAll('.grid > .bg-white');
+    statCards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+            card.style.transition = 'all 0.5s ease';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
+
+    // Efectos hover para las acciones rápidas
+    const actionCards = document.querySelectorAll('.grid .group');
+    actionCards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'scale(1.02)';
+            this.style.transition = 'transform 0.2s ease';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'scale(1)';
+        });
+    });
+
+    // Actualizar estadísticas en tiempo real (opcional)
+    function updateStats() {
+        fetch('/payroll/admin/api/stats/')
+            .then(response => response.json())
+            .then(data => {
+                // Actualizar elementos del DOM con nuevos datos
+                console.log('Estadísticas actualizadas:', data);
+            })
+            .catch(error => console.error('Error actualizando estadísticas:', error));
+    }
+
+    // Actualizar cada 5 minutos
+    setInterval(updateStats, 300000);
+
+    // Contador animado para las estadísticas
+    function animateCounter(element, target) {
+        const start = 0;
+        const duration = 2000; // 2 segundos
+        const startTime = performance.now();
+        
+        function updateCounter(currentTime) {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            // Función de easing
+            const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+            const current = Math.floor(start + (target - start) * easeOutQuart);
+            
+            element.textContent = current.toLocaleString();
+            
+            if (progress < 1) {
+                requestAnimationFrame(updateCounter);
+            } else {
+                element.textContent = target.toLocaleString();
+            }
+        }
+        
+        requestAnimationFrame(updateCounter);
+    }
+
+    // Animar contadores al cargar la página
+    document.addEventListener('DOMContentLoaded', function() {
+        // Animar estadísticas numéricas
+        const employeeCounter = document.querySelector('.text-blue-600.text-2xl');
+        const periodCounter = document.querySelector('.text-orange-600.text-2xl');
+        const pendingCounter = document.querySelector('.text-red-600.text-2xl');
+        
+        if (employeeCounter) {
+            const target = parseInt(employeeCounter.textContent);
+            if (!isNaN(target)) animateCounter(employeeCounter, target);
+        }
+        
+        if (periodCounter) {
+            const target = parseInt(periodCounter.textContent);
+            if (!isNaN(target)) animateCounter(periodCounter, target);
+        }
+        
+        if (pendingCounter) {
+            const target = parseInt(pendingCounter.textContent);
+            if (!isNaN(target)) animateCounter(pendingCounter, target);
+        }
+    });
+
+    // Notificaciones toast para acciones
+    function showToast(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg transition-all duration-300 transform translate-x-full`;
+        
+        const colors = {
+            'success': 'bg-green-500 text-white',
+            'error': 'bg-red-500 text-white',
+            'warning': 'bg-yellow-500 text-black',
+            'info': 'bg-blue-500 text-white'
+        };
+        
+        toast.className += ` ${colors[type] || colors.info}`;
+        toast.innerHTML = `
+            <div class="flex items-center">
+                <i class="fas fa-${type === 'success' ? 'check' : type === 'error' ? 'times' : type === 'warning' ? 'exclamation' : 'info'}-circle mr-2"></i>
+                <span>${message}</span>
+                <button onclick="this.parentElement.parentElement.remove()" class="ml-4 text-white hover:text-gray-200">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        
+        document.body.appendChild(toast);
+        
+        // Animar entrada
+        setTimeout(() => {
+            toast.classList.remove('translate-x-full');
+        }, 100);
+        
+        // Auto-remover después de 5 segundos
+        setTimeout(() => {
+            toast.classList.add('translate-x-full');
+            setTimeout(() => toast.remove(), 300);
+        }, 5000);
+    }
+
+    // Manejar acciones rápidas con feedback
+    document.querySelectorAll('.group').forEach(card => {
+        card.addEventListener('click', function(e) {
+            const actionName = this.querySelector('p').textContent;
+            showToast(`Navegando a ${actionName}...`, 'info');
+        });
+    });
+</script>
+{% endblock %}

@@ -270,7 +270,7 @@ class Employee(models.Model):
             end_date.day < self.hire_date.day
         ):
             years -= 1
-        return years
+        return max(0, years)
 
 
 class EmployeeDocument(models.Model):

@@ -14,7 +14,7 @@
                         <i class="fas fa-arrow-left text-lg"></i>
                     </a>
                     <div>
-                        <h1 class="text-2xl font-bold text-red-600">Confirmar Eliminación</h1>
+                        <h1 class="text-2xl font-bold text-red-600">Confirmar Desactivación</h1>
                         <p class="text-gray-600 mt-1">Esta acción desactivará al empleado</p>
                     </div>
                 </div>
@@ -47,7 +47,7 @@
                         <p class="text-sm font-medium text-yellow-800">
                             <i class="fas fa-info-circle mr-2"></i>
                             Nota: Esta acción no elimina permanentemente los datos del empleado. 
-                            Puedes reactivar la cuenta más tarde si es necesario.
+                            Puedes reactivar la cuenta más tarde desde la lista de empleados.
                         </p>
                     </div>
                 </div>
@@ -83,6 +83,31 @@
                                 </h4>
                                 <p class="text-gray-600 mt-1">{{ employee.position.title }}</p>
                                 <p class="text-sm text-gray-500">{{ employee.department.name }}</p>
+                                
+                                <!-- NUEVO: Mostrar tipo de usuario -->
+                                <div class="mt-2">
+                                    {% if employee.user.user_type == 'admin' %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                            <i class="fas fa-crown mr-1.5"></i>
+                                            Administrador
+                                        </span>
+                                    {% elif employee.user.user_type == 'hr' %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                                            <i class="fas fa-users-cog mr-1.5"></i>
+                                            Recursos Humanos
+                                        </span>
+                                    {% elif employee.user.user_type == 'supervisor' %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                            <i class="fas fa-user-tie mr-1.5"></i>
+                                            Supervisor
+                                        </span>
+                                    {% else %}
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                            <i class="fas fa-user mr-1.5"></i>
+                                            Empleado
+                                        </span>
+                                    {% endif %}
+                                </div>
                             </div>
                             <div class="space-y-2">
                                 <div class="flex items-center text-sm">
@@ -97,9 +122,15 @@
                                     <i class="fas fa-calendar text-gray-400 mr-2"></i>
                                     <span class="text-gray-600">Ingresó el {{ employee.hire_date|date:"d/m/Y" }}</span>
                                 </div>
+                                {% if employee.salary %}
                                 <div class="flex items-center text-sm">
                                     <i class="fas fa-dollar-sign text-gray-400 mr-2"></i>
                                     <span class="text-gray-600">Salario: ${{ employee.salary|floatformat:2 }}</span>
+                                </div>
+                                {% endif %}
+                                <div class="flex items-center text-sm">
+                                    <i class="fas fa-info-circle text-gray-400 mr-2"></i>
+                                    <span class="text-gray-600">Estado: {{ employee.get_status_display }}</span>
                                 </div>
                             </div>
                         </div>
@@ -119,7 +150,7 @@
                         <div class="bg-blue-50 rounded-lg p-4">
                             <i class="fas fa-calendar-alt text-blue-600 text-2xl mb-2"></i>
                             <p class="text-2xl font-bold text-blue-600">
-                                {{ employee.get_years_of_service }}
+                                {{ employee.years_of_service|default:0 }}
                             </p>
                             <p class="text-sm text-gray-600">Años de servicio</p>
                         </div>
@@ -128,7 +159,7 @@
                         <div class="bg-green-50 rounded-lg p-4">
                             <i class="fas fa-users text-green-600 text-2xl mb-2"></i>
                             <p class="text-2xl font-bold text-green-600">
-                                {{ employee.subordinates.count }}
+                                {{ employee.subordinates.count|default:0 }}
                             </p>
                             <p class="text-sm text-gray-600">Subordinados</p>
                         </div>
@@ -137,7 +168,7 @@
                         <div class="bg-purple-50 rounded-lg p-4">
                             <i class="fas fa-file-alt text-purple-600 text-2xl mb-2"></i>
                             <p class="text-2xl font-bold text-purple-600">
-                                {{ employee.documents.count }}
+                                {{ employee.documents.count|default:0 }}
                             </p>
                             <p class="text-sm text-gray-600">Documentos</p>
                         </div>
@@ -146,9 +177,51 @@
             </div>
         </div>
 
+        <!-- Verificaciones adicionales -->
+        {% if employee.subordinates.count > 0 %}
+        <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-6 mb-8">
+            <div class="flex">
+                <div class="flex-shrink-0">
+                    <i class="fas fa-exclamation-triangle text-yellow-400 text-xl"></i>
+                </div>
+                <div class="ml-4">
+                    <h3 class="text-lg font-medium text-yellow-800">
+                        ⚠️ Este empleado tiene subordinados
+                    </h3>
+                    <div class="mt-2 text-sm text-yellow-700">
+                        <p>Este empleado supervisa a {{ employee.subordinates.count }} empleado{{ employee.subordinates.count|pluralize }}:</p>
+                        <ul class="list-disc list-inside mt-2 space-y-1">
+                            {% for subordinate in employee.subordinates.all|slice:":5" %}
+                            <li>{{ subordinate.user.get_full_name }} ({{ subordinate.position.title }})</li>
+                            {% endfor %}
+                            {% if employee.subordinates.count > 5 %}
+                            <li class="text-yellow-600">... y {{ employee.subordinates.count|add:"-5" }} más</li>
+                            {% endif %}
+                        </ul>
+                        <p class="mt-2 font-medium">
+                            Considera reasignar estos empleados a otro supervisor antes de proceder.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
         <!-- Formulario de confirmación -->
-        <form method="post" class="space-y-6">
+        <form method="post" class="space-y-6" id="deactivation-form">
             {% csrf_token %}
+            
+            <!-- DEBUG: Mostrar información del formulario -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 class="text-sm font-medium text-blue-800 mb-2">🐛 Debug - Información del Formulario:</h4>
+                <div class="text-xs text-blue-700 space-y-1">
+                    <p><strong>Método del formulario:</strong> POST</p>
+                    <p><strong>Action del formulario:</strong> {{ request.path }}</p>
+                    <p><strong>ID del empleado:</strong> {{ employee.id }}</p>
+                    <p><strong>Estado actual del empleado:</strong> "{{ employee.status }}"</p>
+                    <p><strong>Usuario activo:</strong> {{ employee.user.is_active }}</p>
+                </div>
+            </div>
             
             <!-- Motivo de la desactivación (opcional) -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -157,24 +230,55 @@
                     <label for="termination_reason" class="block text-sm font-medium text-gray-700 mb-2">
                         Especifica el motivo de la desactivación
                     </label>
+                    <select id="termination_type" name="termination_type" 
+                            class="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 mb-3">
+                        <option value="">Selecciona un motivo</option>
+                        <option value="resignation">Renuncia voluntaria</option>
+                        <option value="termination">Finalización de contrato</option>
+                        <option value="dismissal">Despido</option>
+                        <option value="retirement">Jubilación</option>
+                        <option value="transfer">Transferencia</option>
+                        <option value="other">Otro</option>
+                    </select>
+                    
                     <textarea id="termination_reason" name="termination_reason" rows="4" 
-                              class="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-                              placeholder="Ejemplo: Finalización de contrato, renuncia voluntaria, etc."></textarea>
+                            class="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+                            placeholder="Describe los detalles del motivo de desactivación..."></textarea>
                     <p class="mt-1 text-sm text-gray-500">
-                        Esta información será guardada para referencias futuras.
+                        Esta información será guardada para referencias futuras y auditorías.
                     </p>
+                </div>
+            </div>
+
+            <!-- Checkbox de confirmación -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-start">
+                    <div class="flex items-center h-5">
+                        <input id="confirm_deactivation" name="confirm_deactivation" type="checkbox" 
+                            class="focus:ring-primary-500 h-4 w-4 text-primary-600 border-gray-300 rounded" required>
+                    </div>
+                    <div class="ml-3 text-sm">
+                        <label for="confirm_deactivation" class="font-medium text-gray-700">
+                            Confirmo que entiendo las consecuencias de esta acción
+                        </label>
+                        <p class="text-gray-500">
+                            He revisado la información del empleado y confirmo que deseo proceder con la desactivación. 
+                            Entiendo que esta acción puede ser revertida posteriormente.
+                        </p>
+                    </div>
                 </div>
             </div>
 
             <!-- Botones de acción -->
             <div class="flex flex-col sm:flex-row gap-4 justify-end">
                 <a href="{% url 'employees:employee_detail' employee.pk %}" 
-                   class="inline-flex justify-center items-center px-6 py-3 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
+                class="inline-flex justify-center items-center px-6 py-3 border border-gray-300 shadow-sm text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors">
                     <i class="fas fa-times mr-2"></i>
                     Cancelar
                 </a>
                 <button type="submit" 
-                        class="inline-flex justify-center items-center px-6 py-3 border border-transparent text-sm font-medium rounded-lg text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors">
+                        class="inline-flex justify-center items-center px-6 py-3 border border-transparent text-sm font-medium rounded-lg text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        id="submit-btn" disabled>
                     <i class="fas fa-user-times mr-2"></i>
                     Confirmar Desactivación
                 </button>
@@ -192,7 +296,16 @@
                         ¿Necesitas ayuda?
                     </h3>
                     <div class="mt-2 text-sm text-blue-700">
-                        <p>Si tienes dudas sobre este proceso, contacta al administrador del sistema o revisa la documentación sobre gestión de empleados.</p>
+                        <p>Si tienes dudas sobre este proceso o necesitas reasignar subordinados, contacta al administrador del sistema o revisa la documentación sobre gestión de empleados.</p>
+                        <div class="mt-2">
+                            <p><strong>Acciones posteriores recomendadas:</strong></p>
+                            <ul class="list-disc list-inside mt-1 space-y-1">
+                                <li>Revocar accesos a sistemas externos</li>
+                                <li>Recuperar equipos y materiales de la empresa</li>
+                                <li>Reasignar tareas y proyectos pendientes</li>
+                                <li>Actualizar contactos de emergencia</li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -204,29 +317,93 @@
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Confirmación adicional al enviar el formulario
-    const form = document.querySelector('form');
-    const submitButton = form.querySelector('button[type="submit"]');
+    const form = document.getElementById('deactivation-form');
+    const submitButton = document.getElementById('submit-btn');
+    const confirmCheckbox = document.getElementById('confirm_deactivation');
+    const terminationReason = document.getElementById('termination_reason');
+    const terminationType = document.getElementById('termination_type');
     
+    // Habilitar/deshabilitar botón de envío basado en checkbox
+    confirmCheckbox.addEventListener('change', function() {
+        submitButton.disabled = !this.checked;
+    });
+    
+    // Auto-llenar detalles basado en tipo de terminación
+    terminationType.addEventListener('change', function() {
+        const placeholders = {
+            'resignation': 'El empleado presentó su renuncia voluntaria...',
+            'termination': 'El contrato llegó a su fecha de finalización...',
+            'dismissal': 'Se procedió con el despido debido a...',
+            'retirement': 'El empleado se acogió a la jubilación...',
+            'transfer': 'El empleado fue transferido a...',
+            'other': 'Especifica el motivo de la desactivación...'
+        };
+        
+        terminationReason.placeholder = placeholders[this.value] || 'Describe los detalles...';
+        
+        if (this.value) {
+            terminationReason.focus();
+        }
+    });
+    
+    // Confirmación adicional al enviar el formulario
     form.addEventListener('submit', function(e) {
         e.preventDefault();
         
-        // Mostrar confirmación final
-        if (confirm('¿Estás absolutamente seguro de que deseas desactivar este empleado? Esta acción marcará al empleado como terminado.')) {
+        const employeeName = '{{ employee.user.get_full_name }}';
+        const hasSubordinates = {{ employee.subordinates.count|default:0 }};
+        
+        let confirmMessage = `¿Estás absolutamente seguro de que deseas desactivar a ${employeeName}?`;
+        
+        if (hasSubordinates > 0) {
+            confirmMessage += `\n\n⚠️ ADVERTENCIA: Este empleado supervisa a ${hasSubordinates} empleado${hasSubordinates > 1 ? 's' : ''}. Considera reasignar estos empleados antes de proceder.`;
+        }
+        
+        confirmMessage += '\n\nEsta acción marcará al empleado como terminado pero podrá ser revertida posteriormente.';
+        
+        if (confirm(confirmMessage)) {
             // Deshabilitar el botón para evitar múltiples envíos
             submitButton.disabled = true;
             submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Desactivando...';
             
-            // Enviar el formulario
-            form.submit();
+            // Pequeño delay para mostrar el spinner
+            setTimeout(() => {
+                form.submit();
+            }, 500);
         }
     });
     
-    // Foco automático en el textarea si existe
-    const textArea = document.getElementById('termination_reason');
-    if (textArea) {
-        textArea.focus();
+    // Foco automático en el textarea de motivo
+    terminationReason.focus();
+    
+    // Guardar borrador del motivo en localStorage
+    terminationReason.addEventListener('input', function() {
+        if (this.value.length > 10) {
+            localStorage.setItem('termination_reason_draft', this.value);
+        }
+    });
+    
+    // Restaurar borrador si existe
+    const draft = localStorage.getItem('termination_reason_draft');
+    if (draft && !terminationReason.value) {
+        terminationReason.value = draft;
     }
+    
+    // Limpiar borrador al enviar
+    form.addEventListener('submit', function() {
+        localStorage.removeItem('termination_reason_draft');
+    });
+    
+    // Validación adicional para empleados con subordinados
+    {% if employee.subordinates.count > 0 %}
+    const warningShown = sessionStorage.getItem('subordinates_warning_shown');
+    if (!warningShown) {
+        setTimeout(() => {
+            alert('⚠️ IMPORTANTE: Este empleado tiene subordinados asignados. Considera reasignarlos antes de proceder con la desactivación.');
+            sessionStorage.setItem('subordinates_warning_shown', 'true');
+        }, 1000);
+    }
+    {% endif %}
 });
 </script>
 {% endblock %}

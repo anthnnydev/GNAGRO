@@ -1,0 +1,701 @@
+<!-- pages/supervisor/payroll/supervisor_payroll.html -->
+{% extends 'layouts/base_supervisor.html' %}
+{% load static %}
+
+{% block title %}Mi Nómina - Panel Supervisor{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header de la página -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <nav class="flex mb-4" aria-label="Breadcrumb">
+                        <ol class="inline-flex items-center space-x-1 md:space-x-3">
+                            <li class="inline-flex items-center">
+                                <a href="{% url 'employees:supervisor_dashboard' %}" class="text-gray-500 hover:text-gray-700">
+                                    <i class="fas fa-home"></i>
+                                </a>
+                            </li>
+                            <li><i class="fas fa-chevron-right text-gray-400"></i></li>
+                            <li class="text-gray-500" aria-current="page">Mi Nómina</li>
+                        </ol>
+                    </nav>
+                    <h1 class="text-3xl font-bold text-gray-900 flex items-center">
+                        <i class="fas fa-money-bill-wave text-green-600 mr-3"></i>
+                        Mi Información de Nómina
+                    </h1>
+                    <p class="text-gray-600 mt-1">Consulta tu información salarial y gestiona tu equipo</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="text-right">
+                        <div class="text-sm text-gray-500">
+                            <i class="fas fa-calendar-alt mr-2"></i>
+                            {% now "F Y" %}
+                        </div>
+                        <div class="text-xs text-blue-600 font-medium">
+                            <i class="fas fa-crown mr-1"></i>
+                            Supervisor
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Información salarial actual del supervisor -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <!-- Salario como supervisor -->
+            <div class="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg p-6 text-white">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-blue-100 text-sm font-medium">Salario Supervisor</p>
+                        <p class="text-3xl font-bold">${{ current_salary|floatformat:2|default:"0.00" }}</p>
+                        <p class="text-blue-100 text-sm mt-1">
+                            <i class="fas fa-crown mr-1"></i>
+                            Mensual
+                        </p>
+                    </div>
+                    <div class="bg-blue-400 bg-opacity-50 p-3 rounded-full">
+                        <i class="fas fa-user-tie text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ganancia del mes actual -->
+            <div class="bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-lg p-6 text-white">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-green-100 text-sm font-medium">Ganancia Este Mes</p>
+                        <p class="text-3xl font-bold">${{ current_month_earnings|floatformat:2|default:"0.00" }}</p>
+                        <p class="text-green-100 text-sm mt-1">
+                            <i class="fas fa-chart-line mr-1"></i>
+                            Neto
+                        </p>
+                    </div>
+                    <div class="bg-green-400 bg-opacity-50 p-3 rounded-full">
+                        <i class="fas fa-coins text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Equipo a cargo -->
+            <div class="bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg p-6 text-white">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-purple-100 text-sm font-medium">Equipo a Cargo</p>
+                        <p class="text-3xl font-bold">{{ team_stats.total_employees }}</p>
+                        <p class="text-purple-100 text-sm mt-1">
+                            <i class="fas fa-users mr-1"></i>
+                            Empleados
+                        </p>
+                    </div>
+                    <div class="bg-purple-400 bg-opacity-50 p-3 rounded-full">
+                        <i class="fas fa-users-cog text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Nóminas pendientes del equipo -->
+            <div class="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg p-6 text-white">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-orange-100 text-sm font-medium">Nóminas Pendientes</p>
+                        <p class="text-3xl font-bold">{{ team_stats.pending_payrolls }}</p>
+                        <p class="text-orange-100 text-sm mt-1">
+                            <i class="fas fa-clock mr-1"></i>
+                            Por aprobar
+                        </p>
+                    </div>
+                    <div class="bg-orange-400 bg-opacity-50 p-3 rounded-full">
+                        <i class="fas fa-clipboard-check text-2xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Información detallada en tabs -->
+        <div class="bg-white rounded-xl shadow-lg border border-gray-200">
+            <!-- Tab navigation -->
+            <div class="border-b border-gray-200">
+                <nav class="-mb-px flex space-x-8 px-6">
+                    <button class="tab-button border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm active" 
+                            data-tab="personal">
+                        <i class="fas fa-user mr-2"></i>Mi Nómina
+                    </button>
+                    <button class="tab-button border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" 
+                            data-tab="team">
+                        <i class="fas fa-users mr-2"></i>Equipo ({{ team_stats.pending_payrolls }})
+                    </button>
+                    <button class="tab-button border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" 
+                            data-tab="reports">
+                        <i class="fas fa-chart-bar mr-2"></i>Reportes
+                    </button>
+                    <button class="tab-button border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" 
+                            data-tab="info">
+                        <i class="fas fa-info-circle mr-2"></i>Información
+                    </button>
+                </nav>
+            </div>
+
+            <!-- Tab content -->
+            <div class="p-6">
+                <!-- Mi Nómina Personal -->
+                <div id="personal-tab" class="tab-content">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <!-- Información personal -->
+                        <div class="bg-gray-50 rounded-xl p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                <i class="fas fa-id-card text-blue-500 mr-2"></i>
+                                Información Personal
+                            </h3>
+                            
+                            <div class="space-y-4">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-600">Nombre completo:</span>
+                                    <span class="text-sm font-medium text-gray-900">{{ supervisor.user.get_full_name }}</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-600">ID Empleado:</span>
+                                    <span class="text-sm font-medium text-gray-900">{{ supervisor.employee_number }}</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-600">Departamento:</span>
+                                    <span class="text-sm font-medium text-gray-900">{{ supervisor.department.name|default:"N/A" }}</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-600">Cargo:</span>
+                                    <span class="text-sm font-medium text-blue-600">
+                                        <i class="fas fa-crown mr-1"></i>
+                                        {{ supervisor.position.title|default:"Supervisor" }}
+                                    </span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-600">Fecha de ingreso:</span>
+                                    <span class="text-sm font-medium text-gray-900">{{ supervisor.hire_date|date:"d/m/Y" }}</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-600">Empleados a cargo:</span>
+                                    <span class="text-sm font-medium text-purple-600">{{ team_stats.total_employees }} empleados</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Desglose salarial del mes actual -->
+                        <div class="bg-gray-50 rounded-xl p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                <i class="fas fa-calculator text-green-500 mr-2"></i>
+                                Desglose Este Mes
+                            </h3>
+                            
+                            <div class="space-y-4">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-600">Salario base:</span>
+                                    <span class="text-sm font-medium text-gray-900">${{ current_salary|floatformat:2 }}</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-600">Bonos y extras:</span>
+                                    <span class="text-sm font-medium text-green-600">${{ current_month_bonuses|floatformat:2|default:"0.00" }}</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-600">Horas extra:</span>
+                                    <span class="text-sm font-medium text-green-600">${{ current_month_overtime|floatformat:2|default:"0.00" }}</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-600">Descuentos:</span>
+                                    <span class="text-sm font-medium text-red-600">-${{ current_month_deductions|floatformat:2|default:"0.00" }}</span>
+                                </div>
+                                {% if total_adelantos_pendientes > 0 %}
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-600">Adelantos pendientes:</span>
+                                    <span class="text-sm font-medium text-orange-600">-${{ total_adelantos_pendientes|floatformat:2 }}</span>
+                                </div>
+                                {% endif %}
+                                <hr class="my-3">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-base font-medium text-gray-900">Total neto:</span>
+                                    <span class="text-lg font-bold text-green-600">${{ current_month_earnings|floatformat:2 }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Estadísticas anuales -->
+                        <div class="bg-gray-50 rounded-xl p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                <i class="fas fa-chart-line text-purple-500 mr-2"></i>
+                                Resumen Anual {{ "now"|date:"Y" }}
+                            </h3>
+                            
+                            <div class="space-y-4">
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-600">Ganancia total:</span>
+                                    <span class="text-sm font-medium text-gray-900">${{ ytd_earnings|floatformat:2 }}</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-600">Meses trabajados:</span>
+                                    <span class="text-sm font-medium text-gray-900">{{ months_worked_this_year|default:"0" }}</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-600">Promedio mensual:</span>
+                                    <span class="text-sm font-medium text-gray-900">${{ monthly_average|floatformat:2 }}</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-600">Bonos totales:</span>
+                                    <span class="text-sm font-medium text-green-600">${{ ytd_bonuses|floatformat:2|default:"0.00" }}</span>
+                                </div>
+                                <div class="flex justify-between items-center">
+                                    <span class="text-sm text-gray-600">Descuentos totales:</span>
+                                    <span class="text-sm font-medium text-red-600">-${{ ytd_deductions|floatformat:2|default:"0.00" }}</span>
+                                </div>
+                                {% if next_pay_date %}
+                                <hr class="my-3">
+                                <div class="text-center p-3 bg-blue-50 rounded-lg">
+                                    <p class="text-xs text-blue-600 font-medium">Próximo Pago</p>
+                                    <p class="text-sm font-bold text-blue-800">{{ next_pay_date|date:"d/m/Y" }}</p>
+                                    <p class="text-xs text-blue-600">{{ next_period_name }}</p>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Historial de pagos del supervisor -->
+                    <div class="mt-8">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-6 flex items-center">
+                            <i class="fas fa-history text-blue-500 mr-2"></i>
+                            Mi Historial de Pagos
+                        </h3>
+
+                        {% if payroll_records %}
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Período</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Salario Base</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bonos/Extras</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Descuentos</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Neto</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    {% for record in payroll_records %}
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                            <div>
+                                                <div class="font-semibold">{{ record.period }}</div>
+                                                <div class="text-xs text-gray-500">{{ record.period_full }}</div>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${{ record.base_salary|floatformat:2 }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600">${{ record.bonuses|floatformat:2 }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-red-600">-${{ record.deductions|floatformat:2 }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${{ record.net_total|floatformat:2 }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap">
+                                            {% if record.is_paid %}
+                                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                                <i class="fas fa-check-circle mr-1"></i>Pagado
+                                            </span>
+                                            {% else %}
+                                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                                <i class="fas fa-clock mr-1"></i>Pendiente
+                                            </span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-12 bg-gray-50 rounded-lg">
+                            <div class="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                                <i class="fas fa-file-invoice-dollar text-gray-400 text-3xl"></i>
+                            </div>
+                            <h3 class="text-lg font-medium text-gray-900 mb-2">No hay registros de pagos</h3>
+                            <p class="text-gray-600">Los registros de nómina aparecerán aquí una vez que se procesen los pagos.</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Nóminas del Equipo -->
+                <div id="team-tab" class="tab-content hidden">
+                    <div class="flex justify-between items-center mb-6">
+                        <h3 class="text-lg font-semibold text-gray-900">Nóminas del Equipo</h3>
+                        <div class="flex items-center space-x-4">
+                            <span class="text-sm text-gray-600">
+                                Total a pagar: <span class="font-bold text-green-600">${{ team_payroll_total|floatformat:2 }}</span>
+                            </span>
+                            <a href="{% url 'payroll:payroll_list' %}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                                <i class="fas fa-list mr-2"></i>Ver Todas las Nóminas
+                            </a>
+                        </div>
+                    </div>
+
+                    {% if pending_team_payrolls %}
+                    <div class="space-y-4">
+                        {% for payroll in pending_team_payrolls %}
+                        <div class="bg-gray-50 rounded-lg p-6 border-l-4 border-orange-500">
+                            <div class="flex items-center justify-between">
+                                <div class="flex-1">
+                                    <div class="flex items-center">
+                                        {% if payroll.employee.user.profile_picture %}
+                                            <img class="h-10 w-10 rounded-full object-cover mr-3" 
+                                                 src="{{ payroll.employee.user.profile_picture.url }}" 
+                                                 alt="{{ payroll.employee.user.get_full_name }}">
+                                        {% else %}
+                                            <div class="h-10 w-10 rounded-full bg-blue-500 text-white flex items-center justify-center font-medium text-sm mr-3">
+                                                {{ payroll.employee.user.first_name|first|upper }}{{ payroll.employee.user.last_name|first|upper }}
+                                            </div>
+                                        {% endif %}
+                                        <div>
+                                            <h4 class="text-lg font-medium text-gray-900">{{ payroll.employee.user.get_full_name }}</h4>
+                                            <p class="text-sm text-gray-600">{{ payroll.employee.position.title|default:"Sin cargo" }} - {{ payroll.period.name }}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+                                        <div class="text-center">
+                                            <div class="text-sm text-gray-500">Salario Base</div>
+                                            <div class="text-lg font-semibold text-gray-900">${{ payroll.base_salary|floatformat:2 }}</div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="text-sm text-gray-500">Pago Bruto</div>
+                                            <div class="text-lg font-semibold text-green-600">${{ payroll.gross_pay|floatformat:2 }}</div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="text-sm text-gray-500">Deducciones</div>
+                                            <div class="text-lg font-semibold text-red-600">${{ payroll.total_deductions|floatformat:2 }}</div>
+                                        </div>
+                                        <div class="text-center">
+                                            <div class="text-sm text-gray-500">Pago Neto</div>
+                                            <div class="text-xl font-bold text-blue-600">${{ payroll.net_pay|floatformat:2 }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex-shrink-0 ml-6">
+                                    <div class="flex flex-col space-y-2">
+                                        <a href="{% url 'payroll:payroll_detail' payroll.pk %}" 
+                                           class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors text-sm text-center">
+                                            <i class="fas fa-eye mr-1"></i>Ver Detalle
+                                        </a>
+                                        {% if not payroll.is_paid %}
+                                        <form method="post" action="{% url 'payroll:payroll_mark_paid' payroll.pk %}" class="inline">
+                                            {% csrf_token %}
+                                            <button type="submit" 
+                                                    class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg transition-colors text-sm"
+                                                    onclick="return confirm('¿Marcar como pagada la nómina de {{ payroll.employee.user.get_full_name }}?')">
+                                                <i class="fas fa-check mr-1"></i>Marcar Pagada
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-12 bg-gray-50 rounded-lg">
+                        <div class="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                            <i class="fas fa-users-slash text-gray-400 text-3xl"></i>
+                        </div>
+                        <h3 class="text-lg font-medium text-gray-900 mb-2">No hay nóminas pendientes</h3>
+                        <p class="text-gray-600 mb-4">Todas las nóminas de tu equipo están al día.</p>
+                        <a href="{% url 'payroll:payroll_list' %}" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                            Ver Todas las Nóminas
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Reportes -->
+                <div id="reports-tab" class="tab-content hidden">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-6">Reportes de Nómina</h3>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Reporte personal -->
+                        <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-6 border border-blue-200">
+                            <div class="flex items-center justify-between mb-4">
+                                <h4 class="text-lg font-medium text-blue-900">Mi Reporte Personal</h4>
+                                <i class="fas fa-user text-blue-600 text-xl"></i>
+                            </div>
+                            <p class="text-blue-700 text-sm mb-4">Descarga tu reporte personal de nómina del año actual.</p>
+                            <button onclick="exportPersonalReport()" class="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                                <i class="fas fa-download mr-2"></i>Descargar PDF
+                            </button>
+                        </div>
+
+                        <!-- Reporte del equipo -->
+                        <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-6 border border-green-200">
+                            <div class="flex items-center justify-between mb-4">
+                                <h4 class="text-lg font-medium text-green-900">Reporte del Equipo</h4>
+                                <i class="fas fa-users text-green-600 text-xl"></i>
+                            </div>
+                            <p class="text-green-700 text-sm mb-4">Resumen de nóminas de todos los empleados bajo tu supervisión.</p>
+                            <button onclick="exportTeamReport()" class="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                                <i class="fas fa-download mr-2"></i>Descargar Excel
+                            </button>
+                        </div>
+
+                        <!-- Análisis de costos -->
+                        <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-6 border border-purple-200">
+                            <div class="flex items-center justify-between mb-4">
+                                <h4 class="text-lg font-medium text-purple-900">Análisis de Costos</h4>
+                                <i class="fas fa-chart-pie text-purple-600 text-xl"></i>
+                            </div>
+                            <p class="text-purple-700 text-sm mb-4">Análisis detallado de costos de nómina por departamento.</p>
+                            <button onclick="exportCostAnalysis()" class="w-full bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors">
+                                <i class="fas fa-chart-line mr-2"></i>Ver Análisis
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Estadísticas rápidas -->
+                    <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div class="bg-white border border-gray-200 rounded-lg p-6">
+                            <h4 class="text-lg font-medium text-gray-900 mb-4">Estadísticas del Mes</h4>
+                            <div class="space-y-3">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Total pagado al equipo:</span>
+                                    <span class="font-medium">${{ team_payroll_total|floatformat:2 }}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Promedio por empleado:</span>
+                                    <span class="font-medium">${{ team_stats.average_salary|floatformat:2 }}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Mi salario vs promedio equipo:</span>
+                                    <span class="font-medium text-blue-600">+{{ current_salary|floatformat:0|add:"-"|add:team_stats.average_salary|floatformat:0 }}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white border border-gray-200 rounded-lg p-6">
+                            <h4 class="text-lg font-medium text-gray-900 mb-4">Tendencias</h4>
+                            <div class="space-y-3">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Crecimiento anual:</span>
+                                    <span class="font-medium text-green-600">+12%</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Bonos este año:</span>
+                                    <span class="font-medium">${{ ytd_bonuses|floatformat:2 }}</span>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Ahorros en adelantos:</span>
+                                    <span class="font-medium text-red-600">${{ total_adelantos_pendientes|floatformat:2 }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Información -->
+                <div id="info-tab" class="tab-content hidden">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <!-- Información bancaria -->
+                        <div class="bg-gray-50 rounded-xl p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                <i class="fas fa-university text-green-500 mr-2"></i>
+                                Información Bancaria
+                            </h3>
+                            
+                            <div class="space-y-3">
+                                <div class="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                    <p class="text-sm text-blue-800">
+                                        <i class="fas fa-info-circle mr-2"></i>
+                                        Como supervisor, puedes gestionar la información bancaria de tu equipo contactando a RH.
+                                    </p>
+                                </div>
+                                
+                                <div class="space-y-2">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-sm text-gray-600">Mi banco:</span>
+                                        <span class="text-sm font-medium text-gray-900">{{ supervisor.bank_name|default:"Por configurar" }}</span>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-sm text-gray-600">Tipo de cuenta:</span>
+                                        <span class="text-sm font-medium text-gray-900">{{ supervisor.account_type|default:"Por configurar" }}</span>
+                                    </div>
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-sm text-gray-600">Número de cuenta:</span>
+                                        <span class="text-sm font-medium text-gray-900">
+                                            {% if supervisor.account_number %}
+                                                ****{{ supervisor.account_number|slice:"-4:" }}
+                                            {% else %}
+                                                ****
+                                            {% endif %}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Contacto y responsabilidades -->
+                        <div class="bg-gray-50 rounded-xl p-6">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                                <i class="fas fa-tasks text-blue-500 mr-2"></i>
+                                Responsabilidades como Supervisor
+                            </h3>
+                            
+                            <div class="space-y-4">
+                                <div class="space-y-3">
+                                    <div class="flex items-start space-x-3">
+                                        <div class="bg-blue-100 p-2 rounded-lg mt-1">
+                                            <i class="fas fa-check text-blue-600 text-sm"></i>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900">Revisar nóminas del equipo</p>
+                                            <p class="text-xs text-gray-600">Verificar y aprobar las nóminas antes del pago</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex items-start space-x-3">
+                                        <div class="bg-green-100 p-2 rounded-lg mt-1">
+                                            <i class="fas fa-users text-green-600 text-sm"></i>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900">Gestionar adelantos</p>
+                                            <p class="text-xs text-gray-600">Aprobar o denegar solicitudes de adelanto</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex items-start space-x-3">
+                                        <div class="bg-purple-100 p-2 rounded-lg mt-1">
+                                            <i class="fas fa-chart-bar text-purple-600 text-sm"></i>
+                                        </div>
+                                        <div>
+                                            <p class="text-sm font-medium text-gray-900">Generar reportes</p>
+                                            <p class="text-xs text-gray-600">Crear reportes de costos y productividad</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="border-t border-gray-200 pt-4">
+                                    <h4 class="text-sm font-medium text-gray-900 mb-2">Contacto para soporte</h4>
+                                    <div class="space-y-2 text-sm text-gray-600">
+                                        <div class="flex items-center">
+                                            <i class="fas fa-envelope text-blue-500 mr-2"></i>
+                                            <span>rh@gnagro.com</span>
+                                        </div>
+                                        <div class="flex items-center">
+                                            <i class="fas fa-phone text-green-500 mr-2"></i>
+                                            <span>+593 999 999 999</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Adelantos pendientes (si los hay) -->
+        {% if adelantos_pendientes %}
+        <div class="bg-white rounded-xl shadow-lg border border-orange-200 p-6 mt-8">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                <i class="fas fa-exclamation-triangle text-orange-500 mr-2"></i>
+                Mis Adelantos Pendientes de Descuento
+            </h3>
+            
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Monto</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Motivo</th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for adelanto in adelantos_pendientes %}
+                        <tr>
+                            <td class="px-4 py-3 text-sm text-gray-900">{{ adelanto.fecha_adelanto|date:"d/m/Y" }}</td>
+                            <td class="px-4 py-3 text-sm font-medium text-orange-600">${{ adelanto.monto|floatformat:2 }}</td>
+                            <td class="px-4 py-3 text-sm text-gray-600">{{ adelanto.motivo|default:"Sin motivo especificado" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="bg-gray-50">
+                        <tr>
+                            <td class="px-4 py-3 text-sm font-medium text-gray-900">Total Pendiente:</td>
+                            <td class="px-4 py-3 text-sm font-bold text-orange-600">${{ total_adelantos_pendientes|floatformat:2 }}</td>
+                            <td class="px-4 py-3"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Sistema de tabs
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    function showTab(targetTab) {
+        // Ocultar todos los contenidos
+        tabContents.forEach(content => {
+            content.classList.add('hidden');
+        });
+        
+        // Remover clase activa de todos los botones
+        tabButtons.forEach(button => {
+            button.classList.remove('active', 'border-blue-500', 'text-blue-600');
+            button.classList.add('border-transparent', 'text-gray-500');
+        });
+        
+        // Mostrar contenido objetivo
+        const targetContent = document.getElementById(targetTab + '-tab');
+        if (targetContent) {
+            targetContent.classList.remove('hidden');
+        }
+        
+        // Activar botón objetivo
+        const targetButton = document.querySelector(`[data-tab="${targetTab}"]`);
+        if (targetButton) {
+            targetButton.classList.add('active', 'border-blue-500', 'text-blue-600');
+            targetButton.classList.remove('border-transparent', 'text-gray-500');
+        }
+    }
+    
+    // Event listeners para tabs
+    tabButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const targetTab = this.dataset.tab;
+            showTab(targetTab);
+        });
+    });
+    
+    // Mostrar primer tab por defecto
+    showTab('personal');
+    
+    // Funciones para exportar reportes
+    window.exportPersonalReport = function() {
+        window.location.href = '{% url "employees:supervisor_payroll" %}?export=personal_pdf';
+    };
+    
+    window.exportTeamReport = function() {
+        window.location.href = '{% url "employees:supervisor_payroll" %}?export=team_excel';
+    };
+    
+    window.exportCostAnalysis = function() {
+        window.location.href = '{% url "employees:supervisor_payroll" %}?export=cost_analysis';
+    };
+    
+    console.log('✅ Sistema de nómina del supervisor inicializado');
+});
+</script>
+{% endblock %}

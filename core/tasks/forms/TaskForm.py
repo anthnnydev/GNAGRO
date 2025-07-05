@@ -42,9 +42,9 @@ class TaskForm(forms.ModelForm):
             }),
             'estimated_hours': forms.NumberInput(attrs={
                 'class': 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500',
-                'step': '0.5',
+                'step': 'any',
                 'min': '0.1',
-                'placeholder': '8.0'
+                'placeholder': '8'
             }),
             'location': forms.TextInput(attrs={
                 'class': 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500',

@@ -1,0 +1,528 @@
+<!-- templates/components/emails/payroll_notification.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comprobante de Nómina</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f8fafc;
+        }
+        
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+        
+        .header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 30px 20px;
+        }
+        
+        .greeting {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #2d3748;
+        }
+        
+        .payment-alert {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 12px rgba(72, 187, 120, 0.3);
+        }
+        
+        .payment-alert h2 {
+            font-size: 24px;
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+        
+        .payment-alert .amount {
+            font-size: 32px;
+            font-weight: 800;
+            margin: 10px 0;
+        }
+        
+        .payment-info {
+            background-color: #f7fafc;
+            border-left: 4px solid #667eea;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .payment-info h3 {
+            color: #2d3748;
+            font-size: 16px;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .info-label {
+            font-weight: 500;
+            color: #4a5568;
+        }
+        
+        .info-value {
+            font-weight: 600;
+            color: #2d3748;
+        }
+        
+        .section {
+            margin-bottom: 25px;
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .section-header {
+            background-color: #edf2f7;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        
+        .section-header h3 {
+            color: #2d3748;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        .section-content {
+            padding: 20px;
+        }
+        
+        .detail-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .detail-table tr {
+            border-bottom: 1px solid #f1f5f9;
+        }
+        
+        .detail-table tr:last-child {
+            border-bottom: none;
+        }
+        
+        .detail-table td {
+            padding: 12px 8px;
+            vertical-align: top;
+        }
+        
+        .detail-table .label {
+            font-weight: 500;
+            color: #4a5568;
+            width: 60%;
+        }
+        
+        .detail-table .value {
+            font-weight: 600;
+            color: #2d3748;
+            text-align: right;
+            width: 40%;
+        }
+        
+        .positive {
+            color: #38a169;
+        }
+        
+        .negative {
+            color: #e53e3e;
+        }
+        
+        .total-row {
+            background-color: #f7fafc;
+            font-weight: 700;
+            font-size: 16px;
+        }
+        
+        .total-row td {
+            padding: 16px 8px;
+            border-top: 2px solid #e2e8f0;
+        }
+        
+        .adelanto-note {
+            background-color: #fef5e7;
+            border: 1px solid #f6e05e;
+            border-radius: 6px;
+            padding: 12px;
+            margin-top: 8px;
+            font-size: 14px;
+            color: #744210;
+        }
+        
+        .cta-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            text-align: center;
+            border-radius: 8px;
+            margin: 25px 0;
+        }
+        
+        .cta-button {
+            display: inline-block;
+            background-color: #ffffff;
+            color: #667eea;
+            padding: 12px 30px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            margin-top: 15px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .cta-button:hover {
+            background-color: #f7fafc;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+        }
+        
+        .footer {
+            background-color: #2d3748;
+            color: #a0aec0;
+            padding: 25px 20px;
+            text-align: center;
+            font-size: 14px;
+        }
+        
+        .footer h4 {
+            color: #ffffff;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        
+        .logo {
+            font-size: 32px;
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+        
+        .divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
+            margin: 25px 0;
+        }
+        
+        @media only screen and (max-width: 600px) {
+            .email-container {
+                margin: 10px;
+                border-radius: 8px;
+            }
+            
+            .header {
+                padding: 20px 15px;
+            }
+            
+            .header h1 {
+                font-size: 24px;
+            }
+            
+            .content {
+                padding: 20px 15px;
+            }
+            
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .payment-alert .amount {
+                font-size: 28px;
+            }
+            
+            .section-content {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">💰</div>
+            <h1>{{ company_name|default:"GNAGRO S.A." }}</h1>
+            <p>Comprobante de Nómina</p>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <!-- Greeting -->
+            <div class="greeting">
+                ¡Hola {{ employee.user.get_full_name }}!
+            </div>
+
+            <!-- Payment Alert -->
+            <div class="payment-alert">
+                <h2>✅ ¡Tu pago ha sido procesado!</h2>
+                <div class="amount">${{ payroll_data.net_pay|floatformat:2 }}</div>
+                <p>Período: {{ payroll_data.period_full }}</p>
+            </div>
+
+            <!-- Payment Information -->
+            <div class="payment-info">
+                <h3>📋 Información del Pago</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">Período:</span>
+                        <span class="info-value">{{ payroll_data.period }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Fecha de Pago:</span>
+                        <span class="info-value">{{ payroll_data.payment_date|date:"d/m/Y" }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">Método:</span>
+                        <span class="info-value">{{ payroll_data.payment_method|default:"Transferencia bancaria" }}</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">ID Empleado:</span>
+                        <span class="info-value">{{ employee.employee_number }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Earnings Section -->
+            <div class="section">
+                <div class="section-header">
+                    <h3>💵 Ingresos</h3>
+                </div>
+                <div class="section-content">
+                    <table class="detail-table">
+                        <tr>
+                            <td class="label">Salario Base</td>
+                            <td class="value positive">${{ payroll_data.base_salary|floatformat:2 }}</td>
+                        </tr>
+                        
+                        {% if payroll_data.overtime_pay > 0 %}
+                        <tr>
+                            <td class="label">Horas Extras</td>
+                            <td class="value positive">${{ payroll_data.overtime_pay|floatformat:2 }}</td>
+                        </tr>
+                        {% endif %}
+                        
+                        {% if payroll_data.bonus > 0 %}
+                        <tr>
+                            <td class="label">Bonificaciones</td>
+                            <td class="value positive">${{ payroll_data.bonus|floatformat:2 }}</td>
+                        </tr>
+                        {% endif %}
+                        
+                        {% if payroll_data.commission > 0 %}
+                        <tr>
+                            <td class="label">Comisiones</td>
+                            <td class="value positive">${{ payroll_data.commission|floatformat:2 }}</td>
+                        </tr>
+                        {% endif %}
+                        
+                        {% if payroll_data.allowances > 0 %}
+                        <tr>
+                            <td class="label">Subsidios</td>
+                            <td class="value positive">${{ payroll_data.allowances|floatformat:2 }}</td>
+                        </tr>
+                        {% endif %}
+                        
+                        <!-- Ingresos adicionales de rubros -->
+                        {% for ingreso in payroll_data.ingresos_adicionales %}
+                        <tr>
+                            <td class="label">{{ ingreso.nombre }}</td>
+                            <td class="value positive">${{ ingreso.monto|floatformat:2 }}</td>
+                        </tr>
+                        {% endfor %}
+                        
+                        <tr class="total-row">
+                            <td class="label">Total Bruto</td>
+                            <td class="value positive">${{ payroll_data.gross_pay|floatformat:2 }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Deductions Section -->
+            {% if payroll_data.total_deductions > 0 or payroll_data.egresos_adicionales %}
+            <div class="section">
+                <div class="section-header">
+                    <h3>📉 Descuentos y Deducciones</h3>
+                </div>
+                <div class="section-content">
+                    <table class="detail-table">
+                        {% if payroll_data.income_tax > 0 %}
+                        <tr>
+                            <td class="label">Impuesto a la Renta</td>
+                            <td class="value negative">-${{ payroll_data.income_tax|floatformat:2 }}</td>
+                        </tr>
+                        {% endif %}
+                        
+                        {% if payroll_data.social_security > 0 %}
+                        <tr>
+                            <td class="label">Seguridad Social</td>
+                            <td class="value negative">-${{ payroll_data.social_security|floatformat:2 }}</td>
+                        </tr>
+                        {% endif %}
+                        
+                        {% if payroll_data.health_insurance > 0 %}
+                        <tr>
+                            <td class="label">Seguro de Salud</td>
+                            <td class="value negative">-${{ payroll_data.health_insurance|floatformat:2 }}</td>
+                        </tr>
+                        {% endif %}
+                        
+                        {% if payroll_data.other_deductions > 0 %}
+                        <tr>
+                            <td class="label">Otras Deducciones</td>
+                            <td class="value negative">-${{ payroll_data.other_deductions|floatformat:2 }}</td>
+                        </tr>
+                        {% endif %}
+                        
+                        <!-- Egresos adicionales de rubros -->
+                        {% for egreso in payroll_data.egresos_adicionales %}
+                        <tr>
+                            <td class="label">
+                                {{ egreso.nombre }}
+                                {% if egreso.es_adelanto %}
+                                <br><small style="color: #f6ad55;">(Adelanto)</small>
+                                {% endif %}
+                            </td>
+                            <td class="value negative">-${{ egreso.monto|floatformat:2 }}</td>
+                        </tr>
+                        {% if egreso.es_adelanto and egreso.fecha_adelanto %}
+                        <tr>
+                            <td colspan="2">
+                                <div class="adelanto-note">
+                                    ⚠️ Adelanto correspondiente al {{ egreso.fecha_adelanto|date:"d/m/Y" }}
+                                    {% if egreso.observaciones %}
+                                    <br>Motivo: {{ egreso.observaciones }}
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                        
+                        <tr class="total-row">
+                            <td class="label">Total Deducciones</td>
+                            <td class="value negative">
+                                -${{ payroll_data.total_deducciones_completo|floatformat:2 }}
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Net Pay Section -->
+            <div class="section">
+                <div class="section-header" style="background: linear-gradient(135deg, #48bb78 0%, #38a169 100%); color: white;">
+                    <h3>💰 Pago Neto Final</h3>
+                </div>
+                <div class="section-content">
+                    <table class="detail-table">
+                        <tr class="total-row" style="font-size: 20px; background: linear-gradient(135deg, #f0fff4 0%, #c6f6d5 100%);">
+                            <td class="label" style="color: #2d3748;">Total a Recibir</td>
+                            <td class="value positive" style="color: #38a169; font-size: 24px;">
+                                ${{ payroll_data.net_pay|floatformat:2 }}
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- CTA Section -->
+            <div class="cta-section">
+                <h3>🔍 ¿Necesitas más detalles?</h3>
+                <p>Ingresa a tu portal de empleado para ver el historial completo de tus pagos y descargar recibos.</p>
+                <a href="{{ site_url }}/employee/payroll/" class="cta-button">
+                    Ver Mi Portal 🚀
+                </a>
+            </div>
+
+            <!-- Important Notes -->
+            <div style="background-color: #fef5e7; border: 1px solid #f6e05e; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                <h4 style="color: #744210; margin-bottom: 10px;">📌 Información Importante</h4>
+                <ul style="color: #744210; margin-left: 20px; line-height: 1.8;">
+                    <li>Este es un comprobante automático generado por el sistema.</li>
+                    <li>Conserva este email como comprobante de pago.</li>
+                    <li>Si encuentras algún error, contacta a Recursos Humanos inmediatamente.</li>
+                    <li>Para consultas sobre tu nómina, utiliza los canales oficiales de comunicación.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <h4>{{ company_name|default:"GNAGRO S.A." }}</h4>
+            <p>
+                📧 Email: <a href="mailto:rh@gnagro.com">rh@gnagro.com</a><br>
+                📞 Teléfono: +593 999 999 999<br>
+                🕒 Horario: Lunes a Viernes, 8:00 AM - 5:00 PM
+            </p>
+            <p style="margin-top: 15px; font-size: 12px; opacity: 0.8;">
+                Este email fue enviado automáticamente. Por favor, no respondas a esta dirección.<br>
+                © 2025 {{ company_name|default:"GNAGRO S.A." }} - Todos los derechos reservados.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

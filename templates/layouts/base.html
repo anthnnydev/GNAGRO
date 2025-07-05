@@ -37,7 +37,7 @@
                     <a href="{% url 'employees:employee_list' %}" class="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
                         <i class="fas fa-users mr-2"></i>Empleados
                     </a>
-                    <a href="#" class="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                    <a href="{% url 'payroll:nomina_dashboard' %}" class="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
                         <i class="fas fa-money-bill-wave mr-2"></i>Nómina
                     </a>
                     <a href="#" class="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
@@ -127,10 +127,10 @@
                     <a href="{% url 'users:dashboard' %}" class="block px-3 py-2 text-gray-700 hover:text-primary-600 font-medium">
                         <i class="fas fa-tachometer-alt mr-2"></i>Dashboard
                     </a>
-                    <a href="#" class="block px-3 py-2 text-gray-700 hover:text-primary-600 font-medium">
+                    <a href="{% url 'employees:employee_list' %}" class="block px-3 py-2 text-gray-700 hover:text-primary-600 font-medium">
                         <i class="fas fa-users mr-2"></i>Empleados
                     </a>
-                    <a href="#" class="block px-3 py-2 text-gray-700 hover:text-primary-600 font-medium">
+                    <a href="{% url 'payroll:nomina_dashboard' %}" class="block px-3 py-2 text-gray-700 hover:text-primary-600 font-medium">
                         <i class="fas fa-money-bill-wave mr-2"></i>Nómina
                     </a>
                     <a href="#" class="block px-3 py-2 text-gray-700 hover:text-primary-600 font-medium">

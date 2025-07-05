@@ -1,0 +1,476 @@
+{% extends 'layouts/base.html' %}
+
+{% block title %}{{ period.name }} - Detalle de Período - Sistema de Nómina{% endblock %}
+
+{% block content %}
+
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">{{ period.name }}</h1>
+                    <p class="text-gray-600 mt-1">
+                        {{ period.start_date|date:"d/m/Y" }} - {{ period.end_date|date:"d/m/Y" }} • 
+                        Pago: {{ period.pay_date|date:"d/m/Y" }}
+                    </p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'payroll:period_list' %}" 
+                       class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i>
+                        Volver a Lista
+                    </a>
+                    {% if perms.payroll.change_payrollperiod %}
+                    <a href="{% url 'payroll:period_form' period.pk %}" 
+                       class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-edit mr-2"></i>
+                        Editar
+                    </a>
+                    {% endif %}
+                    {% if period.status == 'draft' and perms.payroll.change_payrollperiod %}
+                    <a href="{% url 'payroll:period_generate_payrolls' period.pk %}" 
+                       class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                        <i class="fas fa-cogs mr-2"></i>
+                        Generar Nóminas
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Información del Período -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+            <!-- Información General -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                    Información General
+                </h3>
+                <dl class="space-y-3 text-sm">
+                    <div>
+                        <dt class="font-medium text-gray-500">Tipo de Período</dt>
+                        <dd class="text-gray-900">{{ period.get_period_type_display }}</dd>
+                    </div>
+                    <div>
+                        <dt class="font-medium text-gray-500">Estado</dt>
+                        <dd>
+                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full 
+                                {% if period.status == 'draft' %}bg-yellow-100 text-yellow-800
+                                {% elif period.status == 'processing' %}bg-blue-100 text-blue-800
+                                {% elif period.status == 'completed' %}bg-green-100 text-green-800
+                                {% elif period.status == 'paid' %}bg-purple-100 text-purple-800
+                                {% elif period.status == 'cancelled' %}bg-red-100 text-red-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ period.get_status_display }}
+                            </span>
+                            {% if period.is_closed %}
+                            <span class="inline-flex px-2 py-1 text-xs font-medium rounded bg-gray-100 text-gray-800 ml-2">
+                                <i class="fas fa-lock mr-1"></i>
+                                Cerrado
+                            </span>
+                            {% endif %}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="font-medium text-gray-500">Duración</dt>
+                        <dd class="text-gray-900">{{ period.start_date|timesince:period.end_date }}</dd>
+                    </div>
+                    <div>
+                        <dt class="font-medium text-gray-500">Creado por</dt>
+                        <dd class="text-gray-900">{{ period.created_by.get_full_name|default:"Sistema" }}</dd>
+                    </div>
+                    <div>
+                        <dt class="font-medium text-gray-500">Fecha de Creación</dt>
+                        <dd class="text-gray-900">{{ period.created_at|date:"d/m/Y H:i" }}</dd>
+                    </div>
+                </dl>
+            </div>
+
+            <!-- Estadísticas Financieras -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-chart-line text-green-600 mr-2"></i>
+                    Resumen Financiero
+                </h3>
+                <div class="space-y-4">
+                    <div class="text-center p-4 bg-green-50 rounded-lg border border-green-200">
+                        <div class="text-2xl font-bold text-green-600">
+                            ${{ total_gross_pay|default:0|floatformat:2 }}
+                        </div>
+                        <div class="text-sm text-green-700 font-medium">Pago Bruto Total</div>
+                    </div>
+                    <div class="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
+                        <div class="text-2xl font-bold text-blue-600">
+                            ${{ total_net_pay|default:0|floatformat:2 }}
+                        </div>
+                        <div class="text-sm text-blue-700 font-medium">Pago Neto Total</div>
+                    </div>
+                    <div class="text-center p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <div class="text-lg font-bold text-gray-600">
+                            {{ total_employees|default:0 }}
+                        </div>
+                        <div class="text-sm text-gray-700 font-medium">Empleados</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Fechas Importantes -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-calendar-alt text-purple-600 mr-2"></i>
+                    Fechas Importantes
+                </h3>
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                        <div>
+                            <div class="font-medium text-blue-900">Inicio del Período</div>
+                            <div class="text-sm text-blue-700">{{ period.start_date|date:"l, d \d\e F \d\e Y" }}</div>
+                        </div>
+                        <div class="text-blue-600">
+                            <i class="fas fa-play-circle text-lg"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
+                        <div>
+                            <div class="font-medium text-orange-900">Fin del Período</div>
+                            <div class="text-sm text-orange-700">{{ period.end_date|date:"l, d \d\e F \d\e Y" }}</div>
+                        </div>
+                        <div class="text-orange-600">
+                            <i class="fas fa-stop-circle text-lg"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                        <div>
+                            <div class="font-medium text-green-900">Fecha de Pago</div>
+                            <div class="text-sm text-green-700">{{ period.pay_date|date:"l, d \d\e F \d\e Y" }}</div>
+                        </div>
+                        <div class="text-green-600">
+                            <i class="fas fa-dollar-sign text-lg"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Notas del Período -->
+        {% if period.notes %}
+        <div class="bg-yellow-50 rounded-xl border border-yellow-200 p-6 mb-8">
+            <h3 class="text-lg font-semibold text-yellow-900 mb-3">
+                <i class="fas fa-sticky-note text-yellow-600 mr-2"></i>
+                Notas del Período
+            </h3>
+            <p class="text-yellow-800">{{ period.notes }}</p>
+        </div>
+        {% endif %}
+
+        <!-- Lista de Nóminas -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-900">
+                        Nóminas del Período
+                        <span class="text-sm font-normal text-gray-500">({{ payrolls.count }} total)</span>
+                    </h3>
+                    <div class="flex space-x-2">
+                        {% if period.status == 'draft' and perms.payroll.change_payrollperiod %}
+                        <a href="{% url 'payroll:period_generate_payrolls' period.pk %}" 
+                           class="px-3 py-1 text-sm bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors">
+                            <i class="fas fa-cogs mr-2"></i>
+                            Generar Nóminas
+                        </a>
+                        {% endif %}
+                        <button class="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors">
+                            <i class="fas fa-download mr-2"></i>
+                            Exportar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {% if payrolls %}
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Empleado
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Salario Base
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Pago Bruto
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Deducciones
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Pago Neto
+                            </th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Estado
+                            </th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Acciones
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for payroll in payrolls %}
+                        <tr class="hover:bg-gray-50 {% if not payroll.is_paid %}bg-yellow-50{% endif %}">
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="flex items-center">
+                                    {% if payroll.employee.user.profile_picture %}
+                                        <img class="h-8 w-8 rounded-full object-cover" 
+                                             src="{{ payroll.employee.user.profile_picture.url }}" 
+                                             alt="{{ payroll.employee.user.get_full_name }}">
+                                    {% else %}
+                                        <div class="h-8 w-8 bg-primary-600 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                                            {{ payroll.employee.user.first_name|first|upper }}{{ payroll.employee.user.last_name|first|upper }}
+                                        </div>
+                                    {% endif %}
+                                    <div class="ml-3">
+                                        <div class="text-sm font-medium text-gray-900">
+                                            {{ payroll.employee.user.get_full_name }}
+                                        </div>
+                                        <div class="text-xs text-gray-500">
+                                            {{ payroll.employee.employee_number }} • {{ payroll.employee.department.name }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-gray-900">${{ payroll.base_salary|floatformat:2 }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-green-600">${{ payroll.gross_pay|floatformat:2 }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-medium text-red-600">${{ payroll.total_deductions|floatformat:2 }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div class="text-sm font-bold text-blue-600">${{ payroll.net_pay|floatformat:2 }}</div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                {% if payroll.is_paid %}
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">
+                                        <i class="fas fa-check-circle mr-1"></i>
+                                        Pagada
+                                    </span>
+                                {% else %}
+                                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                                        <i class="fas fa-clock mr-1"></i>
+                                        Pendiente
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                <div class="flex items-center justify-end space-x-2">
+                                    <a href="{% url 'payroll:payroll_detail' payroll.pk %}" 
+                                       class="text-primary-600 hover:text-primary-700 p-1 rounded" 
+                                       title="Ver detalles">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    
+                                    {% if perms.payroll.change_payroll %}
+                                    <a href="{% url 'payroll:payroll_edit' payroll.pk %}" 
+                                       class="text-blue-600 hover:text-blue-700 p-1 rounded" 
+                                       title="Editar">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    {% endif %}
+                                    
+                                    {% if not payroll.is_paid and perms.payroll.change_payroll %}
+                                    <form method="post" action="{% url 'payroll:payroll_mark_paid' payroll.pk %}" class="inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="payment_method" value="efectivo">
+                                        <button type="submit" 
+                                                class="text-green-600 hover:text-green-700 p-1 rounded" 
+                                                title="Marcar como pagada"
+                                                onclick="return confirm('¿Marcar esta nómina como pagada?')">
+                                            <i class="fas fa-dollar-sign"></i>
+                                        </button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Resumen del Período -->
+            <div class="bg-gray-50 px-6 py-4 border-t border-gray-200">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
+                    <div class="text-center">
+                        <div class="font-medium text-gray-900">{{ payrolls.count }}</div>
+                        <div class="text-gray-500">Nóminas</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="font-medium text-green-600">${{ total_gross_pay|default:0|floatformat:2 }}</div>
+                        <div class="text-gray-500">Total Bruto</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="font-medium text-red-600">
+                            ${% for payroll in payrolls %}{{ payroll.total_deductions|add:0 }}{% if not forloop.last %}+{% endif %}{% empty %}0.00{% endfor %}
+                        </div>
+                        <div class="text-gray-500">Total Deducciones</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="font-medium text-blue-600">${{ total_net_pay|default:0|floatformat:2 }}</div>
+                        <div class="text-gray-500">Total Neto</div>
+                    </div>
+                </div>
+            </div>
+
+            {% else %}
+            <!-- Estado sin nóminas -->
+            <div class="px-6 py-12 text-center">
+                <div class="text-gray-400 mb-4">
+                    <i class="fas fa-file-invoice-dollar text-6xl"></i>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">No hay nóminas generadas</h3>
+                <p class="text-gray-500 mb-6">
+                    Este período aún no tiene nóminas generadas para los empleados.
+                </p>
+                {% if period.status == 'draft' and perms.payroll.change_payrollperiod %}
+                <a href="{% url 'payroll:period_generate_payrolls' period.pk %}" 
+                   class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors inline-flex items-center">
+                    <i class="fas fa-cogs mr-2"></i>
+                    Generar Nóminas Automáticamente
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Acciones del Período -->
+        {% if period.status == 'draft' or period.status == 'processing' %}
+        <div class="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                <i class="fas fa-tasks text-orange-600 mr-2"></i>
+                Acciones Disponibles
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {% if period.status == 'draft' and perms.payroll.change_payrollperiod %}
+                <a href="{% url 'payroll:period_generate_payrolls' period.pk %}" 
+                   class="flex items-center p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors group">
+                    <div class="bg-green-600 p-3 rounded-full group-hover:bg-green-700 transition-colors">
+                        <i class="fas fa-cogs text-white"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="font-medium text-green-900">Generar Nóminas</p>
+                        <p class="text-sm text-green-600">Crear nóminas para todos los empleados</p>
+                    </div>
+                </a>
+                {% endif %}
+
+                {% if perms.payroll.add_payroll %}
+                <a href="{% url 'payroll:payroll_create' %}?period={{ period.pk }}" 
+                   class="flex items-center p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors group">
+                    <div class="bg-blue-600 p-3 rounded-full group-hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-plus text-white"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="font-medium text-blue-900">Nueva Nómina</p>
+                        <p class="text-sm text-blue-600">Crear nómina individual</p>
+                    </div>
+                </a>
+                {% endif %}
+
+                {% if payrolls and perms.payroll.change_payrollperiod %}
+                <div class="flex items-center p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors group cursor-pointer"
+                     onclick="massMarkAsPaid()">
+                    <div class="bg-purple-600 p-3 rounded-full group-hover:bg-purple-700 transition-colors">
+                        <i class="fas fa-check-double text-white"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="font-medium text-purple-900">Marcar Todas Pagadas</p>
+                        <p class="text-sm text-purple-600">Marcar todas las nóminas como pagadas</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Función para marcar todas las nóminas como pagadas
+    function massMarkAsPaid() {
+        const unpaidCount = document.querySelectorAll('span.bg-yellow-100').length;
+        
+        if (unpaidCount === 0) {
+            alert('Todas las nóminas ya están marcadas como pagadas.');
+            return;
+        }
+
+        if (!confirm(`¿Está seguro que desea marcar ${unpaidCount} nómina(s) como pagadas?\n\nEsta acción no se puede deshacer.`)) {
+            return;
+        }
+
+        // En una implementación real, harías una petición AJAX aquí
+        alert('Funcionalidad en desarrollo. Por favor, marque las nóminas individualmente.');
+    }
+
+    // Confirmación para marcar nóminas individuales como pagadas
+    document.querySelectorAll('form[action*="marcar-pagado"]').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const employeeName = this.closest('tr').querySelector('.font-medium').textContent.trim();
+            if (confirm(`¿Marcar la nómina de ${employeeName} como pagada?\n\nEsta acción no se puede deshacer.`)) {
+                this.submit();
+            }
+        });
+    });
+
+    // Efectos hover para las filas de la tabla
+    const tableRows = document.querySelectorAll('tbody tr');
+    tableRows.forEach(row => {
+        row.addEventListener('mouseenter', function() {
+            this.style.transform = 'scale(1.002)';
+            this.style.transition = 'transform 0.2s ease';
+        });
+        
+        row.addEventListener('mouseleave', function() {
+            this.style.transform = 'scale(1)';
+        });
+    });
+
+    // Efectos hover para las tarjetas de acción
+    const actionCards = document.querySelectorAll('.group');
+    actionCards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'scale(1.02)';
+            this.style.transition = 'transform 0.2s ease';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'scale(1)';
+        });
+    });
+
+    // Animación de entrada para las tarjetas de estadísticas
+    const statCards = document.querySelectorAll('.grid > .bg-white');
+    statCards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+            card.style.transition = 'all 0.5s ease';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
+</script>
+{% endblock %}
