@@ -41,7 +41,6 @@ INSTALLED_APPS = [
     'core.leaves',
     'core.notifications',
     'core.tasks',
-    'core.external_payments',
 ]
 
 MIDDLEWARE = [
@@ -55,7 +54,6 @@ MIDDLEWARE = [
     
     'core.employees.middleware.EmployeePasswordChangeMiddleware',
     'core.employees.middleware.EmployeeAccessMiddleware',
-    'core.employees.middleware.SupervisorAccessMiddleware',
 ]
 
 # AGREGAR ESTA LÍNEA:

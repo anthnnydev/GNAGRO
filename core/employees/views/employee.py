@@ -2,7 +2,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin, PermissionRequiredMixin
-from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView
+from django.views.generic import ListView, CreateView, UpdateView, DeleteView, DetailView, TemplateView
 from django.urls import reverse_lazy
 from django.db import transaction
 from django.contrib.auth import get_user_model
@@ -16,6 +16,35 @@ from core.employees.models import Employee, Department, Position, EmployeeDocume
 from core.employees.forms.EmployeeForm import EmployeeForm, UserEmployeeForm, EmployeeDocumentForm
 
 User = get_user_model()
+
+class EmployeeLoginRequiredMixin(LoginRequiredMixin):
+    """Mixin que verifica que el usuario tenga employee_profile"""
+    
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
+        
+        # CORREGIDO: Verificar employee_profile en lugar de admin_profile
+        if not hasattr(request.user, 'employee_profile'):
+            messages.error(request, 'No tienes un perfil de empleado asociado.')
+            if request.user.is_staff:
+                return redirect('users:dashboard')
+            else:
+                return redirect('users:login')
+        
+        return super().dispatch(request, *args, **kwargs)
+    
+class EmployeePasswordChangeRequiredMixin:
+    """Mixin que redirige a cambio de contraseña si es necesario"""
+    
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated and hasattr(request.user, 'admin_profile'):
+            # Verificar si necesita cambiar contraseña temporal
+            if hasattr(request.user, 'needs_password_change') and request.user.needs_password_change:
+                # Solo permitir acceso a la vista de cambio de contraseña
+                if request.resolver_match.url_name != 'employee_change_password':
+                    return redirect('employees:employee_change_password')
+        return super().dispatch(request, *args, **kwargs)
 
 
 class EmployeeListView(LoginRequiredMixin, ListView):
@@ -181,6 +210,41 @@ class EmployeeCreateView(LoginRequiredMixin, PermissionRequiredMixin, CreateView
     def form_invalid(self, form):
         messages.error(self.request, 'Por favor corrige los errores en el formulario.')
         return super().form_invalid(form)
+    
+class AdminProfileView(LoginRequiredMixin, TemplateView):
+    """Vista del perfil del empleado - funciona para todos los tipos de usuario"""
+    template_name = 'pages/admin/profile/profile.html'
+    
+    def dispatch(self, request, *args, **kwargs):
+        # Verificar que tiene employee_profile
+        if not hasattr(request.user, 'employee_profile'):
+            messages.error(request, 'No tienes un perfil de empleado asociado.')
+            if request.user.is_staff:
+                return redirect('users:dashboard')
+            else:
+                return redirect('users:login')
+        
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        employee = self.request.user.employee_profile
+        
+        context['employee'] = employee
+        context['user'] = self.request.user
+        
+        # Información adicional
+        context['supervisor'] = employee.supervisor
+        context['subordinates'] = employee.subordinates.filter(status='active') if hasattr(employee, 'subordinates') else None
+        context['department_info'] = employee.department
+        context['position_info'] = employee.position
+        
+        # Información específica para admins
+        if self.request.user.is_staff:
+            context['is_admin'] = True
+            context['admin_permissions'] = self.request.user.get_all_permissions()
+        
+        return context
 
 
 class EmployeeUpdateView(LoginRequiredMixin, PermissionRequiredMixin, UpdateView):

@@ -257,6 +257,38 @@ class SupervisorDashboardView(SupervisorRequiredMixin, LoginRequiredMixin, Emplo
         
         return context
 
+class EmployeeLoginRequiredMixin(LoginRequiredMixin):
+    """Mixin que verifica que el usuario sea empleado"""
+    
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
+        
+        if not hasattr(request.user, 'employee_profile'):
+            messages.error(request, 'No tienes permisos para acceder a esta sección.')
+            return redirect('core:home')
+        
+        return super().dispatch(request, *args, **kwargs)
+    
+class SupervisorProfileView(EmployeeLoginRequiredMixin, EmployeePasswordChangeRequiredMixin, TemplateView):
+    """Vista del perfil del empleado"""
+    template_name = 'pages/supervisor/profile/profile.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        employee = self.request.user.employee_profile
+        
+        context['employee'] = employee
+        context['user'] = self.request.user
+        
+        # Información adicional
+        context['supervisor'] = employee.supervisor
+        context['subordinates'] = employee.subordinates.filter(status='active')
+        context['department_info'] = employee.department
+        context['position_info'] = employee.position
+        
+        return context
+
 
 class SupervisorTeamView(SupervisorRequiredMixin, LoginRequiredMixin, EmployeePasswordChangeRequiredMixin, ListView):
     """Vista del equipo del supervisor"""

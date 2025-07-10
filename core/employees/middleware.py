@@ -1,4 +1,3 @@
-# core/employees/middleware.py
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils.deprecation import MiddlewareMixin
@@ -47,7 +46,7 @@ class EmployeePasswordChangeMiddleware(MiddlewareMixin):
 
 class EmployeeAccessMiddleware(MiddlewareMixin):
     """
-    Middleware que redirige automáticamente según el tipo de usuario
+    Middleware que redirige automáticamente según el tipo de usuario - 3 ROLES
     """
     
     def process_request(self, request):
@@ -57,7 +56,7 @@ class EmployeeAccessMiddleware(MiddlewareMixin):
         
         # URLs que no deben ser procesadas por este middleware
         exempt_urls = [
-            '/admin/',
+            '/admin/',  # Django admin
             '/static/',
             '/media/',
             '/api/',
@@ -77,15 +76,22 @@ class EmployeeAccessMiddleware(MiddlewareMixin):
         # Obtener el tipo de usuario
         user_type = getattr(request.user, 'user_type', 'employee')
         
-        # ==================== REDIRECCIONES PARA SUPERVISORES ====================
-        if user_type in ['supervisor', 'admin', 'hr']:
+        # ==================== REDIRECCIONES PARA ADMINISTRADORES ====================
+        if user_type == 'admin' or request.user.is_superuser:
             
-            # Si está accediendo a la raíz, redirigir al dashboard de supervisor
+            # Administradores van al dashboard de users
+            if request.path == '/' or request.path == '/employees/':
+                return redirect('users:dashboard')
+            
+            # Permitir acceso libre a TODAS las URLs
+            return None
+        
+        # ==================== REDIRECCIONES PARA SUPERVISORES ====================
+        elif user_type == 'supervisor':
+            
             if request.path == '/' or request.path == '/employees/':
                 return redirect('employees:supervisor_dashboard')
             
-            # Si está accediendo a URLs de empleado regular, permitir (puede ver ambas vistas)
-            # Pero si está en /employees/dashboard/, redirigir al supervisor
             if request.path == '/employees/dashboard/':
                 return redirect('employees:supervisor_dashboard')
         
@@ -104,54 +110,5 @@ class EmployeeAccessMiddleware(MiddlewareMixin):
             # Si está accediendo a la raíz, redirigir al dashboard de empleado
             if request.path == '/' or request.path == '/employees/':
                 return redirect('employees:employee_dashboard')
-        
-        # ==================== REDIRECCIONES PARA STAFF/SUPERUSER SIN EMPLOYEE_PROFILE ====================
-        # Si es admin/staff pero no tiene employee_profile y está accediendo a la raíz
-        if ((request.user.is_staff or request.user.is_superuser) and
-            request.path == '/'):
-            return redirect('users:dashboard')
-        
-        return None
-
-
-class SupervisorAccessMiddleware(MiddlewareMixin):
-    """
-    Middleware específico para redirecciones de supervisor
-    """
-    
-    def process_request(self, request):
-        # Solo aplicar a usuarios autenticados con employee_profile
-        if (not request.user.is_authenticated or 
-            not hasattr(request.user, 'employee_profile')):
-            return None
-        
-        # Solo aplicar a supervisores
-        user_type = getattr(request.user, 'user_type', 'employee')
-        if user_type not in ['supervisor', 'admin', 'hr']:
-            return None
-        
-        # URLs que no deben ser procesadas
-        exempt_paths = [
-            '/static/',
-            '/media/',
-            '/admin/',
-            '/api/',
-            '/users/logout/',
-            '/employees/change-password/',
-        ]
-        
-        for exempt_path in exempt_paths:
-            if request.path.startswith(exempt_path):
-                return None
-        
-        # Si el supervisor está accediendo a URLs específicas, redirigir apropiadamente
-        redirections = {
-            '/employees/dashboard/': 'employees:supervisor_dashboard',
-            '/employees/': 'employees:supervisor_dashboard',
-            '/': 'employees:supervisor_dashboard',
-        }
-        
-        if request.path in redirections:
-            return redirect(redirections[request.path])
         
         return None

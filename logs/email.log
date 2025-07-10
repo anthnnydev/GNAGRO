@@ -56,3 +56,42 @@ INFO 2025-07-04 10:29:55,968 utils 16288 7540 Los egresos adicionales ya están i
 INFO 2025-07-04 10:29:58,117 utils 16288 7540 Notificación de nómina enviada a: zanthonygg@gmail.com
 INFO 2025-07-04 10:45:05,056 utils 6960 12240 Los egresos adicionales ya están incluidos en total_deductions: $125.25
 INFO 2025-07-04 10:45:07,038 utils 6960 12240 Notificación de nómina enviada a: zanthonygg@gmail.com
+INFO 2025-07-05 20:57:08,547 utils 25484 23704 Los egresos adicionales ya están incluidos en total_deductions: $261.99
+INFO 2025-07-05 20:57:10,687 utils 25484 23704 Notificación de nómina enviada a: zanthonygg@gmail.com
+INFO 2025-07-05 20:59:23,044 utils 25484 28988 Los egresos adicionales ya están incluidos en total_deductions: $125.25
+INFO 2025-07-05 20:59:25,242 utils 25484 28988 Notificación de nómina enviada a: zanthonygg@gmail.com
+INFO 2025-07-08 21:08:26,112 utils 11348 4732 Los egresos adicionales ya están incluidos en total_deductions: $250.50
+INFO 2025-07-08 21:08:28,361 utils 11348 4732 Notificación de nómina enviada a: zanthonygg@gmail.com
+INFO 2025-07-08 21:08:36,173 utils 11348 4732 Los egresos adicionales ya están incluidos en total_deductions: $1503.00
+INFO 2025-07-08 21:08:38,148 utils 11348 4732 Notificación de nómina enviada a: zanthonygg@gmail.com
+INFO 2025-07-08 21:25:15,542 utils 7528 16484 Enviando email desde: Sistema de Nómina <onboarding@resend.dev>
+INFO 2025-07-08 21:25:15,542 utils 7528 16484 Support email configurado: onboarding@resend.dev
+INFO 2025-07-08 21:25:18,197 utils 7528 16484 Credenciales enviadas por email a: zanthonygg@gmail.com
+INFO 2025-07-09 04:24:04,143 utils 25732 10560 Enviando email desde: Sistema de Nómina <onboarding@resend.dev>
+INFO 2025-07-09 04:24:04,145 utils 25732 10560 Support email configurado: onboarding@resend.dev
+ERROR 2025-07-09 04:24:06,225 utils 25732 10560 Error enviando credenciales a adonishcf@gmail.com: (450, b'You can only send testing emails to your own email address (zanthonygg@gmail.com). To send emails to other recipients, please verify a domain at resend.com/domains, and change the `from` address to an email using this domain.')
+INFO 2025-07-09 04:25:53,573 utils 25732 21916 Enviando email desde: Sistema de Nómina <onboarding@resend.dev>
+INFO 2025-07-09 04:25:53,574 utils 25732 21916 Support email configurado: onboarding@resend.dev
+ERROR 2025-07-09 04:25:55,153 utils 25732 21916 Error enviando credenciales a obitomcy@gmail.com: (450, b'You can only send testing emails to your own email address (zanthonygg@gmail.com). To send emails to other recipients, please verify a domain at resend.com/domains, and change the `from` address to an email using this domain.')
+INFO 2025-07-09 04:27:31,632 utils 25732 21916 Enviando email desde: Sistema de Nómina <onboarding@resend.dev>
+INFO 2025-07-09 04:27:31,632 utils 25732 21916 Support email configurado: onboarding@resend.dev
+ERROR 2025-07-09 04:27:33,205 utils 25732 21916 Error enviando credenciales a alopezlei22@gmail.com: (450, b'You can only send testing emails to your own email address (zanthonygg@gmail.com). To send emails to other recipients, please verify a domain at resend.com/domains, and change the `from` address to an email using this domain.')
+INFO 2025-07-09 04:29:14,563 utils 25732 21916 Enviando email desde: Sistema de Nómina <onboarding@resend.dev>
+INFO 2025-07-09 04:29:14,564 utils 25732 21916 Support email configurado: onboarding@resend.dev
+INFO 2025-07-09 04:29:16,486 utils 25732 21916 Credenciales enviadas por email a: zanthonygg@gmail.com
+INFO 2025-07-09 04:53:20,862 utils 25136 6464 Los egresos adicionales ya están incluidos en total_deductions: $751.50
+INFO 2025-07-09 04:53:23,064 utils 25136 6464 Notificación de nómina enviada a: zanthonygg@gmail.com
+INFO 2025-07-09 04:53:23,267 utils 25136 6464 Los egresos adicionales ya están incluidos en total_deductions: $182.18
+INFO 2025-07-09 04:53:25,040 utils 25136 6464 Notificación de nómina enviada a: zanthonygg@gmail.com
+INFO 2025-07-09 04:53:25,223 utils 25136 6464 Los egresos adicionales ya están incluidos en total_deductions: $751.50
+INFO 2025-07-09 04:53:27,014 utils 25136 6464 Notificación de nómina enviada a: zanthonygg@gmail.com
+INFO 2025-07-09 04:53:27,332 utils 25136 6464 Los egresos adicionales ya están incluidos en total_deductions: $250.50
+INFO 2025-07-09 04:53:29,129 utils 25136 6464 Notificación de nómina enviada a: zanthonygg@gmail.com
+INFO 2025-07-09 04:53:29,248 utils 25136 6464 Los egresos adicionales ya están incluidos en total_deductions: $250.50
+INFO 2025-07-09 04:53:31,036 utils 25136 6464 Notificación de nómina enviada a: zanthonygg@gmail.com
+INFO 2025-07-09 04:53:31,151 utils 25136 6464 Los egresos adicionales ya están incluidos en total_deductions: $1503.00
+INFO 2025-07-09 04:53:32,988 utils 25136 6464 Notificación de nómina enviada a: zanthonygg@gmail.com
+INFO 2025-07-09 04:53:33,099 utils 25136 6464 Los egresos adicionales ya están incluidos en total_deductions: $250.50
+INFO 2025-07-09 04:53:34,895 utils 25136 6464 Notificación de nómina enviada a: zanthonygg@gmail.com
+INFO 2025-07-09 04:53:35,021 utils 25136 6464 Los egresos adicionales ya están incluidos en total_deductions: $1503.00
+INFO 2025-07-09 04:53:36,840 utils 25136 6464 Notificación de nómina enviada a: zanthonygg@gmail.com

@@ -14,11 +14,9 @@ urlpatterns = [
     path('admin/<int:pk>/', employee.EmployeeDetailView.as_view(), name='employee_detail'),
     path('admin/<int:pk>/update/', employee.EmployeeUpdateView.as_view(), name='employee_update'),
     path('admin/<int:pk>/delete/', employee.EmployeeDeleteView.as_view(), name='employee_delete'),
-    path('admin/<int:pk>/reactivate/', employee.EmployeeReactivateView.as_view(), name='employee_reactivate'),  # NUEVO
-    
-    path('admin/<int:employee_pk>/documents/create/', 
-         employee.EmployeeDocumentCreateView.as_view(), 
-         name='employee_document_create'),
+    path('admin/<int:pk>/reactivate/', employee.EmployeeReactivateView.as_view(), name='employee_reactivate'),
+    path('admin/profile/', employee.AdminProfileView.as_view(), name='admin_profile'),
+    path('admin/<int:employee_pk>/documents/create/', employee.EmployeeDocumentCreateView.as_view(), name='employee_document_create'),
     
     # Department URLs (Admin)
     path('admin/departments/', department.DepartmentListView.as_view(), name='department_list'),
@@ -41,6 +39,7 @@ urlpatterns = [
     # ===== PORTAL DEL SUPERVISOR =====
     path('supervisor/', supervisor_portal.SupervisorDashboardView.as_view(), name='supervisor_dashboard'),
     path('supervisor/team/', supervisor_portal.SupervisorTeamView.as_view(), name='supervisor_team'),
+    path('supervisor/profile/', supervisor_portal.SupervisorProfileView.as_view(), name='supervisor_profile'),
     path('supervisor/team/<int:pk>/', supervisor_portal.SupervisorEmployeeDetailView.as_view(), name='supervisor_employee_detail'),
     path('supervisor/reports/', supervisor_portal.SupervisorReportsView.as_view(), name='supervisor_reports'),
     path('supervisor/payroll/', supervisor_portal.SupervisorPayrollView.as_view(), name='supervisor_payroll'),

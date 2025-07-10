@@ -12,8 +12,6 @@ class User(AbstractUser):
         ('employee', 'Empleado'),
         ('supervisor', 'Supervisor'),
         ('admin', 'Administrador'),
-        ('hr', 'Recursos Humanos'),
-        ('payroll', 'Nómina'),
     ]
     
     user_type = models.CharField(
@@ -101,10 +99,6 @@ class User(AbstractUser):
     @property
     def is_admin_user(self):
         return self.user_type == 'admin'
-    
-    @property
-    def is_hr_user(self):
-        return self.user_type == 'hr'
 
 
 class UserProfile(models.Model):

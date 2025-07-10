@@ -469,10 +469,6 @@
                             <i class="fas fa-list mr-2"></i>
                             Ver Todas las Tareas
                         </a>
-                        <a href="{% url 'tasks:category_list' %}" class="w-full flex items-center justify-center px-4 py-2 border border-gray-300 rounded-lg text-gray-700 bg-gray-50 hover:bg-gray-100 transition-colors">
-                            <i class="fas fa-tags mr-2"></i>
-                            Gestionar Categorías
-                        </a>
                         <a href="{% url 'tasks:export_tasks_csv' %}" class="w-full flex items-center justify-center px-4 py-2 border border-green-300 rounded-lg text-green-700 bg-green-50 hover:bg-green-100 transition-colors">
                             <i class="fas fa-download mr-2"></i>
                             Exportar Datos
@@ -534,7 +530,6 @@
                         <thead class="bg-gray-50">
                             <tr>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tarea</th>
-                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoría</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Empleados</th>
                                 <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha Límite</th>

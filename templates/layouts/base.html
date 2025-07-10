@@ -52,11 +52,6 @@
                 <!-- Menú de usuario -->
                 <div class="flex items-center space-x-4">
                     {% if user.is_authenticated %}
-                        <!-- Notificaciones -->
-                        <button class="p-2 text-gray-400 hover:text-gray-600 transition-colors">
-                            <i class="fas fa-bell text-lg"></i>
-                            <span class="sr-only">Notificaciones</span>
-                        </button>
 
                         <!-- Menú desplegable de usuario -->
                         <div class="relative" id="user-menu">
@@ -80,17 +75,13 @@
                             <!-- Menú desplegable -->
                             <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-xl ring-1 ring-black ring-opacity-5 focus:outline-none hidden z-50" id="user-menu-dropdown">
                                 <div class="py-1" role="menu">
-                                    <a href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors" role="menuitem">
+                                    <a href="{% url 'employees:admin_profile' %}" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors" role="menuitem">
                                         <i class="fas fa-user mr-3 text-gray-400"></i>
                                         Mi Perfil
                                     </a>
-                                    <a href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors" role="menuitem">
+                                    <a href="{% url 'users:parameters' %}" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors" role="menuitem">
                                         <i class="fas fa-cog mr-3 text-gray-400"></i>
                                         Configuración
-                                    </a>
-                                    <a href="#" class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors" role="menuitem">
-                                        <i class="fas fa-question-circle mr-3 text-gray-400"></i>
-                                        Ayuda
                                     </a>
                                     <div class="border-t border-gray-100"></div>
                                     <form method="post" action="{% url 'users:logout' %}" class="w-full">
@@ -140,7 +131,7 @@
                         <i class="fa-solid fa-gears mr-2"></i>Parametros
                     </a>
                     <div class="border-t border-gray-200 pt-2">
-                        <a href="#" class="block px-3 py-2 text-gray-700 hover:text-primary-600 font-medium">
+                        <a href="{% url 'employees:admin_profile' %}" class="block px-3 py-2 text-gray-700 hover:text-primary-600 font-medium">
                             <i class="fas fa-user mr-2"></i>Mi Perfil
                         </a>
                         <form method="post" action="{% url 'users:logout' %}" class="w-full">
@@ -187,8 +178,7 @@
                     <ul class="space-y-2 text-sm">
                         <li><a href="{% url 'users:dashboard' %}" class="text-gray-300 hover:text-primary-400 transition-colors">Dashboard</a></li>
                         <li><a href="{% url 'employees:employee_list' %}" class="text-gray-300 hover:text-primary-400 transition-colors">Empleados</a></li>
-                        <li><a href="#" class="text-gray-300 hover:text-primary-400 transition-colors">Nómina</a></li>
-                        <li><a href="#" class="text-gray-300 hover:text-primary-400 transition-colors">Reportes</a></li>
+                        <li><a href="{% url 'payroll:nomina_dashboard' %}" class="text-gray-300 hover:text-primary-400 transition-colors">Nómina</a></li>
                     </ul>
                 </div>
 

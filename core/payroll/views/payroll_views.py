@@ -6,7 +6,9 @@ from django.db.models import Q, Sum
 from django.http import JsonResponse, HttpResponse
 from django.core.paginator import Paginator
 from django.utils import timezone
-from ..models import Payroll, PayrollPeriod, PayrollRubro, AdelantoQuincena, Rubro
+from ..models import Payroll, PayrollPeriod, PayrollRubro, AdelantoQuincena, Rubro, TipoRubro
+from decimal import Decimal
+from django.core.exceptions import ValidationError
 from ..forms.payroll_forms import PayrollForm, PayrollRubroForm
 from core.employees.models import Employee
 from core.employees.utils import send_payroll_notification_email
@@ -18,14 +20,31 @@ logger = logging.getLogger(__name__)
 
 @login_required
 def payroll_list(request):
-    """Lista de nóminas con filtros"""
-    payrolls = Payroll.objects.select_related('employee', 'period').all()
+    payrolls = Payroll.objects.select_related(
+        'employee__user',
+        'period'
+    ).all()
     
-    # Filtros
     period_id = request.GET.get('period')
     employee_id = request.GET.get('employee')
     status = request.GET.get('status')
     search = request.GET.get('search')
+    
+    if search in ['None', 'none', '', None]:
+        search = None
+    elif search:
+        search = search.strip()
+        if not search:
+            search = None
+    
+    if period_id in ['', 'None', None]:
+        period_id = None
+    
+    if employee_id in ['', 'None', None]:
+        employee_id = None
+        
+    if status in ['', 'None', None]:
+        status = None
     
     if period_id:
         payrolls = payrolls.filter(period_id=period_id)
@@ -40,25 +59,27 @@ def payroll_list(request):
     
     if search:
         payrolls = payrolls.filter(
-            Q(employee__first_name__icontains=search) |
-            Q(employee__last_name__icontains=search) |
-            Q(employee__employee_number__icontains=search)
+            Q(employee__user__first_name__icontains=search) |
+            Q(employee__user__last_name__icontains=search) |
+            Q(employee__employee_number__icontains=search) |
+            Q(employee__user__email__icontains=search)
         )
     
-    # Paginación
+    payrolls = payrolls.order_by('-created_at')
+    
     paginator = Paginator(payrolls, 25)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
     context = {
         'page_obj': page_obj,
-        'periods': PayrollPeriod.objects.filter(is_closed=False),
-        'employees': Employee.objects.filter(status='active'),
+        'periods': PayrollPeriod.objects.filter(is_closed=False).order_by('-start_date'),
+        'employees': Employee.objects.filter(status='active').select_related('user').order_by('user__first_name'),
         'current_filters': {
-            'period': period_id,
-            'employee': employee_id,
-            'status': status,
-            'search': search,
+            'period': period_id or '',
+            'employee': employee_id or '',
+            'status': status or '',
+            'search': search or '',
         }
     }
     
@@ -310,66 +331,251 @@ def payroll_remove_rubro(request, payroll_pk, rubro_pk):
     
     return render(request, 'pages/admin/payroll/confirm_delete_rubro.html', context)
 
+
+def create_adelanto_rubro(payroll, monto, motivo, fecha_adelanto):
+    """Función helper para crear rubro de adelanto"""
+    
+    # ✅ CORREGIDO: Los adelantos son EGRESOS (descuentos de la nómina)
+    tipo_adelanto, created = TipoRubro.objects.get_or_create(
+        nombre='Adelantos',
+        tipo='egreso',  # <-- Cambiado a 'egreso'
+        defaults={
+            'descripcion': 'Adelantos de sueldo descontados a empleados',
+            'is_active': True
+        }
+    )
+    
+    if created:
+        logger.info(f"✅ Tipo de rubro 'Adelantos' creado como egreso")
+    
+    # Buscar o crear rubro específico
+    rubro_adelanto, created = Rubro.objects.get_or_create(
+        codigo='ADELANTO_DESC',  # Cambié el código para ser más claro
+        defaults={
+            'tipo_rubro': tipo_adelanto,
+            'nombre': 'Descuento por Adelanto',  # Nombre más claro
+            'descripcion': 'Descuento por adelanto previamente otorgado al empleado',
+            'tipo_calculo': 'fijo',
+            'es_obligatorio': False,
+            'aplicar_automaticamente': False,
+            'is_active': True
+        }
+    )
+    
+    if created:
+        logger.info(f"✅ Rubro 'ADELANTO_DESC' creado")
+    
+    # Crear el rubro aplicado
+    payroll_rubro = PayrollRubro.objects.create(
+        payroll=payroll,
+        rubro=rubro_adelanto,
+        monto=monto,
+        es_adelanto=True,
+        fecha_adelanto=fecha_adelanto,
+        observaciones=f'Descuento por adelanto: {motivo}' if motivo else 'Descuento por adelanto de sueldo'
+    )
+    
+    logger.info(f"✅ PayrollRubro de adelanto creado: ${monto} descontado a {payroll.employee.user.get_full_name()}")
+    return payroll_rubro
+
 @login_required
-def payroll_process_adelantos(request, payroll_pk):
-    """Procesar adelantos pendientes para una nómina"""
-    payroll = get_object_or_404(Payroll, pk=payroll_pk)
-    adelantos_pendientes = payroll.get_adelantos_pendientes()
+def payroll_process_adelantos(request, pk):
+    """Procesar adelantos para una nómina específica - VERSIÓN MEJORADA"""
+    
+    payroll = get_object_or_404(Payroll, pk=pk)
+    
+    # Verificar permisos
+    if not (request.user.user_type in ['supervisor', 'admin'] or 
+            request.user.is_superuser or 
+            request.user.is_staff):
+        messages.error(request, 'No tienes permisos para procesar adelantos.')
+        return redirect('payroll:payroll_list')
+    
+    # Verificar que la nómina no esté pagada
+    if payroll.is_paid:
+        messages.error(request, 'No se pueden procesar adelantos en una nómina ya pagada.')
+        return redirect('payroll:payroll_detail', pk=payroll.pk)
     
     if request.method == 'POST':
-        adelanto_ids = request.POST.getlist('adelantos')
+        action = request.POST.get('action')
+        
+        if action == 'create_new':
+            # Crear nuevo adelanto
+            return handle_create_new_adelanto(request, payroll)
+        elif action == 'apply_existing':
+            # Aplicar adelanto existente como descuento
+            return handle_apply_existing_adelanto(request, payroll)
+    
+    # Obtener adelantos pendientes del empleado
+    adelantos_pendientes = payroll.employee.adelantos_quincena.filter(
+        is_descontado=False
+    ).order_by('-fecha_adelanto')
+    
+    # Calcular total de adelantos pendientes
+    total_adelantos_pendientes = adelantos_pendientes.aggregate(
+        total=Sum('monto')
+    )['total'] or 0
+    
+    context = {
+        'payroll': payroll,
+        'employee': payroll.employee,
+        'max_adelanto': payroll.base_salary * Decimal('0.5'),
+        'adelantos_pendientes': adelantos_pendientes,
+        'total_adelantos_pendientes': total_adelantos_pendientes,
+        'user_permissions': get_user_permissions_info(request.user)
+    }
+    
+    return render(request, 'pages/admin/payroll/process_adelantos.html', context)
+
+
+def handle_create_new_adelanto(request, payroll):
+    """Manejar creación de nuevo adelanto"""
+    monto = request.POST.get('monto')
+    motivo = request.POST.get('motivo', '')
+    
+    try:
+        monto = Decimal(monto)
+        
+        # Validaciones
+        if monto <= 0:
+            messages.error(request, 'El monto debe ser mayor a 0.')
+            return redirect('payroll:payroll_process_adelantos', pk=payroll.pk)
+        
+        max_adelanto = payroll.base_salary * Decimal('0.5')
+        if monto > max_adelanto:
+            messages.error(
+                request, 
+                f'El monto no puede exceder ${max_adelanto} (50% del salario base)'
+            )
+            return redirect('payroll:payroll_process_adelantos', pk=payroll.pk)
+        
+        # Crear el adelanto
+        adelanto = AdelantoQuincena.objects.create(
+            employee=payroll.employee,
+            monto=monto,
+            fecha_adelanto=timezone.now().date(),
+            motivo=motivo,
+            created_by=request.user,
+            is_descontado=False
+        )
+        
+        messages.success(
+            request, 
+            f'✅ Adelanto de ${monto} creado exitosamente. '
+            f'Podrá ser descontado en próximas nóminas.'
+        )
+        
+        return redirect('payroll:payroll_detail', pk=payroll.pk)
+        
+    except (ValueError, ValidationError) as e:
+        messages.error(request, f'❌ Error al crear adelanto: {str(e)}')
+        return redirect('payroll:payroll_process_adelantos', pk=payroll.pk)
+
+
+def handle_apply_existing_adelanto(request, payroll):
+    """Manejar aplicación de adelanto existente como descuento"""
+    adelanto_ids = request.POST.getlist('adelanto_ids')
+    
+    if not adelanto_ids:
+        messages.error(request, 'Debe seleccionar al menos un adelanto para descontar.')
+        return redirect('payroll:payroll_process_adelantos', pk=payroll.pk)
+    
+    try:
+        total_descontado = 0
+        adelantos_procesados = []
         
         for adelanto_id in adelanto_ids:
-            adelanto = get_object_or_404(AdelantoQuincena, pk=adelanto_id)
+            adelanto = AdelantoQuincena.objects.get(
+                id=adelanto_id,
+                employee=payroll.employee,
+                is_descontado=False
+            )
             
             # Crear rubro de descuento
-            from ..models import Rubro, TipoRubro
-            try:
-                # Buscar o crear el tipo de rubro para adelantos
-                tipo_egreso, created = TipoRubro.objects.get_or_create(
-                    nombre="Adelantos",
-                    tipo="egreso",
-                    defaults={'descripcion': 'Descuentos por adelantos de quincena'}
-                )
-                
-                # Buscar o crear el rubro de adelanto
-                rubro_adelanto, created = Rubro.objects.get_or_create(
-                    codigo='ADL_QUIN',
-                    defaults={
-                        'nombre': 'Adelanto de Quincena',
-                        'tipo_rubro': tipo_egreso,
-                        'tipo_calculo': 'fijo',
-                        'descripcion': 'Descuento por adelanto de quincena'
-                    }
-                )
-            except Exception as e:
-                messages.error(request, f'Error al procesar rubro de adelanto: {str(e)}')
-                continue
-            
-            # Crear el rubro aplicado
-            PayrollRubro.objects.create(
-                payroll=payroll,
-                rubro=rubro_adelanto,
-                monto=adelanto.monto,
-                es_adelanto=True,
-                fecha_adelanto=adelanto.fecha_adelanto,
-                observaciones=f"Adelanto del {adelanto.fecha_adelanto}: {adelanto.motivo}"
-            )
+            create_adelanto_rubro(payroll, adelanto.monto, adelanto.motivo, adelanto.fecha_adelanto)
             
             # Marcar adelanto como descontado
             adelanto.is_descontado = True
             adelanto.payroll_descuento = payroll
             adelanto.save()
+            
+            total_descontado += adelanto.monto
+            adelantos_procesados.append(adelanto)
         
-        messages.success(request, f'Se procesaron {len(adelanto_ids)} adelantos.')
+        messages.success(
+            request,
+            f'✅ Se descontaron {len(adelantos_procesados)} adelantos por un total de ${total_descontado}. '
+            f'La nómina se ha recalculado automáticamente.'
+        )
+        
         return redirect('payroll:payroll_detail', pk=payroll.pk)
+        
+    except AdelantoQuincena.DoesNotExist:
+        messages.error(request, 'Adelanto no encontrado o ya fue descontado.')
+        return redirect('payroll:payroll_process_adelantos', pk=payroll.pk)
+    except Exception as e:
+        messages.error(request, f'❌ Error al procesar adelantos: {str(e)}')
+        return redirect('payroll:payroll_process_adelantos', pk=payroll.pk)
     
-    context = {
-        'payroll': payroll,
-        'adelantos_pendientes': adelantos_pendientes,
+def get_user_type_display(user):
+    """Obtener descripción amigable del tipo de usuario"""
+    if user.is_superuser:
+        return f"{user.get_full_name()} (Superusuario)"
+    elif hasattr(user, 'user_type') and user.user_type == 'admin':
+        return f"{user.get_full_name()} (Administrador)"
+    elif hasattr(user, 'user_type') and user.user_type == 'supervisor':
+        return f"{user.get_full_name()} (Supervisor)"
+    elif user.is_staff:
+        return f"{user.get_full_name()} (Staff)"
+    else:
+        return f"{user.get_full_name()} (Usuario)"
+
+
+def get_user_permissions_info(user):
+    """Obtener información detallada de permisos del usuario"""
+    user_type = getattr(user, 'user_type', 'employee')
+    
+    return {
+        'is_superuser': user.is_superuser,
+        'is_staff': user.is_staff,
+        'user_type': user_type,
+        'can_process_adelantos': (
+            user_type in ['supervisor', 'admin'] or 
+            user.is_superuser or 
+            user.is_staff
+        ),
+        'can_edit_payroll': (
+            user_type in ['supervisor', 'admin'] or 
+            user.is_superuser or 
+            user.is_staff or
+            user.has_perm('payroll.change_payroll')
+        ),
+        'can_view_payroll': (
+            user_type in ['supervisor', 'admin', 'employee'] or 
+            user.is_superuser or 
+            user.is_staff or
+            user.has_perm('payroll.view_payroll')
+        ),
+        'can_delete_payroll': (
+            user_type in ['admin'] or 
+            user.is_superuser or
+            user.has_perm('payroll.delete_payroll')
+        ),
+        'user_display': get_user_type_display(user)
     }
-    
-    return render(request, 'pages/admin/payroll/process_adelantos.html', context)
+
+
+def can_user_process_adelantos(user):
+    """
+    Función utilitaria para verificar si un usuario puede procesar adelantos
+    Reutilizable en otras vistas
+    """
+    user_type = getattr(user, 'user_type', 'employee')
+    return (
+        user_type in ['supervisor', 'admin'] or 
+        user.is_superuser or 
+        user.is_staff
+    )
 
 
 @login_required

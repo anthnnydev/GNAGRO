@@ -75,7 +75,7 @@ class EmployeeLoginRequiredMixin(LoginRequiredMixin):
         
         if not hasattr(request.user, 'employee_profile'):
             messages.error(request, 'No tienes permisos para acceder a esta sección.')
-            return redirect('core:home')
+            return redirect('users:login')
         
         return super().dispatch(request, *args, **kwargs)
 

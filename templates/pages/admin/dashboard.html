@@ -29,7 +29,7 @@
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <!-- Tarjetas de estadísticas -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             <!-- Total Empleados -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
                 <div class="flex items-center justify-between">
@@ -76,23 +76,6 @@
                     </div>
                     <div class="bg-purple-100 p-3 rounded-full">
                         <i class="fas fa-money-bill-wave text-purple-600 text-xl"></i>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Solicitudes Pendientes -->
-            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm font-medium text-gray-600">Solicitudes Pendientes</p>
-                        <p id="pending-requests" class="text-3xl font-bold text-orange-600" data-stat-number>{{ pending_requests|default:0 }}</p>
-                        <p class="text-sm text-orange-600 mt-1">
-                            <i class="fas fa-clock mr-1"></i>
-                            Requieren atención
-                        </p>
-                    </div>
-                    <div class="bg-orange-100 p-3 rounded-full">
-                        <i class="fas fa-file-alt text-orange-600 text-xl"></i>
                     </div>
                 </div>
             </div>
@@ -199,7 +182,7 @@
                         </div>
                     </a>
 
-                    <a href="#" class="flex items-center p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors group">
+                    <a href="{% url 'payroll:nomina_dashboard' %}" class="flex items-center p-4 bg-green-50 rounded-lg hover:bg-green-100 transition-colors group">
                         <div class="bg-green-600 p-2 rounded-lg mr-3 group-hover:bg-green-700 transition-colors">
                             <i class="fas fa-calculator text-white"></i>
                         </div>
@@ -209,23 +192,33 @@
                         </div>
                     </a>
 
-                    <a href="#" class="flex items-center p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors group">
-                        <div class="bg-purple-600 p-2 rounded-lg mr-3 group-hover:bg-purple-700 transition-colors">
-                            <i class="fas fa-file-alt text-white"></i>
+                    <a href="{% url 'payroll:adelanto_list' %}" class="flex items-center p-4 bg-pink-50 rounded-lg hover:bg-pink-100 transition-colors group">
+                        <div class="bg-green-600 p-2 rounded-lg mr-3 group-hover:bg-green-700 transition-colors">
+                            <i class="fa-solid fa-money-check-dollar text-white"></i>
                         </div>
                         <div>
-                            <p class="font-medium text-gray-900">Generar Reporte</p>
-                            <p class="text-sm text-gray-600">Reportes mensuales</p>
+                            <p class="font-medium text-gray-900">Adelantos Empleados</p>
+                            <p class="text-sm text-gray-600">Registrar adelantos</p>
                         </div>
                     </a>
 
-                    <a href="#" class="flex items-center p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors group">
-                        <div class="bg-orange-600 p-2 rounded-lg mr-3 group-hover:bg-orange-700 transition-colors">
-                            <i class="fas fa-clock text-white"></i>
+                    <a href="{% url 'payroll:rubro_list' %}" class="flex items-center p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors group">
+                        <div class="bg-green-600 p-2 rounded-lg mr-3 group-hover:bg-green-700 transition-colors">
+                            <i class="fa-solid fa-ruble-sign text-white"></i>
                         </div>
                         <div>
-                            <p class="font-medium text-gray-900">Asistencia</p>
-                            <p class="text-sm text-gray-600">Control horario</p>
+                            <p class="font-medium text-gray-900">Rubros Sistema</p>
+                            <p class="text-sm text-gray-600">Registrar Rubros</p>
+                        </div>
+                    </a>
+
+                    <a href="{% url 'payroll:tipo_rubro_list' %}" class="flex items-center p-4 bg-red-50 rounded-lg hover:bg-red-100 transition-colors group">
+                        <div class="bg-green-600 p-2 rounded-lg mr-3 group-hover:bg-green-700 transition-colors">
+                            <i class="fa-solid fa-outdent text-white"></i>
+                        </div>
+                        <div>
+                            <p class="font-medium text-gray-900">Tipos Rubros Sistema</p>
+                            <p class="text-sm text-gray-600">Registrar yipo de rubros</p>
                         </div>
                     </a>
                 </div>
