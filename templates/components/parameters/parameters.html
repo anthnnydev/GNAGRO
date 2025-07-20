@@ -409,123 +409,58 @@
                     </div>
                 </div>
             </div>
-
-            <!-- Card: Tipos de Contrato -->
+            <!-- Card: Empresas -->
             <div class="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 border border-gray-100">
                 <div class="p-6">
                     <!-- Header del card -->
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-center">
-                            <div class="bg-orange-100 p-3 rounded-xl">
-                                <i class="fas fa-file-contract text-orange-600 text-2xl"></i>
+                            <div class="bg-purple-100 p-3 rounded-xl">
+                                <i class="fas fa-building text-purple-600 text-2xl"></i>
                             </div>
                         </div>
                         <div class="flex items-center space-x-2">
-                            <span class="bg-orange-100 text-orange-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">
-                                3 Tipos
+                            <span class="bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">
+                                {{ companies_stats.active }} Activa{{ companies_stats.active|pluralize }}
                             </span>
+                            {% if companies_stats.inactive > 0 %}
+                            <span class="bg-red-100 text-red-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">
+                                {{ companies_stats.inactive }} Inactiva{{ companies_stats.inactive|pluralize }}
+                            </span>
+                            {% endif %}
                         </div>
                     </div>
                     
                     <!-- Contenido -->
                     <div class="mb-6">
-                        <h3 class="text-xl font-bold text-gray-900 mb-2">Tipos de Contrato</h3>
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">Empresas</h3>
                         <p class="text-gray-600 text-sm leading-relaxed">
-                            Administra los diferentes tipos de contratos laborales. 
-                            Define duraciones, beneficios y condiciones específicas.
+                            Gestiona la información de las empresas registradas en el sistema. 
+                            Configura datos fiscales y de contacto.
                         </p>
                     </div>
                     
                     <!-- Estadísticas -->
                     <div class="grid grid-cols-2 gap-4 mb-6">
                         <div class="text-center p-3 bg-gray-50 rounded-lg">
-                            <div class="text-2xl font-bold text-gray-900">4</div>
+                            <div class="text-2xl font-bold text-gray-900">{{ companies_stats.total }}</div>
                             <div class="text-xs text-gray-500">Total</div>
                         </div>
                         <div class="text-center p-3 bg-gray-50 rounded-lg">
-                            <div class="text-2xl font-bold text-green-600">3</div>
-                            <div class="text-xs text-gray-500">Activos</div>
+                            <div class="text-2xl font-bold text-purple-600">{{ companies_stats.active }}</div>
+                            <div class="text-xs text-gray-500">Activas</div>
                         </div>
                     </div>
                     
-                    <!-- Botones de acción -->
+                     <!-- Botones de acción -->
                     <div class="flex space-x-2">
-                        <a class="flex-1 bg-primary-600 text-gray-600 py-2 px-4 rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium">
+                        <a href="{% url 'users:company_list' %}" class="flex-1 bg-primary-600 text-gray-600 py-2 px-4 rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium">
                             <i class="fas fa-cog mr-2"></i>Gestionar
                         </a>
-                        <button class="bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors text-sm">
+                        <a href="{% url 'users:company_create' %}" class="bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors text-sm">
                             <i class="fas fa-plus"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Card: Configuración General -->
-            <div class="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 border border-gray-100">
-                <div class="p-6">
-                    <!-- Header del card -->
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="flex items-center">
-                            <div class="bg-gray-100 p-3 rounded-xl">
-                                <i class="fas fa-sliders-h text-gray-600 text-2xl"></i>
-                            </div>
-                        </div>
-                        <div class="flex items-center space-x-2">
-                            <span class="bg-gray-100 text-gray-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">
-                                Sistema
-                            </span>
-                        </div>
-                    </div>
-                    
-                    <!-- Contenido -->
-                    <div class="mb-6">
-                        <h3 class="text-xl font-bold text-gray-900 mb-2">Configuración General</h3>
-                        <p class="text-gray-600 text-sm leading-relaxed">
-                            Ajusta la configuración general del sistema. Define monedas, 
-                            formatos de fecha, políticas y otros parámetros globales.
-                        </p>
-                    </div>
-                    
-                    <!-- Estadísticas -->
-                    <div class="grid grid-cols-2 gap-4 mb-6">
-                        <div class="text-center p-3 bg-gray-50 rounded-lg">
-                            <div class="text-2xl font-bold text-gray-900">12</div>
-                            <div class="text-xs text-gray-500">Opciones</div>
-                        </div>
-                        <div class="text-center p-3 bg-gray-50 rounded-lg">
-                            <div class="text-2xl font-bold text-blue-600">✓</div>
-                            <div class="text-xs text-gray-500">Configurado</div>
-                        </div>
-                    </div>
-                    
-                    <!-- Botones de acción -->
-                    <div class="flex space-x-2">
-                        <a class="flex-1 bg-primary-600 text-gray-600 py-2 px-4 rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium">
-                            <i class="fas fa-cog mr-2"></i>Gestionar
                         </a>
-                        <button class="bg-gray-100 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-200 transition-colors text-sm">
-                            <i class="fas fa-info"></i>
-                        </button>
                     </div>
-                </div>
-            </div>
-
-        </div>
-
-        <!-- Sección de acciones rápidas -->
-        <div class="mt-12 bg-gradient-to-r from-primary-500 to-primary-600 rounded-xl p-8 text-white">
-            <div class="flex items-center justify-between">
-                <div>
-                    <h2 class="text-gray-700 text-2xl font-bold mb-2">Configuración Rápida</h2>
-                    <p class="text-gray-500">¿Necesitas ayuda para configurar tu sistema? Te guiamos paso a paso.</p>
-                </div>
-                <div class="flex space-x-4">
-                    <button class="bg-white text-gray-600 px-6 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
-                        <i class="fas fa-play mr-2"></i>Configuración Inicial
-                    </button>
-                    <button class="border-2 border-white text-gray-600 px-6 py-3 rounded-lg font-semibold hover:bg-white hover:text-primary-600 transition-colors">
-                        <i class="fas fa-book mr-2"></i>Guía de Uso
-                    </button>
                 </div>
             </div>
         </div>

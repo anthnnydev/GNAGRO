@@ -11,6 +11,7 @@ from decimal import Decimal
 from django.core.exceptions import ValidationError
 from ..forms.payroll_forms import PayrollForm, PayrollRubroForm
 from core.employees.models import Employee
+from core.users.models import Company
 from core.employees.utils import send_payroll_notification_email
 import json
 import logging
@@ -27,7 +28,7 @@ def payroll_list(request):
     
     period_id = request.GET.get('period')
     employee_id = request.GET.get('employee')
-    status = request.GET.get('status')
+    status = request.GET.get('status')  # ✅ AGREGAR MANEJO DE STATUS
     search = request.GET.get('search')
     
     if search in ['None', 'none', '', None]:
@@ -52,6 +53,7 @@ def payroll_list(request):
     if employee_id:
         payrolls = payrolls.filter(employee_id=employee_id)
     
+    # ✅ AGREGAR FILTRO POR STATUS
     if status == 'paid':
         payrolls = payrolls.filter(is_paid=True)
     elif status == 'unpaid':
@@ -332,62 +334,71 @@ def payroll_remove_rubro(request, payroll_pk, rubro_pk):
     return render(request, 'pages/admin/payroll/confirm_delete_rubro.html', context)
 
 
+
 def create_adelanto_rubro(payroll, monto, motivo, fecha_adelanto):
     """Función helper para crear rubro de adelanto"""
     
-    # ✅ CORREGIDO: Los adelantos son EGRESOS (descuentos de la nómina)
-    tipo_adelanto, created = TipoRubro.objects.get_or_create(
-        nombre='Adelantos',
-        tipo='egreso',  # <-- Cambiado a 'egreso'
-        defaults={
-            'descripcion': 'Adelantos de sueldo descontados a empleados',
-            'is_active': True
-        }
-    )
-    
-    if created:
-        logger.info(f"✅ Tipo de rubro 'Adelantos' creado como egreso")
-    
-    # Buscar o crear rubro específico
-    rubro_adelanto, created = Rubro.objects.get_or_create(
-        codigo='ADELANTO_DESC',  # Cambié el código para ser más claro
-        defaults={
-            'tipo_rubro': tipo_adelanto,
-            'nombre': 'Descuento por Adelanto',  # Nombre más claro
-            'descripcion': 'Descuento por adelanto previamente otorgado al empleado',
-            'tipo_calculo': 'fijo',
-            'es_obligatorio': False,
-            'aplicar_automaticamente': False,
-            'is_active': True
-        }
-    )
-    
-    if created:
-        logger.info(f"✅ Rubro 'ADELANTO_DESC' creado")
-    
-    # Crear el rubro aplicado
-    payroll_rubro = PayrollRubro.objects.create(
-        payroll=payroll,
-        rubro=rubro_adelanto,
-        monto=monto,
-        es_adelanto=True,
-        fecha_adelanto=fecha_adelanto,
-        observaciones=f'Descuento por adelanto: {motivo}' if motivo else 'Descuento por adelanto de sueldo'
-    )
-    
-    logger.info(f"✅ PayrollRubro de adelanto creado: ${monto} descontado a {payroll.employee.user.get_full_name()}")
-    return payroll_rubro
+    try:
+        # Buscar si ya existe un rubro de adelantos
+        rubro_adelanto = Rubro.objects.filter(
+            codigo__in=['ADEL_DESC', 'ADELANTO_DESC', 'ADL', 'ADELANTO'],
+            is_active=True
+        ).first()
+        
+        if not rubro_adelanto:
+            # Crear tipo de rubro si no existe
+            tipo_adelanto, created = TipoRubro.objects.get_or_create(
+                nombre='Adelantos',
+                tipo='egreso',
+                defaults={
+                    'descripcion': 'Adelantos de sueldo descontados a empleados',
+                    'is_active': True
+                }
+            )
+            
+            # Crear rubro con código corto
+            rubro_adelanto = Rubro.objects.create(
+                tipo_rubro=tipo_adelanto,
+                codigo='ADL',
+                nombre='Adelanto',
+                descripcion='Descuento por adelanto de sueldo',
+                tipo_calculo='fijo',
+                es_obligatorio=False,
+                aplicar_automaticamente=False,
+                is_active=True
+            )
+        
+        # Crear el rubro aplicado
+        payroll_rubro = PayrollRubro.objects.create(
+            payroll=payroll,
+            rubro=rubro_adelanto,
+            monto=monto,
+            es_adelanto=True,
+            fecha_adelanto=fecha_adelanto,
+            observaciones=f'Adelanto del {fecha_adelanto}: {motivo}' if motivo else f'Adelanto del {fecha_adelanto}'
+        )
+        
+        return payroll_rubro
+        
+    except Exception as e:
+        logger.error(f"Error creando rubro de adelanto: {str(e)}")
+        raise e
 
 @login_required
 def payroll_process_adelantos(request, pk):
-    """Procesar adelantos para una nómina específica - VERSIÓN MEJORADA"""
+    """Procesar adelantos para una nómina específica"""
     
     payroll = get_object_or_404(Payroll, pk=pk)
     
     # Verificar permisos
-    if not (request.user.user_type in ['supervisor', 'admin'] or 
-            request.user.is_superuser or 
-            request.user.is_staff):
+    user_type = getattr(request.user, 'user_type', 'employee')
+    can_process = (
+        user_type in ['supervisor', 'admin'] or 
+        request.user.is_superuser or 
+        request.user.is_staff
+    )
+    
+    if not can_process:
         messages.error(request, 'No tienes permisos para procesar adelantos.')
         return redirect('payroll:payroll_list')
     
@@ -400,11 +411,11 @@ def payroll_process_adelantos(request, pk):
         action = request.POST.get('action')
         
         if action == 'create_new':
-            # Crear nuevo adelanto
             return handle_create_new_adelanto(request, payroll)
         elif action == 'apply_existing':
-            # Aplicar adelanto existente como descuento
             return handle_apply_existing_adelanto(request, payroll)
+        else:
+            messages.error(request, f'Acción no válida: {action}')
     
     # Obtener adelantos pendientes del empleado
     adelantos_pendientes = payroll.employee.adelantos_quincena.filter(
@@ -474,6 +485,7 @@ def handle_create_new_adelanto(request, payroll):
 
 def handle_apply_existing_adelanto(request, payroll):
     """Manejar aplicación de adelanto existente como descuento"""
+    
     adelanto_ids = request.POST.getlist('adelanto_ids')
     
     if not adelanto_ids:
@@ -485,37 +497,47 @@ def handle_apply_existing_adelanto(request, payroll):
         adelantos_procesados = []
         
         for adelanto_id in adelanto_ids:
-            adelanto = AdelantoQuincena.objects.get(
-                id=adelanto_id,
-                employee=payroll.employee,
-                is_descontado=False
-            )
-            
-            # Crear rubro de descuento
-            create_adelanto_rubro(payroll, adelanto.monto, adelanto.motivo, adelanto.fecha_adelanto)
-            
-            # Marcar adelanto como descontado
-            adelanto.is_descontado = True
-            adelanto.payroll_descuento = payroll
-            adelanto.save()
-            
-            total_descontado += adelanto.monto
-            adelantos_procesados.append(adelanto)
+            try:
+                adelanto = AdelantoQuincena.objects.get(
+                    id=adelanto_id,
+                    employee=payroll.employee,
+                    is_descontado=False
+                )
+                
+                # Crear rubro de descuento
+                create_adelanto_rubro(payroll, adelanto.monto, adelanto.motivo, adelanto.fecha_adelanto)
+                
+                # Marcar adelanto como descontado
+                adelanto.is_descontado = True
+                adelanto.payroll_descuento = payroll
+                adelanto.save()
+                
+                total_descontado += adelanto.monto
+                adelantos_procesados.append(adelanto)
+                
+            except AdelantoQuincena.DoesNotExist:
+                logger.warning(f"Adelanto {adelanto_id} no encontrado o ya descontado")
+                continue
+            except Exception as e:
+                logger.error(f"Error procesando adelanto {adelanto_id}: {str(e)}")
+                continue
         
-        messages.success(
-            request,
-            f'✅ Se descontaron {len(adelantos_procesados)} adelantos por un total de ${total_descontado}. '
-            f'La nómina se ha recalculado automáticamente.'
-        )
+        if adelantos_procesados:
+            messages.success(
+                request,
+                f'✅ Se descontaron {len(adelantos_procesados)} adelantos por un total de ${total_descontado}. '
+                f'La nómina se ha recalculado automáticamente.'
+            )
+        else:
+            messages.warning(request, 'No se pudieron procesar los adelantos seleccionados.')
         
         return redirect('payroll:payroll_detail', pk=payroll.pk)
         
-    except AdelantoQuincena.DoesNotExist:
-        messages.error(request, 'Adelanto no encontrado o ya fue descontado.')
-        return redirect('payroll:payroll_process_adelantos', pk=payroll.pk)
     except Exception as e:
+        logger.error(f"Error general procesando adelantos: {str(e)}")
         messages.error(request, f'❌ Error al procesar adelantos: {str(e)}')
         return redirect('payroll:payroll_process_adelantos', pk=payroll.pk)
+
     
 def get_user_type_display(user):
     """Obtener descripción amigable del tipo de usuario"""
@@ -639,9 +661,26 @@ def payroll_mark_paid(request, pk):
             for rubro in egresos_adicionales
         ]
         
+        # NUEVO: Obtener datos de la empresa activa
+        active_company = Company.get_active_company()
+        company_data = {}
+        if active_company:
+            company_data = {
+                'name': active_company.name,
+                'ruc': active_company.ruc,
+                'email': active_company.email,
+                'phone': active_company.phone,
+                'website': active_company.website,
+                'address': active_company.get_full_address(),
+            }
+        
         # Enviar notificación por email
         try:
-            email_sent = send_payroll_notification_email(payroll.employee, payroll_data)
+            email_sent = send_payroll_notification_email(
+                payroll.employee, 
+                payroll_data, 
+                company_data=company_data  # Pasar datos de empresa
+            )
             if email_sent:
                 messages.success(
                     request, 
@@ -671,6 +710,19 @@ def payroll_bulk_mark_paid(request):
     if request.method == 'POST':
         payroll_ids = request.POST.getlist('payroll_ids')
         payment_method = request.POST.get('payment_method', 'Transferencia bancaria')
+        
+        # NUEVO: Obtener datos de la empresa activa una vez
+        active_company = Company.get_active_company()
+        company_data = {}
+        if active_company:
+            company_data = {
+                'name': active_company.name,
+                'ruc': active_company.ruc,
+                'email': active_company.email,
+                'phone': active_company.phone,
+                'website': active_company.website,
+                'address': active_company.get_full_address(),
+            }
         
         success_count = 0
         email_success_count = 0
@@ -737,7 +789,11 @@ def payroll_bulk_mark_paid(request):
                     ]
                     
                     try:
-                        if send_payroll_notification_email(payroll.employee, payroll_data):
+                        if send_payroll_notification_email(
+                            payroll.employee, 
+                            payroll_data, 
+                            company_data=company_data  # Pasar datos de empresa
+                        ):
                             email_success_count += 1
                     except Exception as e:
                         logger.error(f"Error enviando email a {payroll.employee.user.email}: {str(e)}")

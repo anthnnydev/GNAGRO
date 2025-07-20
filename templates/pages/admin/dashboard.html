@@ -227,60 +227,36 @@
             <!-- Notificaciones Recientes -->
             <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <div class="flex items-center justify-between mb-6">
-                    <h3 class="text-lg font-semibold text-gray-900">Notificaciones</h3>
-                    <button class="text-primary-600 hover:text-primary-700 text-sm font-medium">
-                        Marcar como leídas
-                    </button>
-                </div>
-                <div class="space-y-4 max-h-64 overflow-y-auto">
-                    <!-- Notificación 1 -->
-                    <div class="flex items-start space-x-3 p-3 bg-blue-50 rounded-lg">
-                        <div class="bg-blue-600 p-1 rounded-full">
-                            <i class="fas fa-info text-white text-xs"></i>
-                        </div>
-                        <div class="flex-1">
-                            <p class="text-sm font-medium text-gray-900">
-                                Nueva solicitud de vacaciones
-                            </p>
-                            <p class="text-xs text-gray-600">Juan Pérez ha solicitado vacaciones del 15-20 de enero</p>
-                            <p class="text-xs text-gray-400 mt-1">Hace 2 horas</p>
-                        </div>
-                    </div>
-
-                    <!-- Notificación 2 -->
-                    <div class="flex items-start space-x-3 p-3 bg-green-50 rounded-lg">
-                        <div class="bg-green-600 p-1 rounded-full">
-                            <i class="fas fa-check text-white text-xs"></i>
-                        </div>
-                        <div class="flex-1">
-                            <p class="text-sm font-medium text-gray-900">
-                                Nómina procesada correctamente
-                            </p>
-                            <p class="text-xs text-gray-600">La nómina de diciembre ha sido procesada</p>
-                            <p class="text-xs text-gray-400 mt-1">Hace 1 día</p>
-                        </div>
-                    </div>
-
-                    <!-- Notificación 3 -->
-                    <div class="flex items-start space-x-3 p-3 bg-yellow-50 rounded-lg">
-                        <div class="bg-yellow-600 p-1 rounded-full">
-                            <i class="fas fa-exclamation text-white text-xs"></i>
-                        </div>
-                        <div class="flex-1">
-                            <p class="text-sm font-medium text-gray-900">
-                                Recordatorio: Evaluaciones pendientes
-                            </p>
-                            <p class="text-xs text-gray-600">5 evaluaciones de desempeño pendientes</p>
-                            <p class="text-xs text-gray-400 mt-1">Hace 2 días</p>
-                        </div>
-                    </div>
-
-                    <!-- Ver más notificaciones -->
-                    <div class="text-center pt-4">
-                        <a href="#" class="text-primary-600 hover:text-primary-700 text-sm font-medium">
-                            Ver todas las notificaciones
+                    <h3 class="text-lg font-semibold text-gray-900">
+                        Notificaciones
+                        <span id="notification-badge" class="hidden ml-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">0</span>
+                    </h3>
+                    <div class="flex space-x-2">
+                        <button id="mark-all-read-btn" 
+                                class="text-primary-600 hover:text-primary-700 text-sm font-medium hidden"
+                                onclick="markAllNotificationsAsRead()">
+                            Marcar como leídas
+                        </button>
+                        <a href="{% url 'notifications:notification_list' %}" 
+                           class="text-primary-600 hover:text-primary-700 text-sm font-medium">
+                            Ver todas
                         </a>
                     </div>
+                </div>
+                
+                <div id="notifications-container" class="space-y-4 max-h-64 overflow-y-auto">
+                    <!-- Loading state -->
+                    <div id="notifications-loading" class="text-center py-8">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto"></div>
+                        <p class="text-sm text-gray-500 mt-2">Cargando notificaciones...</p>
+                    </div>
+                </div>
+                
+                <!-- Estado vacío (se mostrará dinámicamente) -->
+                <div id="no-notifications" class="hidden text-center text-gray-500 py-8">
+                    <i class="fas fa-bell-slash text-3xl mb-3 text-gray-300"></i>
+                    <p class="text-sm">No tienes notificaciones</p>
+                    <p class="text-xs text-gray-400 mt-1">Las nuevas notificaciones aparecerán aquí</p>
                 </div>
             </div>
         </div>
@@ -393,6 +369,9 @@
 <!-- Dashboard Charts Script -->
 <script src="{% static 'js/dashboard-charts.js' %}"></script>
 
+<!-- Dashboard Notifications Script -->
+<script src="{% static 'js/dashboard-notifications.js' %}"></script>
+
 <script>
     // Pasar datos del backend al JavaScript
     {% if employees_by_department %}
@@ -418,10 +397,14 @@
         }
     });
 
-    // Simulación de actualización en tiempo real
+    // Función actualizada para incluir notificaciones
     function updateStats() {
-        // Aquí puedes agregar llamadas AJAX para actualizar estadísticas
         console.log('Actualizando estadísticas...');
+        
+        // Actualizar notificaciones
+        if (typeof loadDashboardNotifications === 'function') {
+            loadDashboardNotifications();
+        }
         
         // Llamar a la función del script de charts
         if (window.dashboardCharts) {
@@ -429,7 +412,7 @@
         }
     }
 
-    // Actualizar cada 5 minutos
+    // Actualizar cada 5 minutos (incluyendo notificaciones)
     setInterval(updateStats, 300000);
 
     // Animaciones para las tarjetas de estadísticas
@@ -447,6 +430,28 @@
                 });
             }, index * 100);
         });
+
+        // Cargar notificaciones iniciales
+        if (typeof loadDashboardNotifications === 'function') {
+            loadDashboardNotifications();
+        }
+        
+        // También actualizar cuando se cambie de pestaña y regrese
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden && typeof loadDashboardNotifications === 'function') {
+                loadDashboardNotifications();
+            }
+        });
     });
+
+    // Función para refrescar las notificaciones manualmente
+    function refreshNotifications() {
+        if (typeof loadDashboardNotifications === 'function') {
+            loadDashboardNotifications();
+        }
+    }
+
+    // Exponer función globalmente para otros scripts
+    window.refreshNotifications = refreshNotifications;
 </script>
 {% endblock %}

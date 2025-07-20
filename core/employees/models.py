@@ -113,8 +113,6 @@ class Employee(models.Model):
     CONTRACT_TYPE_CHOICES = [
         ('permanent', 'Permanente'),
         ('temporary', 'Temporal'),
-        ('contract', 'Por Contrato'),
-        ('internship', 'Pasantía'),
     ]
     
     STATUS_CHOICES = [

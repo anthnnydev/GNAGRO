@@ -68,6 +68,8 @@ urlpatterns = [
     path('admin/periodos/<int:pk>/generar-nominas/', period_views.period_generate_payrolls, name='period_generate_payrolls'),
     path('admin/periodos/<int:pk>/cerrar/', period_views.period_close, name='period_close'),
     path('admin/periodos/<int:pk>/reabrir/', period_views.period_reopen, name='period_reopen'),
+    path('admin/periods/<int:pk>/mark-all-paid/', period_views.period_mark_all_paid, name='period_mark_all_paid'),
+
     
     # Adelantos
     path('admin/adelantos/', adelanto_list, name='adelanto_list'),

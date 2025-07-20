@@ -272,8 +272,9 @@
                                                 class="bg-red-100 text-red-700 px-2 py-1 rounded text-xs hover:bg-red-200 transition-colors">
                                             <i class="fas fa-times mr-1"></i>Rechazar
                                         </button>
-                                        <a href="{% url 'employees:employee_leave_request_detail' request.pk %}" 
-                                           class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs hover:bg-blue-200 transition-colors text-center">
+                                        <!-- AQUÍ ESTÁ EL CAMBIO PRINCIPAL -->
+                                        <a href="{% url 'employees:supervisor_leave_request_detail' request.pk %}" 
+                                        class="bg-blue-100 text-blue-700 px-2 py-1 rounded text-xs hover:bg-blue-200 transition-colors text-center">
                                             <i class="fas fa-eye mr-1"></i>Ver
                                         </a>
                                     </div>
@@ -284,7 +285,7 @@
                         
                         {% if pending_leave_requests|length > 3 %}
                         <div class="mt-4 text-center">
-                            <a href="#" class="text-sm text-blue-600 hover:text-blue-800">
+                            <a href="{% url 'employees:supervisor_leave_requests' %}" class="text-sm text-blue-600 hover:text-blue-800">
                                 Ver todas las solicitudes ({{ leave_stats.pending_requests }})
                             </a>
                         </div>
@@ -642,7 +643,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Cargar estadísticas del supervisor
-    fetch('{% url "tasks:supervisor_stats_api" %}')
+    fetch('{% url "employees:supervisor_stats_api" %}')
         .then(response => response.json())
         .then(data => {
             // Aquí puedes actualizar gráficos o estadísticas dinámicas
@@ -656,7 +657,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // Funciones para manejar solicitudes de licencia
 function approveRequest(requestId) {
     if (confirm('¿Estás seguro de que quieres aprobar esta solicitud?')) {
-        fetch(`/leaves/requests/${requestId}/approve/`, {
+        fetch(`{% url 'employees:supervisor_leave_request_approve' 0 %}`.replace('0', requestId), {
             method: 'POST',
             headers: {
                 'X-CSRFToken': '{{ csrf_token }}',
@@ -667,12 +668,13 @@ function approveRequest(requestId) {
                 'notes': ''
             })
         })
-        .then(response => {
-            if (response.ok) {
-                alert('✅ Solicitud aprobada exitosamente.');
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ ' + data.message);
                 location.reload();
             } else {
-                alert('❌ Error al aprobar la solicitud. Inténtalo de nuevo.');
+                alert('❌ Error: ' + data.error);
             }
         })
         .catch(error => {
@@ -685,7 +687,7 @@ function approveRequest(requestId) {
 function rejectRequest(requestId) {
     const reason = prompt('Ingresa el motivo del rechazo (opcional):');
     if (reason !== null) { // null significa que el usuario canceló
-        fetch(`/leaves/requests/${requestId}/reject/`, {
+        fetch(`{% url 'employees:supervisor_leave_request_reject' 0 %}`.replace('0', requestId), {
             method: 'POST',
             headers: {
                 'X-CSRFToken': '{{ csrf_token }}',
@@ -696,12 +698,13 @@ function rejectRequest(requestId) {
                 'rejection_reason': reason || 'Sin motivo especificado'
             })
         })
-        .then(response => {
-            if (response.ok) {
-                alert('✅ Solicitud rechazada.');
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ ' + data.message);
                 location.reload();
             } else {
-                alert('❌ Error al rechazar la solicitud. Inténtalo de nuevo.');
+                alert('❌ Error: ' + data.error);
             }
         })
         .catch(error => {

@@ -318,9 +318,14 @@
                                 {% endif %}
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
-                                <button class="hover:text-blue-800" onclick="downloadReceipt('{{ record.id }}')">
-                                    <i class="fas fa-download mr-1"></i>Recibo
-                                </button>
+                                <div class="flex space-x-2">
+                                    <!-- Botón de descarga de recibo -->
+                                    <a href="{% url 'employees:employee_payroll_receipt_download' record.id %}" 
+                                    class="text-blue-600 hover:text-blue-800 flex items-center" 
+                                    title="Descargar recibo">
+                                        <i class="fas fa-download mr-1"></i>Recibo
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                         {% endfor %}
@@ -459,18 +464,28 @@
             }, index * 100);
         });
 
-        // Función para exportar datos
+        // Función para exportar datos - CORREGIDA
         window.exportPayrollData = function() {
-            // Aquí puedes implementar la lógica de exportación real
-            // Por ejemplo, redirigir a una URL de exportación
-            window.location.href = '{% url "employees:employee_payroll" %}?export=pdf';
+            // Mostrar opciones de exportación
+            const format = prompt('Selecciona formato:\n1. CSV\n2. JSON\n\nEscribe "csv" o "json":');
+            
+            if (format && (format.toLowerCase() === 'csv' || format.toLowerCase() === 'json')) {
+                window.location.href = `{% url "employees:employee_payroll_export" %}?export=${format.toLowerCase()}`;
+            } else if (format !== null) {
+                alert('Formato no válido. Usa "csv" o "json".');
+            }
         };
 
-        // Función para descargar recibos
+        // Función para descargar recibos - CORREGIDA
         window.downloadReceipt = function(recordId) {
-            // Implementar descarga real de recibos
-            // window.location.href = `/employee/payroll/receipt/${recordId}/download/`;
-            alert('Descargando recibo para el período ' + recordId);
+            // Redirigir directamente a la URL de descarga
+            window.location.href = `{% url "employees:employee_payroll_receipt_download" 0 %}`.replace('0', recordId);
+        };
+
+        // Función para ver recibo en nueva ventana
+        window.viewReceipt = function(recordId) {
+            // Abrir el recibo en una nueva ventana/pestaña
+            window.open(`{% url "employees:employee_payroll_receipt_download" 0 %}`.replace('0', recordId), '_blank');
         };
 
         // Mostrar/ocultar detalles de pagos en móvil
@@ -505,32 +520,72 @@
             });
         });
 
+        // Función para mostrar notificación de descarga
+        window.showDownloadNotification = function(message) {
+            // Crear notificación temporal
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+            notification.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Eliminar después de 3 segundos
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        };
+
         // Actualizar totales en tiempo real (si fuera necesario)
         function updateSummaryCards() {
             // Esta función podría hacer llamadas AJAX para actualizar datos en tiempo real
             // Por ejemplo, para mostrar adelantos recientes o cambios de estado de pagos
         }
 
-        // Llamar cada 5 minutos para datos actualizados
-        // setInterval(updateSummaryCards, 300000);
+        // Verificar si hay parámetros de éxito en la URL
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('download') === 'success') {
+            showDownloadNotification('Archivo descargado exitosamente');
+        }
     });
 
     // Función para imprimir recibo específico
     function printReceipt(recordId) {
-        window.open(`/employee/payroll/receipt/${recordId}/print/`, '_blank');
+        // Abrir el recibo en nueva ventana para imprimir
+        const printWindow = window.open(`{% url "employees:employee_payroll_receipt_download" 0 %}`.replace('0', recordId), '_blank');
+        
+        // Esperar a que cargue e imprimir
+        printWindow.onload = function() {
+            printWindow.print();
+        };
     }
 
-    // Función para exportar a diferentes formatos
+    // Función para exportar a diferentes formatos - MEJORADA
     function exportData(format) {
-        const url = new URL(window.location.href);
-        url.searchParams.set('export', format);
-        window.location.href = url.toString();
+        if (['csv', 'json'].includes(format.toLowerCase())) {
+            showDownloadNotification(`Preparando descarga en formato ${format.toUpperCase()}...`);
+            window.location.href = `{% url "employees:employee_payroll_export" %}?export=${format.toLowerCase()}`;
+        } else {
+            alert('Formato no soportado. Usa CSV o JSON.');
+        }
     }
 
     // Mostrar tooltip con información adicional
     function showTooltip(element, text) {
-        // Implementar tooltips para mostrar información adicional
         element.title = text;
+    }
+
+    // Función para copiar información al portapapeles
+    function copyToClipboard(text) {
+        navigator.clipboard.writeText(text).then(function() {
+            showDownloadNotification('Información copiada al portapapeles');
+        }, function(err) {
+            console.error('Error al copiar: ', err);
+        });
     }
 </script>
 {% endblock %}

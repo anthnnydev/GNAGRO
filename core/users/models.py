@@ -152,3 +152,91 @@ class UserProfile(models.Model):
     
     def __str__(self):
         return f"Perfil de {self.user.get_full_name()}"
+    
+    
+class Company(models.Model):
+    """
+    Modelo para almacenar información de la empresa
+    """
+    name = models.CharField(
+        max_length=200,
+        verbose_name='Nombre de la Empresa'
+    )
+    
+    # Validador para RUC ecuatoriano (13 dígitos)
+    ruc_regex = RegexValidator(
+        regex=r'^\d{13}',
+        message="El RUC debe tener exactamente 13 dígitos. Ejemplo: 1234567890001."
+    )
+    
+    ruc = models.CharField(
+        max_length=13,
+        validators=[ruc_regex],
+        unique=True,
+        verbose_name='RUC'
+    )
+    
+    address = models.TextField(
+        max_length=500,
+        verbose_name='Dirección'
+    )
+    
+    city = models.CharField(
+        max_length=100,
+        verbose_name='Ciudad'
+    )
+    
+    province = models.CharField(
+        max_length=100,
+        verbose_name='Provincia'
+    )
+    
+    # Validador para teléfono de empresa (formato ecuatoriano)
+    phone_regex = RegexValidator(
+        regex=r'^0[2-9]\d{7}$|^09\d{8}',
+        message="Formato: convencional 02XXXXXXX o celular 09XXXXXXXX."
+    )
+    
+    phone = models.CharField(
+        validators=[phone_regex],
+        max_length=17,
+        verbose_name='Teléfono'
+    )
+    
+    email = models.EmailField(
+        verbose_name='Email'
+    )
+    
+    website = models.URLField(
+        blank=True,
+        verbose_name='Sitio Web'
+    )
+    
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name='Empresa Activa'
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        verbose_name = 'Empresa'
+        verbose_name_plural = 'Empresas'
+        db_table = 'users_company'
+    
+    def __str__(self):
+        return f"{self.name} - {self.ruc}"
+    
+    @classmethod
+    def get_active_company(cls):
+        """
+        Retorna la empresa activa del sistema
+        """
+        return cls.objects.filter(is_active=True).first()
+    
+    def get_full_address(self):
+        """
+        Retorna la dirección completa de la empresa
+        """
+        return f"{self.address}, {self.city}, {self.province}"

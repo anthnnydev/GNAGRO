@@ -1,0 +1,856 @@
+{% extends 'layouts/base_supervisor.html' %}
+
+{% block title %}Eliminar Categoría - {{ object.name }} - Sistema de Gestión{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">
+                        <i class="fas fa-exclamation-triangle text-red-600 mr-2"></i>
+                        Eliminar Categoría
+                    </h1>
+                    <p class="text-gray-600 mt-1">
+                        Confirma la eliminación de la categoría "{{ object.name }}"
+                    </p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'tasks:category_list' %}" 
+                       class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i>
+                        Volver a Categorías
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Panel Principal de Confirmación -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-xl shadow-sm border border-red-200 overflow-hidden">
+                    <!-- Header del Panel -->
+                    <div class="px-6 py-4 bg-red-50 border-b border-red-200">
+                        <div class="flex items-center">
+                            <div class="p-3 bg-red-100 rounded-full mr-4">
+                                <i class="fas fa-trash text-red-600 text-xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-semibold text-red-900">
+                                    ¿Estás seguro de eliminar esta categoría?
+                                </h3>
+                                <p class="text-sm text-red-700 mt-1">
+                                    Esta acción no se puede deshacer
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Información de la Categoría a Eliminar -->
+                    <div class="p-6">
+                        <div class="bg-gray-50 rounded-lg p-6 mb-6">
+                            <div class="flex items-center space-x-4 mb-4">
+                                <!-- Icono de la categoría -->
+                                <div class="p-4 rounded-full shadow-sm"
+                                     style="background-color: {{ object.color }}20; border: 2px solid {{ object.color }}40;">
+                                    <i class="{{ object.icon|default:'fas fa-tag' }} text-2xl"
+                                       style="color: {{ object.color }};"></i>
+                                </div>
+                                
+                                <!-- Información básica -->
+                                <div class="flex-1">
+                                    <h4 class="text-xl font-bold text-gray-900">{{ object.name }}</h4>
+                                    {% if object.description %}
+                                    <p class="text-gray-600 mt-1">{{ object.description }}</p>
+                                    {% else %}
+                                    <p class="text-gray-400 italic mt-1">Sin descripción</p>
+                                    {% endif %}
+                                    
+                                    <!-- Metadatos -->
+                                    <div class="flex items-center space-x-4 mt-3 text-sm text-gray-500">
+                                        <span>
+                                            <i class="fas fa-calendar mr-1"></i>
+                                            Creada {{ object.created_at|timesince }} atrás
+                                        </span>
+                                        <span>
+                                            <i class="fas fa-palette mr-1"></i>
+                                            Color: {{ object.color }}
+                                        </span>
+                                        <span>
+                                            <i class="fas fa-icons mr-1"></i>
+                                            {{ object.icon|default:"Sin icono" }}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Verificación de Tareas Asociadas -->
+                        {% if object.tasks.exists %}
+                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                            <div class="flex items-start">
+                                <div class="p-2 bg-yellow-100 rounded-full mr-3">
+                                    <i class="fas fa-exclamation-triangle text-yellow-600"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <h4 class="text-yellow-900 font-semibold mb-2">
+                                        ⚠️ Advertencia: Esta categoría tiene tareas asociadas
+                                    </h4>
+                                    <p class="text-yellow-800 text-sm mb-3">
+                                        Esta categoría tiene <strong>{{ object.tasks.count }} tarea(s)</strong> asociada(s). 
+                                        No se puede eliminar hasta que todas las tareas sean reasignadas a otra categoría 
+                                        o eliminadas.
+                                    </p>
+                                    
+                                    <!-- Lista de tareas asociadas -->
+                                    <div class="bg-white rounded border border-yellow-200 p-3 max-h-40 overflow-y-auto">
+                                        <h5 class="font-medium text-yellow-900 mb-2">Tareas asociadas:</h5>
+                                        <ul class="space-y-1">
+                                            {% for task in object.tasks.all|slice:":10" %}
+                                            <li class="text-sm text-yellow-800 flex items-center">
+                                                <i class="fas fa-task mr-2 text-yellow-600"></i>
+                                                <span class="font-medium">{{ task.title }}</span>
+                                                <span class="ml-2 px-2 py-1 text-xs rounded-full
+                                                    {% if task.status == 'completed' %}bg-green-100 text-green-800
+                                                    {% elif task.status == 'in_progress' %}bg-blue-100 text-blue-800
+                                                    {% elif task.status == 'assigned' %}bg-yellow-100 text-yellow-800
+                                                    {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                                    {{ task.get_status_display }}
+                                                </span>
+                                            </li>
+                                            {% endfor %}
+                                            {% if object.tasks.count > 10 %}
+                                            <li class="text-sm text-yellow-600 italic">
+                                                ... y {{ object.tasks.count|add:"-10" }} más
+                                            </li>
+                                            {% endif %}
+                                        </ul>
+                                    </div>
+
+                                    <!-- Acciones sugeridas -->
+                                    <div class="mt-4 flex flex-wrap gap-2">
+                                        <a href="{% url 'tasks:task_list' %}?category={{ object.id }}" 
+                                           class="inline-flex items-center px-3 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800 hover:bg-yellow-200 transition-colors">
+                                            <i class="fas fa-list mr-1"></i>
+                                            Ver todas las tareas
+                                        </a>
+                                        <button onclick="showBulkMoveModal()" 
+                                                class="inline-flex items-center px-3 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800 hover:bg-blue-200 transition-colors">
+                                            <i class="fas fa-exchange-alt mr-1"></i>
+                                            Mover tareas a otra categoría
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+                            <div class="flex items-center">
+                                <div class="p-2 bg-green-100 rounded-full mr-3">
+                                    <i class="fas fa-check-circle text-green-600"></i>
+                                </div>
+                                <div>
+                                    <h4 class="text-green-900 font-semibold">
+                                        ✅ Esta categoría no tiene tareas asociadas
+                                    </h4>
+                                    <p class="text-green-800 text-sm mt-1">
+                                        Se puede eliminar de forma segura sin afectar ninguna tarea.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Lista de Verificación -->
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                            <h4 class="text-blue-900 font-semibold mb-3">
+                                <i class="fas fa-clipboard-check mr-2"></i>
+                                Checklist antes de eliminar:
+                            </h4>
+                            <ul class="space-y-2 text-sm">
+                                <li class="flex items-center">
+                                    <i class="fas fa-{% if not object.tasks.exists %}check text-green-600{% else %}times text-red-600{% endif %} mr-2"></i>
+                                    <span class="{% if not object.tasks.exists %}text-green-800{% else %}text-red-800{% endif %}">
+                                        No tiene tareas asociadas
+                                    </span>
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fas fa-check text-green-600 mr-2"></i>
+                                    <span class="text-green-800">He verificado que no la necesitaré en el futuro</span>
+                                </li>
+                                <li class="flex items-center">
+                                    <i class="fas fa-check text-green-600 mr-2"></i>
+                                    <span class="text-green-800">Entiendo que esta acción no se puede deshacer</span>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <!-- Formulario de Confirmación -->
+                        {% if not object.tasks.exists %}
+                        <form method="post" id="deleteForm">
+                            {% csrf_token %}
+                            
+                            <!-- Confirmación por escrito -->
+                            <div class="mb-6">
+                                <label for="confirmationText" class="block text-sm font-medium text-gray-700 mb-2">
+                                    Para confirmar, escribe <strong>"{{ object.name }}"</strong> en el campo siguiente:
+                                </label>
+                                <input type="text" 
+                                       id="confirmationText" 
+                                       name="confirmation_text"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                                       placeholder="Escribe el nombre de la categoría para confirmar"
+                                       autocomplete="off">
+                                <div id="confirmationError" class="hidden mt-1 text-sm text-red-600">
+                                    <i class="fas fa-exclamation-circle mr-1"></i>
+                                    El texto no coincide con el nombre de la categoría
+                                </div>
+                            </div>
+
+                            <!-- Botones de Acción -->
+                            <div class="flex items-center justify-between pt-6 border-t border-gray-200">
+                                <a href="{% url 'tasks:category_list' %}" 
+                                   class="px-6 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                                    <i class="fas fa-times mr-2"></i>
+                                    Cancelar
+                                </a>
+                                
+                                <button type="submit" 
+                                        id="deleteButton"
+                                        disabled
+                                        class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed">
+                                    <i class="fas fa-trash mr-2"></i>
+                                    Eliminar Categoría Permanentemente
+                                </button>
+                            </div>
+                        </form>
+                        {% else %}
+                        <!-- Botones cuando no se puede eliminar -->
+                        <div class="flex items-center justify-between pt-6 border-t border-gray-200">
+                            <a href="{% url 'tasks:category_list' %}" 
+                               class="px-6 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                                <i class="fas fa-arrow-left mr-2"></i>
+                                Volver a Categorías
+                            </a>
+                            
+                            <div class="flex space-x-3">
+                                <button onclick="showBulkMoveModal()" 
+                                        class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                                    <i class="fas fa-exchange-alt mr-2"></i>
+                                    Mover Tareas
+                                </button>
+                                <span class="px-6 py-2 bg-gray-300 text-gray-500 rounded-lg cursor-not-allowed">
+                                    <i class="fas fa-ban mr-2"></i>
+                                    No se puede eliminar
+                                </span>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panel de Información Adicional -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden sticky top-8">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            <i class="fas fa-info-circle text-blue-600 mr-2"></i>
+                            Información Importante
+                        </h3>
+                    </div>
+
+                    <div class="p-6 space-y-6">
+                        <!-- Estadísticas de la Categoría -->
+                        <div class="space-y-4">
+                            <h4 class="font-semibold text-gray-800">Estadísticas</h4>
+                            
+                            <div class="grid grid-cols-2 gap-3 text-sm">
+                                <div class="bg-gray-50 rounded-lg p-3 text-center">
+                                    <div class="text-2xl font-bold text-gray-900">{{ object.tasks.count }}</div>
+                                    <div class="text-gray-500">Tareas</div>
+                                </div>
+                                <div class="bg-gray-50 rounded-lg p-3 text-center">
+                                    <div class="text-2xl font-bold text-gray-900">
+                                        {{ object.created_at|timesince|truncatewords:1 }}
+                                    </div>
+                                    <div class="text-gray-500">Antigüedad</div>
+                                </div>
+                            </div>
+
+                            <!-- Estado de las tareas si existen -->
+                            {% if object.tasks.exists %}
+                            <div class="mt-4">
+                                <h5 class="font-medium text-gray-700 mb-2">Estado de Tareas:</h5>
+                                {% regroup object.tasks.all by status as status_groups %}
+                                <div class="space-y-2">
+                                    {% for status_group in status_groups %}
+                                    <div class="flex justify-between items-center text-sm">
+                                        <span class="capitalize">{{ status_group.grouper|capfirst }}</span>
+                                        <span class="font-medium">{{ status_group.list|length }}</span>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Qué sucede al eliminar -->
+                        <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                            <h4 class="font-semibold text-red-900 mb-3">
+                                <i class="fas fa-exclamation-triangle mr-2"></i>
+                                ¿Qué sucede al eliminar?
+                            </h4>
+                            <ul class="text-sm text-red-800 space-y-2">
+                                <li class="flex items-start">
+                                    <i class="fas fa-times text-red-600 mr-2 mt-0.5"></i>
+                                    La categoría se elimina permanentemente
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-times text-red-600 mr-2 mt-0.5"></i>
+                                    No se puede recuperar después
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-times text-red-600 mr-2 mt-0.5"></i>
+                                    Los filtros y reportes se ven afectados
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-times text-red-600 mr-2 mt-0.5"></i>
+                                    Las estadísticas históricas se pierden
+                                </li>
+                            </ul>
+                        </div>
+
+                        <!-- Alternativas -->
+                        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                            <h4 class="font-semibold text-blue-900 mb-3">
+                                <i class="fas fa-lightbulb mr-2"></i>
+                                Alternativas
+                            </h4>
+                            <ul class="text-sm text-blue-800 space-y-2">
+                                <li class="flex items-start">
+                                    <i class="fas fa-edit text-blue-600 mr-2 mt-0.5"></i>
+                                    <div>
+                                        <span class="font-medium">Editar:</span> Cambia el nombre o descripción
+                                    </div>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-eye-slash text-blue-600 mr-2 mt-0.5"></i>
+                                    <div>
+                                        <span class="font-medium">Desactivar:</span> Oculta sin eliminar
+                                    </div>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-exchange-alt text-blue-600 mr-2 mt-0.5"></i>
+                                    <div>
+                                        <span class="font-medium">Fusionar:</span> Combina con otra categoría
+                                    </div>
+                                </li>
+                            </ul>
+                            
+                            <div class="mt-4 space-y-2">
+                                {% if perms.tasks.change_taskcategory %}
+                                <a href="{% url 'tasks:category_update' object.pk %}" 
+                                   class="block w-full text-center px-3 py-2 text-sm bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
+                                    <i class="fas fa-edit mr-2"></i>
+                                    Editar en su lugar
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Categorías sugeridas para mover tareas -->
+                        {% if object.tasks.exists %}
+                        <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                            <h4 class="font-semibold text-green-900 mb-3">
+                                <i class="fas fa-share-alt mr-2"></i>
+                                Categorías Disponibles
+                            </h4>
+                            <div class="space-y-2 max-h-32 overflow-y-auto">
+                                {% for category in alternative_categories %}
+                                <div class="flex items-center justify-between text-sm bg-white rounded p-2 border border-green-200">
+                                    <div class="flex items-center space-x-2">
+                                        <i class="{{ category.icon|default:'fas fa-tag' }} text-sm"
+                                           style="color: {{ category.color }};"></i>
+                                        <span class="font-medium">{{ category.name }}</span>
+                                    </div>
+                                    <span class="text-green-600 text-xs">{{ category.tasks.count }} tareas</span>
+                                </div>
+                                {% empty %}
+                                <p class="text-green-700 text-sm italic">No hay otras categorías disponibles</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Ayuda -->
+                        <div class="bg-gray-50 rounded-lg p-4">
+                            <h4 class="font-semibold text-gray-800 mb-2">
+                                <i class="fas fa-question-circle mr-2"></i>
+                                ¿Necesitas Ayuda?
+                            </h4>
+                            <p class="text-sm text-gray-600 mb-3">
+                                Si no estás seguro, consulta con tu administrador antes de proceder.
+                            </p>
+                            <button onclick="showHelpModal()" 
+                                    class="w-full text-center px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                                <i class="fas fa-life-ring mr-2"></i>
+                                Ver Guía Completa
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para Mover Tareas a Otra Categoría -->
+<div id="bulkMoveModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-10 mx-auto p-5 border w-11/12 max-w-2xl shadow-lg rounded-xl bg-white">
+        <div class="mt-3">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl leading-6 font-medium text-gray-900">
+                    <i class="fas fa-exchange-alt text-blue-600 mr-2"></i>
+                    Mover Tareas a Otra Categoría
+                </h3>
+                <button onclick="hideBulkMoveModal()" 
+                        class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <div class="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p class="text-yellow-800 text-sm">
+                    <i class="fas fa-info-circle mr-2"></i>
+                    Selecciona una categoría de destino para mover las <strong>{{ object.tasks.count }} tarea(s)</strong> 
+                    de "{{ object.name }}" antes de eliminarla.
+                </p>
+            </div>
+
+            <form id="bulkMoveForm" method="post" action="#">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="bulk_move">
+                
+                <div class="mb-6">
+                    <label for="destinationCategory" class="block text-sm font-medium text-gray-700 mb-2">
+                        Categoría de Destino:
+                    </label>
+                    <select id="destinationCategory" name="destination_category" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                        <option value="">Selecciona una categoría...</option>
+                        {% for category in alternative_categories %}
+                        <option value="{{ category.id }}" data-color="{{ category.color }}" data-icon="{{ category.icon }}">
+                            {{ category.name }} ({{ category.tasks.count }} tareas actuales)
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Vista previa de la categoría seleccionada -->
+                <div id="categoryPreview" class="hidden mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <h4 class="font-medium text-gray-800 mb-2">Vista previa de la categoría destino:</h4>
+                    <div class="flex items-center space-x-3">
+                        <div id="previewIconContainer" class="p-2 rounded-full">
+                            <i id="previewIcon" class="fas fa-tag"></i>
+                        </div>
+                        <div>
+                            <div id="previewName" class="font-medium text-gray-900"></div>
+                            <div id="previewCount" class="text-sm text-gray-500"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <button type="button" onclick="hideBulkMoveModal()"
+                            class="px-6 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 transition-colors">
+                        Cancelar
+                    </button>
+                    <button type="submit" 
+                            class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        <i class="fas fa-exchange-alt mr-2"></i>
+                        Mover {{ object.tasks.count }} Tarea(s)
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Ayuda -->
+<div id="helpModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-10 mx-auto p-5 border w-11/12 max-w-3xl shadow-lg rounded-xl bg-white">
+        <div class="mt-3">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl leading-6 font-medium text-gray-900">
+                    <i class="fas fa-life-ring text-green-600 mr-2"></i>
+                    Guía para Eliminar Categorías
+                </h3>
+                <button onclick="hideHelpModal()" 
+                        class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-6">
+                <!-- Cuándo eliminar -->
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <h4 class="font-semibold text-green-900 mb-2">
+                        <i class="fas fa-check-circle mr-2"></i>
+                        Cuándo SÍ eliminar una categoría:
+                    </h4>
+                    <ul class="text-sm text-green-800 space-y-1">
+                        <li>• La categoría no tiene tareas asociadas</li>
+                        <li>• Ya no se usará en el futuro</li>
+                        <li>• Fue creada por error</li>
+                        <li>• Es un duplicado de otra categoría</li>
+                    </ul>
+                </div>
+
+                <!-- Cuándo no eliminar -->
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <h4 class="font-semibold text-red-900 mb-2">
+                        <i class="fas fa-times-circle mr-2"></i>
+                        Cuándo NO eliminar una categoría:
+                    </h4>
+                    <ul class="text-sm text-red-800 space-y-1">
+                        <li>• Tiene tareas asignadas actualmente</li>
+                        <li>• Podría usarse en reportes históricos</li>
+                        <li>• Solo quieres cambiar el nombre o color</li>
+                        <li>• No estás completamente seguro</li>
+                    </ul>
+                </div>
+
+                <!-- Pasos recomendados -->
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 class="font-semibold text-blue-900 mb-2">
+                        <i class="fas fa-list-ol mr-2"></i>
+                        Pasos recomendados antes de eliminar:
+                    </h4>
+                    <ol class="text-sm text-blue-800 space-y-1 list-decimal list-inside">
+                        <li>Verifica que no tenga tareas activas</li>
+                        <li>Mueve las tareas a otra categoría si es necesario</li>
+                        <li>Confirma que no afectará reportes importantes</li>
+                        <li>Considera si una edición sería mejor opción</li>
+                        <li>Procede con la eliminación solo si estás seguro</li>
+                    </ol>
+                </div>
+
+                <!-- Alternativas -->
+                <div class="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                    <h4 class="font-semibold text-purple-900 mb-2">
+                        <i class="fas fa-lightbulb mr-2"></i>
+                        Alternativas a la eliminación:
+                    </h4>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                        <div class="bg-white rounded p-3 border border-purple-200">
+                            <div class="font-medium text-purple-900">Editar</div>
+                            <div class="text-purple-700">Cambiar nombre, color o descripción</div>
+                        </div>
+                        <div class="bg-white rounded p-3 border border-purple-200">
+                            <div class="font-medium text-purple-900">Desactivar</div>
+                            <div class="text-purple-700">Ocultar sin perder datos históricos</div>
+                        </div>
+                        <div class="bg-white rounded p-3 border border-purple-200">
+                            <div class="font-medium text-purple-900">Fusionar</div>
+                            <div class="text-purple-700">Combinar con otra categoría similar</div>
+                        </div>
+                        <div class="bg-white rounded p-3 border border-purple-200">
+                            <div class="font-medium text-purple-900">Archivar</div>
+                            <div class="text-purple-700">Marcar como obsoleta para referencia</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-6 text-center">
+                <button onclick="hideHelpModal()" 
+                        class="px-6 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 transition-colors">
+                    Entendido
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Variables globales
+    const categoryName = "{{ object.name }}";
+    const confirmationInput = document.getElementById('confirmationText');
+    const deleteButton = document.getElementById('deleteButton');
+    const confirmationError = document.getElementById('confirmationError');
+
+    // Validación del texto de confirmación
+    if (confirmationInput && deleteButton) {
+        confirmationInput.addEventListener('input', function() {
+            const inputValue = this.value.trim();
+            const isMatch = inputValue === categoryName;
+            
+            deleteButton.disabled = !isMatch;
+            
+            if (inputValue.length > 0 && !isMatch) {
+                confirmationError.classList.remove('hidden');
+                this.classList.add('border-red-500', 'ring-red-500');
+                this.classList.remove('border-gray-300');
+            } else {
+                confirmationError.classList.add('hidden');
+                this.classList.remove('border-red-500', 'ring-red-500');
+                this.classList.add('border-gray-300');
+            }
+            
+            // Cambiar estilo del botón según el estado
+            if (isMatch) {
+                deleteButton.classList.remove('disabled:bg-gray-300');
+                deleteButton.classList.add('bg-red-600', 'hover:bg-red-700');
+            } else {
+                deleteButton.classList.add('disabled:bg-gray-300');
+                deleteButton.classList.remove('bg-red-600', 'hover:bg-red-700');
+            }
+        });
+    }
+
+    // Validación final del formulario
+    const deleteForm = document.getElementById('deleteForm');
+    if (deleteForm) {
+        deleteForm.addEventListener('submit', function(event) {
+            const inputValue = confirmationInput.value.trim();
+            
+            if (inputValue !== categoryName) {
+                event.preventDefault();
+                alert(`Por favor, escribe exactamente "${categoryName}" para confirmar la eliminación.`);
+                confirmationInput.focus();
+                return false;
+            }
+            
+            // Confirmación adicional
+            const finalConfirm = confirm(
+                `⚠️ ÚLTIMA CONFIRMACIÓN ⚠️\n\n` +
+                `¿Estás ABSOLUTAMENTE SEGURO de que quieres eliminar la categoría "${categoryName}"?\n\n` +
+                `Esta acción:\n` +
+                `• Es PERMANENTE e IRREVERSIBLE\n` +
+                `• No se puede deshacer\n` +
+                `• Afectará reportes y estadísticas\n\n` +
+                `¿Continuar con la eliminación?`
+            );
+            
+            if (!finalConfirm) {
+                event.preventDefault();
+                return false;
+            }
+            
+            // Mostrar loading en el botón
+            deleteButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Eliminando...';
+            deleteButton.disabled = true;
+        });
+    }
+
+    // Funciones para el modal de mover tareas
+    function showBulkMoveModal() {
+        document.getElementById('bulkMoveModal').classList.remove('hidden');
+    }
+
+    function hideBulkMoveModal() {
+        document.getElementById('bulkMoveModal').classList.add('hidden');
+        document.getElementById('categoryPreview').classList.add('hidden');
+    }
+
+    // Funciones para el modal de ayuda
+    function showHelpModal() {
+        document.getElementById('helpModal').classList.remove('hidden');
+    }
+
+    function hideHelpModal() {
+        document.getElementById('helpModal').classList.add('hidden');
+    }
+
+    // Vista previa de categoría destino
+    const destinationSelect = document.getElementById('destinationCategory');
+    if (destinationSelect) {
+        destinationSelect.addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const preview = document.getElementById('categoryPreview');
+            
+            if (selectedOption.value) {
+                const color = selectedOption.dataset.color;
+                const icon = selectedOption.dataset.icon || 'fas fa-tag';
+                const name = selectedOption.text.split(' (')[0]; // Remover el conteo de tareas
+                const currentCount = selectedOption.text.match(/\((\d+) tareas/)?.[1] || '0';
+                
+                // Actualizar vista previa
+                document.getElementById('previewIcon').className = icon;
+                document.getElementById('previewIcon').style.color = color;
+                document.getElementById('previewIconContainer').style.backgroundColor = color + '20';
+                document.getElementById('previewIconContainer').style.border = `2px solid ${color}40`;
+                document.getElementById('previewName').textContent = name;
+                document.getElementById('previewCount').textContent = 
+                    `${currentCount} tareas actuales + {{ object.tasks.count }} = ${parseInt(currentCount) + {{ object.tasks.count }}} total`;
+                
+                preview.classList.remove('hidden');
+            } else {
+                preview.classList.add('hidden');
+            }
+        });
+    }
+
+    // Manejar el formulario de mover tareas
+    const bulkMoveForm = document.getElementById('bulkMoveForm');
+    if (bulkMoveForm) {
+        bulkMoveForm.addEventListener('submit', function(event) {
+            const destination = destinationSelect.value;
+            
+            if (!destination) {
+                event.preventDefault();
+                alert('Por favor selecciona una categoría de destino.');
+                destinationSelect.focus();
+                return false;
+            }
+            
+            const selectedOption = destinationSelect.options[destinationSelect.selectedIndex];
+            const categoryName = selectedOption.text.split(' (')[0];
+            
+            const confirm = window.confirm(
+                `¿Mover las {{ object.tasks.count }} tarea(s) de "{{ object.name }}" ` +
+                `a la categoría "${categoryName}"?\n\n` +
+                `Después de esto podrás eliminar la categoría "{{ object.name }}".`
+            );
+            
+            if (!confirm) {
+                event.preventDefault();
+                return false;
+            }
+            
+            // Cambiar la acción del formulario a la URL correcta
+            this.action = `{% url 'tasks:category_bulk_move' object.pk %}`;
+        });
+    }
+
+    // Cerrar modales con Escape
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            hideBulkMoveModal();
+            hideHelpModal();
+        }
+    });
+
+    // Cerrar modales haciendo clic fuera
+    document.getElementById('bulkMoveModal').addEventListener('click', function(event) {
+        if (event.target === this) {
+            hideBulkMoveModal();
+        }
+    });
+
+    document.getElementById('helpModal').addEventListener('click', function(event) {
+        if (event.target === this) {
+            hideHelpModal();
+        }
+    });
+
+    // Efectos visuales y animaciones
+    document.addEventListener('DOMContentLoaded', function() {
+        // Animación de entrada para los elementos
+        const elements = document.querySelectorAll('.bg-white, .bg-red-50, .bg-yellow-50, .bg-green-50');
+        elements.forEach((element, index) => {
+            element.style.opacity = '0';
+            element.style.transform = 'translateY(20px)';
+            
+            setTimeout(() => {
+                element.style.transition = 'all 0.5s ease';
+                element.style.opacity = '1';
+                element.style.transform = 'translateY(0)';
+            }, index * 100);
+        });
+
+        // Foco automático en el campo de confirmación
+        if (confirmationInput) {
+            setTimeout(() => {
+                confirmationInput.focus();
+            }, 500);
+        }
+
+        console.log('✅ Página de eliminación de categoría cargada correctamente');
+    });
+
+    // Función para mostrar notificaciones
+    function showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 text-white ${
+            type === 'success' ? 'bg-green-500' : 
+            type === 'error' ? 'bg-red-500' : 
+            type === 'warning' ? 'bg-yellow-500' :
+            'bg-blue-500'
+        }`;
+        notification.innerHTML = `
+            <div class="flex items-center">
+                <i class="fas fa-${
+                    type === 'success' ? 'check-circle' : 
+                    type === 'error' ? 'exclamation-circle' : 
+                    type === 'warning' ? 'exclamation-triangle' :
+                    'info-circle'
+                } mr-2"></i>
+                <span>${message}</span>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.style.animation = 'fadeOut 0.3s ease';
+            setTimeout(() => notification.remove(), 300);
+        }, 5000);
+    }
+
+    // Prevenir navegación accidental si hay texto en el campo de confirmación
+    window.addEventListener('beforeunload', function(event) {
+        if (confirmationInput && confirmationInput.value.trim() !== '') {
+            event.preventDefault();
+            event.returnValue = '¿Estás seguro de que quieres salir? Se perderá el texto de confirmación.';
+        }
+    });
+</script>
+
+<style>
+    @keyframes fadeOut {
+        from { opacity: 1; transform: translateY(0); }
+        to { opacity: 0; transform: translateY(-10px); }
+    }
+    
+    /* Efectos hover mejorados */
+    .hover\:scale-105:hover {
+        transform: scale(1.05);
+    }
+    
+    /* Estilos para los campos de entrada con estados de error */
+    .border-red-500 {
+        border-color: #ef4444 !important;
+        box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1) !important;
+    }
+    
+    /* Animaciones suaves */
+    .transition-all {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    /* Estilo para el botón de eliminar deshabilitado */
+    button:disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+    
+    /* Mejorar la apariencia de las listas de verificación */
+    .checklist-item {
+        transition: all 0.2s ease;
+    }
+    
+    .checklist-item:hover {
+        background-color: rgba(0, 0, 0, 0.02);
+        padding-left: 0.75rem;
+    }
+</style>
+{% endblock %}

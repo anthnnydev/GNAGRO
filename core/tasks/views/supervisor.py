@@ -11,6 +11,7 @@ from django.http import JsonResponse, HttpResponse
 from django.utils import timezone
 from datetime import datetime, timedelta
 import csv
+import json
 
 from core.employees.models import Employee
 from ..models import Task, TaskCategory, TaskAssignment, TaskProgress, TaskComment
@@ -579,6 +580,138 @@ class TaskCategoryDeleteView(SupervisorRequiredMixin, LoginRequiredMixin, Delete
         messages.success(request, f'Categoría "{category_name}" eliminada exitosamente.')
         return response
 
+
+@login_required
+def task_change_status(request, pk):
+    """API para cambiar el estado de una tarea vía AJAX"""
+    
+    # Verificar que sea una petición AJAX
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+    if not is_ajax:
+        return JsonResponse({'error': 'Esta URL solo acepta peticiones AJAX'}, status=400)
+    
+    # Verificar permisos
+    if not hasattr(request.user, 'employee_profile'):
+        return JsonResponse({'error': 'No tienes permisos para esta acción'}, status=403)
+    
+    user_type = getattr(request.user, 'user_type', 'employee')
+    if user_type not in ['supervisor', 'admin', 'hr']:
+        return JsonResponse({'error': 'Solo supervisores pueden cambiar el estado de las tareas'}, status=403)
+    
+    # Verificar que sea una petición POST
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+    
+    try:
+        # Obtener la tarea
+        task = get_object_or_404(Task, 
+            pk=pk, 
+            supervisor=request.user.employee_profile
+        )
+        
+        # Obtener el nuevo estado del JSON body
+        try:
+            data = json.loads(request.body)
+            new_status = data.get('status')
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'Datos JSON inválidos'}, status=400)
+        
+        if not new_status:
+            return JsonResponse({'error': 'No se proporcionó el nuevo estado'}, status=400)
+        
+        # Validar que el nuevo estado sea válido
+        valid_statuses = [choice[0] for choice in Task.STATUS_CHOICES]
+        if new_status not in valid_statuses:
+            return JsonResponse({'error': f'Estado inválido: {new_status}'}, status=400)
+        
+        # Validar transiciones de estado
+        old_status = task.status
+        
+        # Reglas de transición de estados
+        valid_transitions = {
+            'draft': ['assigned', 'cancelled'],
+            'assigned': ['in_progress', 'cancelled'],
+            'in_progress': ['completed', 'paused', 'cancelled'],
+            'paused': ['in_progress', 'cancelled'],
+            'completed': [],  # No se puede cambiar desde completado
+            'cancelled': []   # No se puede cambiar desde cancelado
+        }
+        
+        if new_status not in valid_transitions.get(old_status, []):
+            return JsonResponse({
+                'error': f'No se puede cambiar de {old_status} a {new_status}'
+            }, status=400)
+        
+        # Validaciones específicas por estado
+        if new_status == 'assigned' and old_status == 'draft':
+            # Para asignar, debe tener al menos un empleado asignado
+            if not task.assigned_employees.exists():
+                return JsonResponse({
+                    'error': 'No se puede asignar una tarea sin empleados. Primero asigna empleados.'
+                }, status=400)
+        
+        elif new_status == 'in_progress':
+            # Para iniciar, debe estar asignada y tener empleados
+            if not task.assigned_employees.exists():
+                return JsonResponse({
+                    'error': 'No se puede iniciar una tarea sin empleados asignados.'
+                }, status=400)
+        
+        elif new_status == 'completed':
+            # Para completar, verificar que tenga progreso
+            total_assignments = task.assignments.count()
+            completed_assignments = task.assignments.filter(status='completed').count()
+            
+            if total_assignments == 0:
+                return JsonResponse({
+                    'error': 'No se puede completar una tarea sin asignaciones.'
+                }, status=400)
+            
+            # Opcional: requerir que al menos algunos empleados hayan completado
+            # if completed_assignments == 0:
+            #     return JsonResponse({
+            #         'error': 'No se puede completar una tarea sin empleados que hayan terminado su parte.'
+            #     }, status=400)
+        
+        # Realizar el cambio de estado
+        task.status = new_status
+        
+        # Actualizar timestamps específicos
+        if new_status == 'completed':
+            task.completed_at = timezone.now()
+            task.progress_percentage = 100
+        elif new_status == 'in_progress' and old_status != 'paused':
+            # Solo actualizar si no venía de pausa
+            task.progress_percentage = max(task.progress_percentage, 1)
+        
+        task.save()
+        
+        # Log de la acción (opcional)
+        print(f"✅ Estado de tarea cambiado: {task.title} ({old_status} → {new_status}) por {request.user.username}")
+        
+        # Respuesta exitosa
+        return JsonResponse({
+            'success': True,
+            'message': f'Estado cambiado exitosamente de "{task.get_status_display()}" a "{task.get_status_display()}"',
+            'old_status': old_status,
+            'new_status': new_status,
+            'task_id': task.id,
+            'task_title': task.title,
+            'progress_percentage': task.progress_percentage,
+            'completed_at': task.completed_at.isoformat() if task.completed_at else None
+        })
+        
+    except Task.DoesNotExist:
+        return JsonResponse({'error': 'Tarea no encontrada'}, status=404)
+    except Exception as e:
+        # Log del error para debugging
+        print(f"❌ Error en task_change_status: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
+        return JsonResponse({
+            'error': f'Error interno del servidor: {str(e)}'
+        }, status=500)
 
 # APIs y funciones auxiliares
 @login_required

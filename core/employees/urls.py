@@ -43,7 +43,11 @@ urlpatterns = [
     path('supervisor/team/<int:pk>/', supervisor_portal.SupervisorEmployeeDetailView.as_view(), name='supervisor_employee_detail'),
     path('supervisor/reports/', supervisor_portal.SupervisorReportsView.as_view(), name='supervisor_reports'),
     path('supervisor/payroll/', supervisor_portal.SupervisorPayrollView.as_view(), name='supervisor_payroll'),
-    
+    path('supervisor/leave-requests/', supervisor_portal.SupervisorLeaveRequestListView.as_view(), name='supervisor_leave_requests'),
+    path('supervisor/leave-requests/<int:pk>/', supervisor_portal.SupervisorLeaveRequestDetailView.as_view(), name='supervisor_leave_request_detail'),
+    path('supervisor/leave-requests/<int:pk>/approve/', supervisor_portal.supervisor_leave_request_approve, name='supervisor_leave_request_approve'),
+    path('supervisor/leave-requests/<int:pk>/reject/', supervisor_portal.supervisor_leave_request_reject, name='supervisor_leave_request_reject'),
+        
     # APIs del supervisor
     path('supervisor/api/stats/', supervisor_portal.supervisor_stats_api, name='supervisor_stats_api'),
     path('supervisor/api/team-performance/', supervisor_portal.supervisor_team_performance_api, name='supervisor_team_performance_api'),
@@ -53,6 +57,11 @@ urlpatterns = [
     path('dashboard/', employee_portal.EmployeeDashboardView.as_view(), name='employee_dashboard'),
     path('profile/', employee_portal.EmployeeProfileView.as_view(), name='employee_profile'),
     path('documents/', employee_portal.EmployeeDocumentsView.as_view(), name='employee_documents'),
+    path('documents/upload/', employee_portal.EmployeeDocumentCreateView.as_view(), name='employee_document_upload'),
+    path('documents/upload-ajax/', employee_portal.employee_document_upload_ajax, name='employee_document_upload_ajax'),
+    path('documents/<int:document_id>/delete/', employee_portal.employee_document_delete, name='employee_document_delete'),
+    path('documents/<int:document_id>/view/', employee_portal.employee_document_view, name='employee_document_view'),
+    path('documents/<int:document_id>/thumbnail/', employee_portal.employee_document_thumbnail, name='employee_document_thumbnail'),
     path('payroll/', employee_portal.EmployeePayrollView.as_view(), name='employee_payroll'),
     path('time/', employee_portal.EmployeeTimeView.as_view(), name='employee_time'),
     path('requests/', employee_portal.EmployeeRequestsView.as_view(), name='employee_requests'),

@@ -1,0 +1,856 @@
+{% extends 'layouts/base_supervisor.html' %}
+
+{% block title %}
+    {% if form.instance.pk %}Editar{% else %}Nueva{% endif %} Categoría - Sistema de Gestión
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">
+                        {% if form.instance.pk %}
+                            <i class="fas fa-edit text-blue-600 mr-2"></i>
+                            Editar Categoría
+                        {% else %}
+                            <i class="fas fa-plus text-green-600 mr-2"></i>
+                            Nueva Categoría
+                        {% endif %}
+                    </h1>
+                    <p class="text-gray-600 mt-1">
+                        {% if form.instance.pk %}
+                            Modifica los detalles de la categoría "{{ form.instance.name }}"
+                        {% else %}
+                            Crea una nueva categoría para organizar las tareas
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'tasks:category_list' %}" 
+                       class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i>
+                        Volver a Categorías
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- Formulario Principal -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            Información de la Categoría
+                        </h3>
+                        <p class="text-sm text-gray-500 mt-1">
+                            Completa los datos básicos de la categoría
+                        </p>
+                    </div>
+
+                    <form method="post" enctype="multipart/form-data" id="categoryForm" class="p-6">
+                        {% csrf_token %}
+                        
+                        <!-- Campo Nombre -->
+                        <div class="mb-6">
+                            <label for="{{ form.name.id_for_label }}" 
+                                   class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-tag text-green-600 mr-1"></i>
+                                Nombre de la Categoría
+                                <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                                <div class="mt-1 text-sm text-red-600">
+                                    {% for error in form.name.errors %}
+                                        <p><i class="fas fa-exclamation-circle mr-1"></i>{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <p class="mt-1 text-xs text-gray-500">
+                                Nombre descriptivo y único para la categoría (ej: "Deshoje", "Coronar", "Abonar")
+                            </p>
+                        </div>
+
+                        <!-- Campo Descripción -->
+                        <div class="mb-6">
+                            <label for="{{ form.description.id_for_label }}" 
+                                   class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-align-left text-blue-600 mr-1"></i>
+                                Descripción
+                            </label>
+                            {{ form.description }}
+                            {% if form.description.errors %}
+                                <div class="mt-1 text-sm text-red-600">
+                                    {% for error in form.description.errors %}
+                                        <p><i class="fas fa-exclamation-circle mr-1"></i>{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <p class="mt-1 text-xs text-gray-500">
+                                Describe el tipo de tareas que pertenecen a esta categoría
+                            </p>
+                        </div>
+
+                        <!-- Campo Icono -->
+                        <div class="mb-6">
+                            <label for="{{ form.icon.id_for_label }}" 
+                                   class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-icons text-purple-600 mr-1"></i>
+                                Icono (Font Awesome)
+                            </label>
+                            <div class="flex space-x-3">
+                                <div class="flex-1">
+                                    {{ form.icon }}
+                                </div>
+                                <div class="flex items-center justify-center w-12 h-10 bg-gray-100 rounded-lg border border-gray-300" 
+                                     id="iconPreview">
+                                    <i class="fas fa-tag text-gray-400" id="previewIcon"></i>
+                                </div>
+                            </div>
+                            {% if form.icon.errors %}
+                                <div class="mt-1 text-sm text-red-600">
+                                    {% for error in form.icon.errors %}
+                                        <p><i class="fas fa-exclamation-circle mr-1"></i>{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            <p class="mt-1 text-xs text-gray-500">
+                                Clase CSS de Font Awesome (ej: "fas fa-leaf", "fas fa-seedling", "fas fa-tools")
+                            </p>
+                            
+                            <!-- Iconos Sugeridos -->
+                            <div class="mt-3">
+                                <p class="text-xs font-medium text-gray-700 mb-2">Iconos sugeridos:</p>
+                                <div class="flex flex-wrap gap-2" id="suggestedIcons">
+                                    <button type="button" class="icon-suggestion p-2 bg-gray-100 hover:bg-green-100 rounded-lg transition-colors" 
+                                            data-icon="fas fa-leaf" title="Hoja">
+                                        <i class="fas fa-leaf text-green-600"></i>
+                                    </button>
+                                    <button type="button" class="icon-suggestion p-2 bg-gray-100 hover:bg-green-100 rounded-lg transition-colors" 
+                                            data-icon="fas fa-seedling" title="Planta">
+                                        <i class="fas fa-seedling text-green-600"></i>
+                                    </button>
+                                    <button type="button" class="icon-suggestion p-2 bg-gray-100 hover:bg-blue-100 rounded-lg transition-colors" 
+                                            data-icon="fas fa-tools" title="Herramientas">
+                                        <i class="fas fa-tools text-blue-600"></i>
+                                    </button>
+                                    <button type="button" class="icon-suggestion p-2 bg-gray-100 hover:bg-purple-100 rounded-lg transition-colors" 
+                                            data-icon="fas fa-cut" title="Cortar">
+                                        <i class="fas fa-cut text-purple-600"></i>
+                                    </button>
+                                    <button type="button" class="icon-suggestion p-2 bg-gray-100 hover:bg-yellow-100 rounded-lg transition-colors" 
+                                            data-icon="fas fa-spray-can" title="Fumigar">
+                                        <i class="fas fa-spray-can text-yellow-600"></i>
+                                    </button>
+                                    <button type="button" class="icon-suggestion p-2 bg-gray-100 hover:bg-red-100 rounded-lg transition-colors" 
+                                            data-icon="fas fa-hand-paper" title="Manual">
+                                        <i class="fas fa-hand-paper text-red-600"></i>
+                                    </button>
+                                    <button type="button" class="icon-suggestion p-2 bg-gray-100 hover:bg-indigo-100 rounded-lg transition-colors" 
+                                            data-icon="fas fa-tractor" title="Maquinaria">
+                                        <i class="fas fa-tractor text-indigo-600"></i>
+                                    </button>
+                                    <button type="button" class="icon-suggestion p-2 bg-gray-100 hover:bg-pink-100 rounded-lg transition-colors" 
+                                            data-icon="fas fa-apple-alt" title="Frutos">
+                                        <i class="fas fa-apple-alt text-pink-600"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Campo Color -->
+                        <div class="mb-8">
+                            <label for="{{ form.color.id_for_label }}" 
+                                   class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-palette text-pink-600 mr-1"></i>
+                                Color de la Categoría
+                                <span class="text-red-500">*</span>
+                            </label>
+                            <div class="flex space-x-3 items-center">
+                                <div class="flex-1">
+                                    {{ form.color }}
+                                </div>
+                                <div class="w-12 h-10 rounded-lg border-2 border-gray-300 shadow-sm" 
+                                     id="colorPreview" 
+                                     style="background-color: {{ form.color.value|default:'#22C55E' }};"></div>
+                            </div>
+                            {% if form.color.errors %}
+                                <div class="mt-1 text-sm text-red-600">
+                                    {% for error in form.color.errors %}
+                                        <p><i class="fas fa-exclamation-circle mr-1"></i>{{ error }}</p>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            
+                            <!-- Paleta de Colores Predefinidos -->
+                            <div class="mt-3">
+                                <p class="text-xs font-medium text-gray-700 mb-2">Colores predefinidos:</p>
+                                <div class="grid grid-cols-8 md:grid-cols-12 gap-2" id="colorPalette">
+                                    <button type="button" class="color-option w-8 h-8 rounded-lg border-2 border-gray-200 hover:scale-110 transition-transform shadow-sm" 
+                                            style="background-color: #EF4444;" data-color="#EF4444" title="Rojo Moderno"></button>
+                                    <button type="button" class="color-option w-8 h-8 rounded-lg border-2 border-gray-200 hover:scale-110 transition-transform shadow-sm" 
+                                            style="background-color: #F97316;" data-color="#F97316" title="Naranja Vibrante"></button>
+                                    <button type="button" class="color-option w-8 h-8 rounded-lg border-2 border-gray-200 hover:scale-110 transition-transform shadow-sm" 
+                                            style="background-color: #EAB308;" data-color="#EAB308" title="Amarillo Dorado"></button>
+                                    <button type="button" class="color-option w-8 h-8 rounded-lg border-2 border-gray-200 hover:scale-110 transition-transform shadow-sm" 
+                                            style="background-color: #22C55E;" data-color="#22C55E" title="Verde Natural"></button>
+                                    <button type="button" class="color-option w-8 h-8 rounded-lg border-2 border-gray-200 hover:scale-110 transition-transform shadow-sm" 
+                                            style="background-color: #10B981;" data-color="#10B981" title="Verde Esmeralda"></button>
+                                    <button type="button" class="color-option w-8 h-8 rounded-lg border-2 border-gray-200 hover:scale-110 transition-transform shadow-sm" 
+                                            style="background-color: #06B6D4;" data-color="#06B6D4" title="Cian Tropical"></button>
+                                    <button type="button" class="color-option w-8 h-8 rounded-lg border-2 border-gray-200 hover:scale-110 transition-transform shadow-sm" 
+                                            style="background-color: #3B82F6;" data-color="#3B82F6" title="Azul Brillante"></button>
+                                    <button type="button" class="color-option w-8 h-8 rounded-lg border-2 border-gray-200 hover:scale-110 transition-transform shadow-sm" 
+                                            style="background-color: #6366F1;" data-color="#6366F1" title="Índigo Eléctrico"></button>
+                                    <button type="button" class="color-option w-8 h-8 rounded-lg border-2 border-gray-200 hover:scale-110 transition-transform shadow-sm" 
+                                            style="background-color: #8B5CF6;" data-color="#8B5CF6" title="Violeta Real"></button>
+                                    <button type="button" class="color-option w-8 h-8 rounded-lg border-2 border-gray-200 hover:scale-110 transition-transform shadow-sm" 
+                                            style="background-color: #A855F7;" data-color="#A855F7" title="Púrpura Místico"></button>
+                                    <button type="button" class="color-option w-8 h-8 rounded-lg border-2 border-gray-200 hover:scale-110 transition-transform shadow-sm" 
+                                            style="background-color: #EC4899;" data-color="#EC4899" title="Rosa Fucsia"></button>
+                                    <button type="button" class="color-option w-8 h-8 rounded-lg border-2 border-gray-200 hover:scale-110 transition-transform shadow-sm" 
+                                            style="background-color: #64748B;" data-color="#64748B" title="Gris Pizarra"></button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Botones de Acción -->
+                        <div class="flex items-center justify-between pt-6 border-t border-gray-200">
+                            <a href="{% url 'tasks:category_list' %}" 
+                               class="px-6 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                                <i class="fas fa-times mr-2"></i>
+                                Cancelar
+                            </a>
+                            
+                            <div class="flex space-x-3">
+                                {% if form.instance.pk %}
+                                <button type="button" id="previewBtn"
+                                        class="px-6 py-2 text-blue-700 bg-blue-100 rounded-lg hover:bg-blue-200 transition-colors">
+                                    <i class="fas fa-eye mr-2"></i>
+                                    Vista Previa
+                                </button>
+                                {% endif %}
+                                
+                                <button type="submit" 
+                                        class="px-6 py-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg">
+                                    <i class="fas fa-save mr-2"></i>
+                                    {% if form.instance.pk %}Actualizar{% else %}Crear{% endif %} Categoría
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Panel de Vista Previa -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden sticky top-8">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900">
+                            <i class="fas fa-eye text-blue-600 mr-2"></i>
+                            Vista Previa
+                        </h3>
+                        <p class="text-sm text-gray-500 mt-1">
+                            Así se verá tu categoría
+                        </p>
+                    </div>
+
+                    <div class="p-6">
+                        <!-- Vista Previa de la Categoría -->
+                        <div class="category-preview bg-white border-2 border-gray-200 rounded-xl p-6 hover:border-gray-300 hover:shadow-lg transition-all duration-300">
+                            <!-- Header de la categoría -->
+                            <div class="flex items-center justify-between mb-4">
+                                <div class="flex items-center space-x-3">
+                                    <!-- Icono con color de categoría -->
+                                    <div class="p-3 rounded-full shadow-sm transition-transform duration-300"
+                                         id="previewIconContainer"
+                                         style="background-color: {{ form.color.value|default:'#22C55E' }}20; border: 2px solid {{ form.color.value|default:'#22C55E' }}40;">
+                                        <i id="previewCategoryIcon" 
+                                           class="{{ form.icon.value|default:'fas fa-tag' }} text-xl"
+                                           style="color: {{ form.color.value|default:'#22C55E' }};"></i>
+                                    </div>
+                                    
+                                    <!-- Badge con contador de tareas -->
+                                    <div class="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-medium">
+                                        0 tareas
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Información de la categoría -->
+                            <div class="space-y-3">
+                                <h4 class="text-lg font-semibold text-gray-900" id="previewName">
+                                    {{ form.instance.name|default:"Nombre de la categoría" }}
+                                </h4>
+                                
+                                <p class="text-gray-600 text-sm" id="previewDescription">
+                                    {{ form.instance.description|default:"Descripción de la categoría aparecerá aquí..." }}
+                                </p>
+                                
+                                <!-- Barra de progreso visual -->
+                                <div class="mt-4">
+                                    <div class="flex items-center justify-between text-xs text-gray-500 mb-1">
+                                        <span>Uso de la categoría</span>
+                                        <span>0 tareas</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                        <div class="h-2 rounded-full transition-all duration-500"
+                                             id="previewProgressBar"
+                                             style="background-color: {{ form.color.value|default:'#22C55E' }}; width: 0%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Footer de la categoría -->
+                            <div class="mt-4 pt-4 border-t border-gray-100">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center space-x-2 text-xs text-gray-500">
+                                        <i class="fas fa-clock"></i>
+                                        <span>Nueva categoría</span>
+                                    </div>
+                                    
+                                    <!-- Indicador de estado -->
+                                    <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                                        <i class="fas fa-check-circle mr-1"></i>
+                                        Activa
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Información Adicional -->
+                        <div class="mt-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+                            <h4 class="text-sm font-semibold text-blue-900 mb-2">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                Consejos
+                            </h4>
+                            <ul class="text-xs text-blue-800 space-y-1">
+                                <li>• Usa nombres descriptivos y únicos</li>
+                                <li>• Los colores ayudan a identificar rápidamente</li>
+                                <li>• Los iconos deben ser relevantes al tipo de tarea</li>
+                                <li>• Las descripciones claras facilitan la asignación</li>
+                            </ul>
+                        </div>
+
+                        <!-- Estadísticas de Colores -->
+                        <div class="mt-4 p-4 bg-purple-50 rounded-lg border border-purple-200">
+                            <h4 class="text-sm font-semibold text-purple-900 mb-2">
+                                <i class="fas fa-palette mr-1"></i>
+                                Colores Más Usados
+                            </h4>
+                            <div class="grid grid-cols-4 gap-2">
+                                <div class="w-6 h-6 rounded bg-green-500" title="Verde - 32%"></div>
+                                <div class="w-6 h-6 rounded bg-blue-500" title="Azul - 28%"></div>
+                                <div class="w-6 h-6 rounded bg-purple-500" title="Púrpura - 22%"></div>
+                                <div class="w-6 h-6 rounded bg-orange-500" title="Naranja - 18%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Vista Previa Ampliada -->
+<div id="previewModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-10 mx-auto p-5 border w-11/12 max-w-4xl shadow-lg rounded-xl bg-white">
+        <div class="mt-3">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl leading-6 font-medium text-gray-900">
+                    Vista Previa Ampliada de la Categoría
+                </h3>
+                <button onclick="hidePreviewModal()" 
+                        class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Vista en Lista -->
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h4 class="font-semibold text-gray-800 mb-3">Vista en Lista</h4>
+                    <div class="bg-white rounded-lg p-3 shadow-sm">
+                        <div class="flex items-center space-x-3">
+                            <div class="p-2 rounded-full" id="modalIconContainer1">
+                                <i id="modalIcon1" class="fas fa-tag"></i>
+                            </div>
+                            <div>
+                                <div class="font-medium text-gray-900" id="modalName1">Categoría</div>
+                                <div class="text-sm text-gray-500">0 tareas asignadas</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Vista en Tarjeta -->
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h4 class="font-semibold text-gray-800 mb-3">Vista en Tarjeta</h4>
+                    <div class="bg-white rounded-lg p-4 shadow-sm border-l-4" id="modalCard">
+                        <div class="flex items-center justify-between mb-2">
+                            <i id="modalIcon2" class="fas fa-tag text-xl"></i>
+                            <span class="text-xs bg-gray-100 px-2 py-1 rounded">0</span>
+                        </div>
+                        <div class="font-medium text-gray-900" id="modalName2">Categoría</div>
+                        <div class="text-sm text-gray-500 mt-1" id="modalDesc2">Descripción</div>
+                    </div>
+                </div>
+
+                <!-- Vista en Selector -->
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h4 class="font-semibold text-gray-800 mb-3">Vista en Selector</h4>
+                    <div class="bg-white rounded-lg border border-gray-300 p-3">
+                        <div class="flex items-center space-x-2">
+                            <i id="modalIcon3" class="fas fa-tag"></i>
+                            <span id="modalName3" class="text-gray-900">Categoría</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-6 text-center">
+                <button onclick="hidePreviewModal()" 
+                        class="px-6 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400 transition-colors">
+                    Cerrar Vista Previa
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Variables para los elementos de vista previa
+    const nameInput = document.getElementById('{{ form.name.id_for_label }}');
+    const descriptionInput = document.getElementById('{{ form.description.id_for_label }}');
+    const iconInput = document.getElementById('{{ form.icon.id_for_label }}');
+    const colorInput = document.getElementById('{{ form.color.id_for_label }}');
+    
+    // Elementos de vista previa
+    const previewName = document.getElementById('previewName');
+    const previewDescription = document.getElementById('previewDescription');
+    const previewIcon = document.getElementById('previewIcon');
+    const previewCategoryIcon = document.getElementById('previewCategoryIcon');
+    const previewIconContainer = document.getElementById('previewIconContainer');
+    const previewProgressBar = document.getElementById('previewProgressBar');
+    const colorPreview = document.getElementById('colorPreview');
+
+    // Actualizar vista previa del nombre
+    nameInput.addEventListener('input', function() {
+        const value = this.value.trim() || 'Nombre de la categoría';
+        previewName.textContent = value;
+        
+        // Actualizar también en el modal si está abierto
+        updateModalPreviews();
+    });
+
+    // Actualizar vista previa de la descripción
+    descriptionInput.addEventListener('input', function() {
+        const value = this.value.trim() || 'Descripción de la categoría aparecerá aquí...';
+        previewDescription.textContent = value;
+        updateModalPreviews();
+    });
+
+    // Actualizar vista previa del icono
+    iconInput.addEventListener('input', function() {
+        const value = this.value.trim() || 'fas fa-tag';
+        previewIcon.className = value;
+        previewCategoryIcon.className = value + ' text-xl';
+        updateModalPreviews();
+    });
+
+    // Actualizar vista previa del color
+    colorInput.addEventListener('input', function() {
+        const color = this.value;
+        updateColorPreview(color);
+    });
+
+    // Función para actualizar la vista previa del color
+    function updateColorPreview(color) {
+        colorPreview.style.backgroundColor = color;
+        previewCategoryIcon.style.color = color;
+        previewIconContainer.style.backgroundColor = color + '20';
+        previewIconContainer.style.borderColor = color + '40';
+        previewProgressBar.style.backgroundColor = color;
+        updateModalPreviews();
+    }
+
+    // Función para actualizar las vistas previas del modal
+    function updateModalPreviews() {
+        const name = nameInput.value.trim() || 'Categoría';
+        const description = descriptionInput.value.trim() || 'Descripción';
+        const icon = iconInput.value.trim() || 'fas fa-tag';
+        const color = colorInput.value;
+
+        // Actualizar elementos del modal si existe
+        const modalElements = {
+            name: ['modalName1', 'modalName2', 'modalName3'],
+            description: ['modalDesc2'],
+            icon: ['modalIcon1', 'modalIcon2', 'modalIcon3'],
+            containers: ['modalIconContainer1', 'modalCard']
+        };
+
+        modalElements.name.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) element.textContent = name;
+        });
+
+        modalElements.description.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) element.textContent = description;
+        });
+
+        modalElements.icon.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) {
+                element.className = icon;
+                element.style.color = color;
+            }
+        });
+
+        // Actualizar contenedores con color
+        const container1 = document.getElementById('modalIconContainer1');
+        if (container1) {
+            container1.style.backgroundColor = color + '20';
+            container1.style.border = `2px solid ${color}40`;
+        }
+
+        const card = document.getElementById('modalCard');
+        if (card) {
+            card.style.borderLeftColor = color;
+        }
+    }
+
+    // Event listeners para iconos sugeridos
+    document.querySelectorAll('.icon-suggestion').forEach(button => {
+        button.addEventListener('click', function() {
+            const iconClass = this.dataset.icon;
+            iconInput.value = iconClass;
+            iconInput.dispatchEvent(new Event('input'));
+            
+            // Efecto visual
+            this.style.transform = 'scale(0.95)';
+            setTimeout(() => {
+                this.style.transform = 'scale(1)';
+            }, 150);
+        });
+    });
+
+    // Event listeners para colores predefinidos
+    document.querySelectorAll('.color-option').forEach(button => {
+        button.addEventListener('click', function() {
+            const color = this.dataset.color;
+            colorInput.value = color;
+            updateColorPreview(color);
+            
+            // Efecto visual
+            this.style.transform = 'scale(0.9)';
+            setTimeout(() => {
+                this.style.transform = 'scale(1)';
+            }, 150);
+            
+            // Actualizar selección visual
+            document.querySelectorAll('.color-option').forEach(btn => {
+                btn.classList.remove('ring-2', 'ring-blue-500', 'ring-offset-1');
+            });
+            this.classList.add('ring-2', 'ring-blue-500', 'ring-offset-1');
+        });
+    });
+
+    // Función para mostrar el modal de vista previa ampliada
+    function showPreviewModal() {
+        updateModalPreviews();
+        document.getElementById('previewModal').classList.remove('hidden');
+    }
+
+    // Función para ocultar el modal de vista previa
+    function hidePreviewModal() {
+        document.getElementById('previewModal').classList.add('hidden');
+    }
+
+    // Event listener para el botón de vista previa
+    const previewBtn = document.getElementById('previewBtn');
+    if (previewBtn) {
+        previewBtn.addEventListener('click', showPreviewModal);
+    }
+
+    // Cerrar modal con Escape
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            hidePreviewModal();
+        }
+    });
+
+    // Cerrar modal haciendo clic fuera
+    document.getElementById('previewModal').addEventListener('click', function(event) {
+        if (event.target === this) {
+            hidePreviewModal();
+        }
+    });
+
+    // Validación en tiempo real
+    function validateForm() {
+        const name = nameInput.value.trim();
+        const color = colorInput.value;
+        let isValid = true;
+        let errors = [];
+
+        // Validar nombre
+        if (!name) {
+            errors.push('El nombre es obligatorio');
+            isValid = false;
+        } else if (name.length < 2) {
+            errors.push('El nombre debe tener al menos 2 caracteres');
+            isValid = false;
+        }
+
+        // Validar color
+        if (!color) {
+            errors.push('El color es obligatorio');
+            isValid = false;
+        }
+
+        // Validar icono
+        const icon = iconInput.value.trim();
+        if (icon && !icon.startsWith('fas ') && !icon.startsWith('far ') && !icon.startsWith('fab ')) {
+            errors.push('El icono debe comenzar con "fas ", "far " o "fab "');
+            isValid = false;
+        }
+
+        return { isValid, errors };
+    }
+
+    // Validar al enviar el formulario
+    document.getElementById('categoryForm').addEventListener('submit', function(event) {
+        const validation = validateForm();
+        
+        if (!validation.isValid) {
+            event.preventDefault();
+            
+            // Mostrar errores
+            let errorMessage = 'Por favor corrige los siguientes errores:\n\n';
+            validation.errors.forEach(error => {
+                errorMessage += '• ' + error + '\n';
+            });
+            
+            alert(errorMessage);
+            return false;
+        }
+        
+        // Mostrar loading en el botón
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Guardando...';
+        submitBtn.disabled = true;
+        
+        // Restaurar después de 3 segundos si no hay redirección
+        setTimeout(() => {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        }, 3000);
+    });
+
+    // Función para mostrar notificaciones
+    function showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 text-white ${
+            type === 'success' ? 'bg-green-500' : 
+            type === 'error' ? 'bg-red-500' : 
+            type === 'warning' ? 'bg-yellow-500' :
+            'bg-blue-500'
+        }`;
+        notification.innerHTML = `
+            <div class="flex items-center">
+                <i class="fas fa-${
+                    type === 'success' ? 'check-circle' : 
+                    type === 'error' ? 'exclamation-circle' : 
+                    type === 'warning' ? 'exclamation-triangle' :
+                    'info-circle'
+                } mr-2"></i>
+                <span>${message}</span>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.style.animation = 'fadeOut 0.3s ease';
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    }
+
+    // Función para copiar código de icono al portapapeles
+    function copyIconCode(iconClass) {
+        navigator.clipboard.writeText(iconClass).then(() => {
+            showNotification(`Código "${iconClass}" copiado al portapapeles`, 'success');
+        }).catch(() => {
+            showNotification('No se pudo copiar al portapapeles', 'error');
+        });
+    }
+
+    // Función para generar combinaciones de colores sugeridas
+    function generateColorSuggestions() {
+        const baseColors = ['#EF4444', '#F97316', '#EAB308', '#22C55E', '#10B981', '#06B6D4', '#3B82F6', '#6366F1', '#8B5CF6', '#A855F7', '#EC4899', '#64748B'];
+        const categoryTypes = {
+            'deshoje': '#22C55E',
+            'coronar': '#F97316', 
+            'fumigar': '#8B5CF6',
+            'abonar': '#EAB308',
+            'cortar': '#EF4444',
+            'riego': '#06B6D4',
+            'cosecha': '#EC4899',
+            'mantenimiento': '#64748B'
+        };
+        
+        const name = nameInput.value.toLowerCase();
+        
+        // Sugerir color basado en el nombre
+        for (const [keyword, color] of Object.entries(categoryTypes)) {
+            if (name.includes(keyword)) {
+                return color;
+            }
+        }
+        
+        // Color aleatorio si no hay coincidencia
+        return baseColors[Math.floor(Math.random() * baseColors.length)];
+    }
+
+    // Sugerir color automáticamente cuando se escribe el nombre
+    let colorSuggestionTimeout;
+    nameInput.addEventListener('input', function() {
+        clearTimeout(colorSuggestionTimeout);
+        colorSuggestionTimeout = setTimeout(() => {
+            if (this.value.trim() && !colorInput.value) {
+                const suggestedColor = generateColorSuggestions();
+                colorInput.value = suggestedColor;
+                updateColorPreview(suggestedColor);
+                showNotification('Color sugerido automáticamente basado en el nombre', 'info');
+            }
+        }, 1000);
+    });
+
+    // Inicialización
+    document.addEventListener('DOMContentLoaded', function() {
+        // Marcar el color actual en la paleta si existe
+        const currentColor = colorInput.value;
+        if (currentColor) {
+            const currentColorOption = document.querySelector(`[data-color="${currentColor}"]`);
+            if (currentColorOption) {
+                currentColorOption.classList.add('ring-2', 'ring-blue-500', 'ring-offset-1');
+            }
+            updateColorPreview(currentColor);
+        }
+
+        // Actualizar vista previa inicial
+        if (nameInput.value) nameInput.dispatchEvent(new Event('input'));
+        if (descriptionInput.value) descriptionInput.dispatchEvent(new Event('input'));
+        if (iconInput.value) iconInput.dispatchEvent(new Event('input'));
+
+        // Animación de entrada para los elementos
+        const elements = document.querySelectorAll('.category-preview, .bg-blue-50, .bg-purple-50');
+        elements.forEach((element, index) => {
+            element.style.opacity = '0';
+            element.style.transform = 'translateY(20px)';
+            
+            setTimeout(() => {
+                element.style.transition = 'all 0.5s ease';
+                element.style.opacity = '1';
+                element.style.transform = 'translateY(0)';
+            }, index * 100);
+        });
+
+        console.log('✅ Formulario de categoría cargado correctamente');
+    });
+
+    // Función de autocompletar iconos
+    function setupIconAutocomplete() {
+        const commonIcons = [
+            'fas fa-leaf', 'fas fa-seedling', 'fas fa-tree', 'fas fa-apple-alt',
+            'fas fa-tools', 'fas fa-wrench', 'fas fa-hammer', 'fas fa-screwdriver',
+            'fas fa-cut', 'fas fa-scissors', 'fas fa-hand-paper', 'fas fa-hand-rock',
+            'fas fa-spray-can', 'fas fa-tint', 'fas fa-shower', 'fas fa-cloud-rain',
+            'fas fa-tractor', 'fas fa-truck', 'fas fa-cog', 'fas fa-industry',
+            'fas fa-calendar', 'fas fa-clock', 'fas fa-check', 'fas fa-times'
+        ];
+
+        iconInput.addEventListener('input', function() {
+            const value = this.value.toLowerCase();
+            
+            // Buscar coincidencias
+            const matches = commonIcons.filter(icon => 
+                icon.toLowerCase().includes(value) || 
+                value.split(' ').some(word => icon.includes(word))
+            );
+
+            // Aquí podrías mostrar un dropdown con sugerencias
+            if (matches.length > 0 && value.length > 2) {
+                console.log('Iconos sugeridos:', matches.slice(0, 5));
+            }
+        });
+    }
+
+    setupIconAutocomplete();
+</script>
+
+<style>
+    @keyframes fadeOut {
+        from { opacity: 1; transform: translateY(0); }
+        to { opacity: 0; transform: translateY(-10px); }
+    }
+    
+    .category-preview:hover {
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        transform: translateY(-2px);
+    }
+    
+    .icon-suggestion:hover {
+        transform: scale(1.1);
+    }
+    
+    .color-option:hover {
+        transform: scale(1.1);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+    
+    /* Estilos para el input de color personalizado */
+    input[type="color"] {
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        background-color: transparent;
+        border: none;
+        cursor: pointer;
+    }
+    
+    input[type="color"]::-webkit-color-swatch {
+        border-radius: 8px;
+        border: 2px solid #e5e7eb;
+    }
+    
+    input[type="color"]::-moz-color-swatch {
+        border-radius: 8px;
+        border: 2px solid #e5e7eb;
+    }
+    
+    /* Animaciones suaves para todos los elementos interactivos */
+    .transition-all {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    /* Mejorar la apariencia de los campos de formulario */
+    .form-input:focus {
+        ring: 2;
+        ring-color: rgb(34 197 94);
+        border-color: rgb(34 197 94);
+        outline: none;
+    }
+</style>
+{% endblock %}

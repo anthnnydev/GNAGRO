@@ -1,0 +1,626 @@
+{% extends 'layouts/base_supervisor.html' %}
+
+{% block title %}Categorías de Tareas - Sistema de Gestión{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">Categorías de Tareas</h1>
+                    <p class="text-gray-600 mt-1">
+                        Gestiona las categorías para organizar mejor las tareas
+                    </p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'tasks:supervisor_dashboard' %}" 
+                       class="bg-gray-200 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i>
+                        Volver al Dashboard
+                    </a>
+                    {% if perms.tasks.add_taskcategory %}
+                    <a href="{% url 'tasks:category_create' %}" 
+                       class="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-2 rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg">
+                        <i class="fas fa-plus mr-2"></i>
+                        Nueva Categoría
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Estadísticas de Categorías -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center">
+                    <div class="p-3 bg-blue-100 rounded-full">
+                        <i class="fas fa-tags text-blue-600 text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-500">Total Categorías</p>
+                        <p class="text-2xl font-bold text-gray-900">{{ categories.count }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center">
+                    <div class="p-3 bg-green-100 rounded-full">
+                        <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-500">Activas</p>
+                        <p class="text-2xl font-bold text-gray-900">{{ categories|length }}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center">
+                    <div class="p-3 bg-purple-100 rounded-full">
+                        <i class="fas fa-tasks text-purple-600 text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-500">Con Tareas</p>
+                        <p class="text-2xl font-bold text-gray-900" id="categoriesWithTasksCount">
+                            -
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center">
+                    <div class="p-3 bg-orange-100 rounded-full">
+                        <i class="fas fa-palette text-orange-600 text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm font-medium text-gray-500">Colores Únicos</p>
+                        <p class="text-2xl font-bold text-gray-900">
+                            {{ categories|length }}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lista de Categorías -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold text-gray-900">
+                        Lista de Categorías
+                        <span class="text-sm font-normal text-gray-500">({{ categories.count }} total)</span>
+                    </h3>
+                    <div class="flex space-x-2">
+                        <div class="relative">
+                            <input type="text" 
+                                   id="searchCategories"
+                                   placeholder="Buscar categorías..."
+                                   class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-search text-gray-400"></i>
+                            </div>
+                        </div>
+                        <button onclick="exportCategories()" 
+                                class="px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                            <i class="fas fa-download mr-2"></i>
+                            Exportar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {% if categories %}
+            <!-- Vista de Cuadrícula para Categorías -->
+            <div class="p-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="categoriesGrid">
+                    {% for category in categories %}
+                    <div class="category-card bg-white border-2 border-gray-200 rounded-xl p-6 hover:border-gray-300 hover:shadow-lg transition-all duration-300 group"
+                         data-category-name="{{ category.name|lower }}"
+                         data-category-description="{{ category.description|lower }}">
+                        
+                        <!-- Header de la categoría -->
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center space-x-3">
+                                <!-- Icono con color de categoría -->
+                                <div class="p-3 rounded-full shadow-sm group-hover:scale-110 transition-transform duration-300"
+                                     style="background-color: {{ category.color }}20; border: 2px solid {{ category.color }}40;">
+                                    <i class="{{ category.icon|default:'fas fa-tag' }} text-xl"
+                                       style="color: {{ category.color }};"></i>
+                                </div>
+                                
+                                <!-- Badge con contador de tareas -->
+                                <div class="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm font-medium">
+                                    {{ category.task_count }} tarea{{ category.task_count|pluralize }}
+                                </div>
+                            </div>
+                            
+                            <!-- Menú de acciones -->
+                            {% if perms.tasks.change_taskcategory or perms.tasks.delete_taskcategory %}
+                            <div class="relative">
+                                <button class="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+                                        onclick="toggleDropdown('dropdown-{{ category.id }}')">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                
+                                <div id="dropdown-{{ category.id }}" 
+                                     class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-10 hidden">
+                                    {% if perms.tasks.change_taskcategory %}
+                                    <a href="{% url 'tasks:category_update' category.pk %}" 
+                                       class="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
+                                        <i class="fas fa-edit mr-3 text-blue-500"></i>
+                                        Editar Categoría
+                                    </a>
+                                    {% endif %}
+                                    
+                                    <button onclick="changeColor({{ category.id }}, '{{ category.color }}')"
+                                            class="w-full flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
+                                        <i class="fas fa-palette mr-3 text-purple-500"></i>
+                                        Cambiar Color
+                                    </button>
+                                    
+                                    {% if perms.tasks.delete_taskcategory %}
+                                    <div class="border-t border-gray-100 my-1"></div>
+                                    <button onclick="confirmDelete('{{ category.name }}', '{% url 'tasks:category_delete' category.pk %}')"
+                                            class="w-full flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors">
+                                        <i class="fas fa-trash mr-3"></i>
+                                        Eliminar
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Información de la categoría -->
+                        <div class="space-y-3">
+                            <h4 class="text-lg font-semibold text-gray-900 group-hover:text-gray-700 transition-colors">
+                                {{ category.name }}
+                            </h4>
+                            
+                            {% if category.description %}
+                            <p class="text-gray-600 text-sm line-clamp-2">
+                                {{ category.description }}
+                            </p>
+                            {% else %}
+                            <p class="text-gray-400 text-sm italic">
+                                Sin descripción
+                            </p>
+                            {% endif %}
+                            
+                            <!-- Barra de progreso visual si hay tareas -->
+                            {% if category.task_count > 0 %}
+                            <div class="mt-4">
+                                <div class="flex items-center justify-between text-xs text-gray-500 mb-1">
+                                    <span>Uso de la categoría</span>
+                                    <span>{{ category.task_count }} tareas</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2">
+                                    <div class="h-2 rounded-full transition-all duration-500"
+                                         style="background-color: {{ category.color }}; width: {% widthratio category.task_count 20 100 %}%"></div>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Footer de la categoría -->
+                        <div class="mt-4 pt-4 border-t border-gray-100">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-2 text-xs text-gray-500">
+                                    <i class="fas fa-clock"></i>
+                                    <span>Creada {{ category.created_at|timesince }} atrás</span>
+                                </div>
+                                
+                                <!-- Indicador de estado -->
+                                {% if category.is_active %}
+                                <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                                    <i class="fas fa-check-circle mr-1"></i>
+                                    Activa
+                                </span>
+                                {% else %}
+                                <span class="inline-flex px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">
+                                    <i class="fas fa-pause-circle mr-1"></i>
+                                    Inactiva
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Paginación -->
+            {% if is_paginated %}
+            <div class="bg-gray-50 px-6 py-4 border-t border-gray-200">
+                <div class="flex items-center justify-between">
+                    <div class="text-sm text-gray-700">
+                        Mostrando {{ page_obj.start_index }} - {{ page_obj.end_index }} de {{ paginator.count }} categorías
+                    </div>
+                    
+                    <div class="flex space-x-2">
+                        {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}" 
+                           class="px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                            Anterior
+                        </a>
+                        {% endif %}
+                        
+                        <span class="px-3 py-2 text-sm bg-green-600 text-white rounded-lg">
+                            {{ page_obj.number }}
+                        </span>
+                        
+                        {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}" 
+                           class="px-3 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                            Siguiente
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% else %}
+            <!-- Estado sin categorías -->
+            <div class="px-6 py-12 text-center">
+                <div class="text-gray-400 mb-4">
+                    <i class="fas fa-tags text-6xl"></i>
+                </div>
+                <h3 class="text-lg font-medium text-gray-900 mb-2">No hay categorías creadas</h3>
+                <p class="text-gray-500 mb-6">
+                    Crea tu primera categoría para organizar mejor las tareas del sistema.
+                </p>
+                {% if perms.tasks.add_taskcategory %}
+                <a href="{% url 'tasks:category_create' %}" 
+                   class="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-3 rounded-lg hover:from-green-700 hover:to-emerald-700 transition-all shadow-lg inline-flex items-center">
+                    <i class="fas fa-plus mr-2"></i>
+                    Crear Primera Categoría
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Panel de colores rápidos -->
+        <div class="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                <i class="fas fa-palette text-purple-600 mr-2"></i>
+                Paleta de Colores Disponibles
+            </h3>
+            <div class="grid grid-cols-8 md:grid-cols-12 lg:grid-cols-16 gap-3" id="colorPalette">
+                <!-- Colores predefinidos modernos -->
+                <div class="color-option w-8 h-8 rounded-lg cursor-pointer hover:scale-110 transition-transform border-2 border-gray-200"
+                     style="background-color: #EF4444;" data-color="#EF4444" title="Rojo Moderno"></div>
+                <div class="color-option w-8 h-8 rounded-lg cursor-pointer hover:scale-110 transition-transform border-2 border-gray-200"
+                     style="background-color: #F97316;" data-color="#F97316" title="Naranja Vibrante"></div>
+                <div class="color-option w-8 h-8 rounded-lg cursor-pointer hover:scale-110 transition-transform border-2 border-gray-200"
+                     style="background-color: #EAB308;" data-color="#EAB308" title="Amarillo Dorado"></div>
+                <div class="color-option w-8 h-8 rounded-lg cursor-pointer hover:scale-110 transition-transform border-2 border-gray-200"
+                     style="background-color: #22C55E;" data-color="#22C55E" title="Verde Natural"></div>
+                <div class="color-option w-8 h-8 rounded-lg cursor-pointer hover:scale-110 transition-transform border-2 border-gray-200"
+                     style="background-color: #10B981;" data-color="#10B981" title="Verde Esmeralda"></div>
+                <div class="color-option w-8 h-8 rounded-lg cursor-pointer hover:scale-110 transition-transform border-2 border-gray-200"
+                     style="background-color: #06B6D4;" data-color="#06B6D4" title="Cian Tropical"></div>
+                <div class="color-option w-8 h-8 rounded-lg cursor-pointer hover:scale-110 transition-transform border-2 border-gray-200"
+                     style="background-color: #3B82F6;" data-color="#3B82F6" title="Azul Brillante"></div>
+                <div class="color-option w-8 h-8 rounded-lg cursor-pointer hover:scale-110 transition-transform border-2 border-gray-200"
+                     style="background-color: #6366F1;" data-color="#6366F1" title="Índigo Eléctrico"></div>
+                <div class="color-option w-8 h-8 rounded-lg cursor-pointer hover:scale-110 transition-transform border-2 border-gray-200"
+                     style="background-color: #8B5CF6;" data-color="#8B5CF6" title="Violeta Real"></div>
+                <div class="color-option w-8 h-8 rounded-lg cursor-pointer hover:scale-110 transition-transform border-2 border-gray-200"
+                     style="background-color: #A855F7;" data-color="#A855F7" title="Púrpura Místico"></div>
+                <div class="color-option w-8 h-8 rounded-lg cursor-pointer hover:scale-110 transition-transform border-2 border-gray-200"
+                     style="background-color: #EC4899;" data-color="#EC4899" title="Rosa Fucsia"></div>
+                <div class="color-option w-8 h-8 rounded-lg cursor-pointer hover:scale-110 transition-transform border-2 border-gray-200"
+                     style="background-color: #64748B;" data-color="#64748B" title="Gris Pizarra"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para cambiar color -->
+<div id="colorChangeModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-xl bg-white">
+        <div class="mt-3">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-purple-100">
+                <i class="fas fa-palette text-purple-600 text-xl"></i>
+            </div>
+            <div class="mt-3 text-center">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Cambiar Color de Categoría</h3>
+                <div class="mt-4">
+                    <input type="color" id="newColorPicker" class="w-full h-12 rounded-lg border-2 border-gray-300">
+                </div>
+                <div class="mt-4 grid grid-cols-6 gap-2" id="quickColors">
+                    <!-- Se llenará con JavaScript -->
+                </div>
+                <div class="mt-6 flex space-x-3">
+                    <button id="confirmColorChange" 
+                            class="px-4 py-2 bg-purple-600 text-white text-base font-medium rounded-lg w-full shadow-sm hover:bg-purple-700 transition-colors">
+                        Aplicar Color
+                    </button>
+                    <button onclick="hideColorModal()" 
+                            class="px-4 py-2 bg-gray-300 text-gray-800 text-base font-medium rounded-lg w-full shadow-sm hover:bg-gray-400 transition-colors">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Variables globales
+    let currentCategoryId = null;
+    let currentCategoryColor = null;
+
+    // Funciones de búsqueda
+    document.getElementById('searchCategories').addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        const categoryCards = document.querySelectorAll('.category-card');
+        
+        categoryCards.forEach(card => {
+            const name = card.dataset.categoryName;
+            const description = card.dataset.categoryDescription;
+            
+            if (name.includes(searchTerm) || description.includes(searchTerm)) {
+                card.style.display = 'block';
+                card.style.animation = 'fadeIn 0.3s ease';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    });
+
+    // Función para alternar dropdown
+    function toggleDropdown(dropdownId) {
+        const dropdown = document.getElementById(dropdownId);
+        const allDropdowns = document.querySelectorAll('[id^="dropdown-"]');
+        
+        // Cerrar todos los otros dropdowns
+        allDropdowns.forEach(d => {
+            if (d.id !== dropdownId) {
+                d.classList.add('hidden');
+            }
+        });
+        
+        dropdown.classList.toggle('hidden');
+    }
+
+    // Cerrar dropdowns al hacer clic fuera
+    document.addEventListener('click', function(event) {
+        if (!event.target.closest('.relative')) {
+            const allDropdowns = document.querySelectorAll('[id^="dropdown-"]');
+            allDropdowns.forEach(d => d.classList.add('hidden'));
+        }
+    });
+
+    // Función para cambiar color
+    function changeColor(categoryId, currentColor) {
+        currentCategoryId = categoryId;
+        currentCategoryColor = currentColor;
+        
+        document.getElementById('newColorPicker').value = currentColor;
+        populateQuickColors();
+        document.getElementById('colorChangeModal').classList.remove('hidden');
+    }
+
+    // Función para ocultar modal de color
+    function hideColorModal() {
+        document.getElementById('colorChangeModal').classList.add('hidden');
+        currentCategoryId = null;
+        currentCategoryColor = null;
+    }
+
+    // Poblar colores rápidos en el modal
+    function populateQuickColors() {
+        const quickColors = document.getElementById('quickColors');
+        const colors = [
+            '#EF4444', '#F97316', '#EAB308', '#22C55E', 
+            '#10B981', '#06B6D4', '#3B82F6', '#6366F1',
+            '#8B5CF6', '#A855F7', '#EC4899', '#64748B'
+        ];
+        
+        quickColors.innerHTML = colors.map(color => 
+            `<div class="w-8 h-8 rounded-lg cursor-pointer hover:scale-110 transition-transform border-2 border-gray-200 ${color === currentCategoryColor ? 'ring-2 ring-purple-500' : ''}"
+                  style="background-color: ${color};" 
+                  onclick="selectQuickColor('${color}')"></div>`
+        ).join('');
+    }
+
+    // Seleccionar color rápido
+    function selectQuickColor(color) {
+        document.getElementById('newColorPicker').value = color;
+        
+        // Actualizar selección visual
+        const quickColorDivs = document.querySelectorAll('#quickColors > div');
+        quickColorDivs.forEach(div => {
+            div.classList.remove('ring-2', 'ring-purple-500');
+            if (div.style.backgroundColor === color) {
+                div.classList.add('ring-2', 'ring-purple-500');
+            }
+        });
+    }
+
+    // Confirmar cambio de color
+    document.getElementById('confirmColorChange').addEventListener('click', function() {
+        const newColor = document.getElementById('newColorPicker').value;
+        
+        if (currentCategoryId && newColor) {
+            // Aquí harías la petición AJAX para actualizar el color
+            // Por ahora, solo actualizamos visualmente
+            updateCategoryColorVisually(currentCategoryId, newColor);
+            hideColorModal();
+            
+            // Mostrar notificación de éxito
+            showNotification('Color actualizado exitosamente', 'success');
+        }
+    });
+
+    // Actualizar color visualmente
+    function updateCategoryColorVisually(categoryId, newColor) {
+        const categoryCard = document.querySelector(`[data-category-id="${categoryId}"]`);
+        if (categoryCard) {
+            const icon = categoryCard.querySelector('.fas');
+            const progressBar = categoryCard.querySelector('.h-2.rounded-full');
+            const iconContainer = icon.closest('div');
+            
+            if (icon) icon.style.color = newColor;
+            if (progressBar) progressBar.style.backgroundColor = newColor;
+            if (iconContainer) {
+                iconContainer.style.backgroundColor = newColor + '20';
+                iconContainer.style.borderColor = newColor + '40';
+            }
+        }
+    }
+
+    // Función de confirmación para eliminar
+    function confirmDelete(categoryName, deleteUrl) {
+        if (confirm(`¿Estás seguro de que quieres eliminar la categoría "${categoryName}"?\n\nEsta acción no se puede deshacer.`)) {
+            window.location.href = deleteUrl;
+        }
+    }
+
+    // Función de exportación
+    function exportCategories() {
+        const categories = Array.from(document.querySelectorAll('.category-card')).map(card => {
+            const name = card.querySelector('h4').textContent.trim();
+            const description = card.querySelector('p').textContent.trim();
+            const taskCount = card.querySelector('.bg-gray-100').textContent.match(/\d+/)[0];
+            
+            return { name, description, taskCount };
+        });
+        
+        // Crear CSV
+        const csvContent = "data:text/csv;charset=utf-8," + 
+            "Nombre,Descripción,Cantidad de Tareas\n" +
+            categories.map(cat => `"${cat.name}","${cat.description}","${cat.taskCount}"`).join('\n');
+        
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "categorias_tareas.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showNotification('Categorías exportadas exitosamente', 'success');
+    }
+
+    // Función para mostrar notificaciones
+    function showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 text-white ${
+            type === 'success' ? 'bg-green-500' : 
+            type === 'error' ? 'bg-red-500' : 
+            'bg-blue-500'
+        }`;
+        notification.innerHTML = `
+            <div class="flex items-center">
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'} mr-2"></i>
+                <span>${message}</span>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.style.animation = 'fadeOut 0.3s ease';
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    }
+
+    // Efectos de hover para las tarjetas
+    document.querySelectorAll('.category-card').forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-4px)';
+            this.style.transition = 'transform 0.3s ease';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+        });
+    });
+
+    // Efectos para la paleta de colores
+    document.querySelectorAll('.color-option').forEach(colorDiv => {
+        colorDiv.addEventListener('click', function() {
+            const color = this.dataset.color;
+            showNotification(`Color ${color} copiado al portapapeles`, 'info');
+            
+            // Copiar al portapapeles
+            navigator.clipboard.writeText(color).catch(() => {
+                showNotification('No se pudo copiar al portapapeles', 'error');
+            });
+            
+            // Efecto visual
+            this.style.transform = 'scale(1.2)';
+            setTimeout(() => {
+                this.style.transform = 'scale(1)';
+            }, 200);
+        });
+    });
+
+    // Animaciones de entrada
+    document.addEventListener('DOMContentLoaded', function() {
+        const cards = document.querySelectorAll('.category-card');
+        cards.forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            
+            setTimeout(() => {
+                card.style.transition = 'all 0.5s ease';
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, index * 100);
+        });
+    });
+
+    // Cerrar modal con Escape
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            hideColorModal();
+        }
+    });
+
+    // Cerrar modal haciendo clic fuera
+    document.getElementById('colorChangeModal').addEventListener('click', function(event) {
+        if (event.target === this) {
+            hideColorModal();
+        }
+    });
+
+    console.log('✅ Lista de categorías cargada correctamente');
+</script>
+
+<style>
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    @keyframes fadeOut {
+        from { opacity: 1; transform: translateY(0); }
+        to { opacity: 0; transform: translateY(-10px); }
+    }
+    
+    .line-clamp-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    
+    .category-card:hover {
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+</style>
+{% endblock %}

@@ -198,7 +198,7 @@
         <!-- Acciones Rápidas -->
         <div class="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h3 class="text-lg font-semibold text-gray-900 mb-6">Acciones Rápidas</h3>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <a href="{% url 'payroll:payroll_list' %}" 
                    class="flex items-center p-4 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors group">
                     <div class="bg-blue-600 p-3 rounded-full group-hover:bg-blue-700 transition-colors">
@@ -229,17 +229,6 @@
                     <div class="ml-4">
                         <p class="font-medium text-purple-900">Rubros</p>
                         <p class="text-sm text-purple-600">Configurar rubros</p>
-                    </div>
-                </a>
-
-                <a href="{% url 'payroll:reports' %}" 
-                   class="flex items-center p-4 bg-orange-50 rounded-lg hover:bg-orange-100 transition-colors group">
-                    <div class="bg-orange-600 p-3 rounded-full group-hover:bg-orange-700 transition-colors">
-                        <i class="fas fa-chart-bar text-white"></i>
-                    </div>
-                    <div class="ml-4">
-                        <p class="font-medium text-orange-900">Reportes</p>
-                        <p class="text-sm text-orange-600">Ver estadísticas</p>
                     </div>
                 </a>
             </div>

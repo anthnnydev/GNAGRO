@@ -152,12 +152,6 @@
                                    class="text-green-600 hover:text-green-900" title="Ver rubros">
                                     <i class="fas fa-list"></i>
                                 </a>
-                                {% if tipo.total_rubros == 0 %}
-                                <button onclick="confirmDelete({{ tipo.pk }}, '{{ tipo.nombre }}')"
-                                        class="text-red-600 hover:text-red-900" title="Eliminar">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                                {% endif %}
                             </td>
                         </tr>
                         {% endfor %}

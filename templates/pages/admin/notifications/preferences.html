@@ -1,0 +1,372 @@
+<!-- core/notifications/templates/notifications/preferences.html -->
+{% extends 'layouts/base.html' %}
+{% load static %}
+
+{% block title %}Preferencias de Notificaciones - Sistema de Nómina{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">Preferencias de Notificaciones</h1>
+                    <p class="text-gray-600 mt-1">Configura cómo y cuándo recibir notificaciones</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <a href="{% url 'notifications:notification_list' %}" 
+                       class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors">
+                        <i class="fas fa-arrow-left mr-2"></i>
+                        Volver a Notificaciones
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <form method="POST" class="space-y-8">
+            {% csrf_token %}
+            
+            <!-- Tipos de Notificaciones -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Tipos de Notificaciones</h3>
+                    <p class="text-sm text-gray-600">Selecciona qué tipos de notificaciones deseas recibir</p>
+                </div>
+                
+                <div class="space-y-4">
+                    <!-- Notificaciones de Licencias -->
+                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div class="flex items-center space-x-3">
+                            <div class="bg-blue-100 p-2 rounded-lg">
+                                <i class="fas fa-calendar-alt text-blue-600"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-gray-900">Licencias y Vacaciones</h4>
+                                <p class="text-sm text-gray-600">Solicitudes, aprobaciones y rechazos de licencias</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" 
+                                   id="receive_leave_notifications" 
+                                   name="receive_leave_notifications"
+                                   class="toggle-switch"
+                                   {% if preferences.receive_leave_notifications %}checked{% endif %}>
+                            <label for="receive_leave_notifications" class="toggle-label"></label>
+                        </div>
+                    </div>
+
+                    <!-- Notificaciones de Nómina -->
+                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div class="flex items-center space-x-3">
+                            <div class="bg-green-100 p-2 rounded-lg">
+                                <i class="fas fa-money-bill-wave text-green-600"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-gray-900">Nómina</h4>
+                                <p class="text-sm text-gray-600">Nóminas procesadas, pagos realizados y recibos disponibles</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" 
+                                   id="receive_payroll_notifications" 
+                                   name="receive_payroll_notifications"
+                                   class="toggle-switch"
+                                   {% if preferences.receive_payroll_notifications %}checked{% endif %}>
+                            <label for="receive_payroll_notifications" class="toggle-label"></label>
+                        </div>
+                    </div>
+
+                    <!-- Notificaciones de Adelantos -->
+                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div class="flex items-center space-x-3">
+                            <div class="bg-purple-100 p-2 rounded-lg">
+                                <i class="fas fa-hand-holding-usd text-purple-600"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-gray-900">Adelantos</h4>
+                                <p class="text-sm text-gray-600">Adelantos aprobados y descuentos aplicados</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" 
+                                   id="receive_adelanto_notifications" 
+                                   name="receive_adelanto_notifications"
+                                   class="toggle-switch"
+                                   {% if preferences.receive_adelanto_notifications %}checked{% endif %}>
+                            <label for="receive_adelanto_notifications" class="toggle-label"></label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Canales de Notificación -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Canales de Notificación</h3>
+                    <p class="text-sm text-gray-600">Elige cómo recibir las notificaciones</p>
+                </div>
+                
+                <div class="space-y-4">
+                    <!-- Notificaciones del Sistema -->
+                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div class="flex items-center space-x-3">
+                            <div class="bg-indigo-100 p-2 rounded-lg">
+                                <i class="fas fa-bell text-indigo-600"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-gray-900">Notificaciones del Sistema</h4>
+                                <p class="text-sm text-gray-600">Mostrar notificaciones en el dashboard y en la aplicación</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" 
+                                   id="system_enabled" 
+                                   name="system_enabled"
+                                   class="toggle-switch"
+                                   {% if preferences.system_enabled %}checked{% endif %}>
+                            <label for="system_enabled" class="toggle-label"></label>
+                        </div>
+                    </div>
+
+                    <!-- Notificaciones por Email -->
+                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div class="flex items-center space-x-3">
+                            <div class="bg-red-100 p-2 rounded-lg">
+                                <i class="fas fa-envelope text-red-600"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-gray-900">Notificaciones por Email</h4>
+                                <p class="text-sm text-gray-600">Recibir notificaciones en tu correo electrónico: {{ user.email }}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center">
+                            <input type="checkbox" 
+                                   id="email_enabled" 
+                                   name="email_enabled"
+                                   class="toggle-switch"
+                                   {% if preferences.email_enabled %}checked{% endif %}>
+                            <label for="email_enabled" class="toggle-label"></label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Horas Silenciosas -->
+            <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div class="mb-6">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Horas Silenciosas</h3>
+                    <p class="text-sm text-gray-600">Configura un horario en el que no deseas recibir notificaciones por email</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Hora de Inicio -->
+                    <div>
+                        <label for="quiet_hours_start" class="block text-sm font-medium text-gray-700 mb-2">
+                            Hora de Inicio
+                        </label>
+                        <div class="relative">
+                            <input type="time" 
+                                   id="quiet_hours_start" 
+                                   name="quiet_hours_start"
+                                   value="{{ preferences.quiet_hours_start|default:'' }}"
+                                   class="w-full border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                <i class="fas fa-clock text-gray-400"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Hora de Fin -->
+                    <div>
+                        <label for="quiet_hours_end" class="block text-sm font-medium text-gray-700 mb-2">
+                            Hora de Fin
+                        </label>
+                        <div class="relative">
+                            <input type="time" 
+                                   id="quiet_hours_end" 
+                                   name="quiet_hours_end"
+                                   value="{{ preferences.quiet_hours_end|default:'' }}"
+                                   class="w-full border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500">
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                <i class="fas fa-clock text-gray-400"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4 p-4 bg-blue-50 rounded-lg">
+                    <div class="flex items-start space-x-3">
+                        <i class="fas fa-info-circle text-blue-600 mt-0.5"></i>
+                        <div>
+                            <h4 class="text-sm font-medium text-blue-900">Información sobre Horas Silenciosas</h4>
+                            <p class="text-sm text-blue-700 mt-1">
+                                Durante este horario, no recibirás notificaciones por email. 
+                                Las notificaciones del sistema seguirán funcionando normalmente.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div class="flex items-center justify-end space-x-4">
+                <a href="{% url 'notifications:notification_list' %}" 
+                   class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
+                    Cancelar
+                </a>
+                <button type="submit" 
+                        class="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+                    <i class="fas fa-save mr-2"></i>
+                    Guardar Preferencias
+                </button>
+            </div>
+        </form>
+
+        <!-- Información Adicional -->
+        <div class="mt-8 bg-yellow-50 rounded-xl border border-yellow-200 p-6">
+            <div class="flex items-start space-x-3">
+                <i class="fas fa-lightbulb text-yellow-600 mt-0.5"></i>
+                <div>
+                    <h4 class="text-sm font-medium text-yellow-900">Consejos sobre Notificaciones</h4>
+                    <ul class="text-sm text-yellow-800 mt-2 space-y-1">
+                        <li>• Las notificaciones del sistema te mantienen informado en tiempo real</li>
+                        <li>• Los emails son útiles para notificaciones importantes que requieren acción</li>
+                        <li>• Puedes cambiar estas preferencias en cualquier momento</li>
+                        <li>• Las horas silenciosas solo afectan los emails, no las notificaciones del sistema</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Estilos para los toggle switches */
+    .toggle-switch {
+        position: relative;
+        width: 50px;
+        height: 24px;
+        -webkit-appearance: none;
+        appearance: none;
+        background: #e5e7eb;
+        outline: none;
+        border-radius: 12px;
+        transition: background 0.3s;
+        cursor: pointer;
+    }
+
+    .toggle-switch:checked {
+        background: #3b82f6;
+    }
+
+    .toggle-switch:before {
+        content: '';
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        top: 2px;
+        left: 2px;
+        background: white;
+        transition: transform 0.3s;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .toggle-switch:checked:before {
+        transform: translateX(26px);
+    }
+
+    .toggle-label {
+        cursor: pointer;
+    }
+
+    /* Animaciones para los elementos */
+    .bg-white {
+        transition: all 0.3s ease;
+    }
+
+    .bg-white:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
+
+    /* Estilos para inputs de tiempo */
+    input[type="time"] {
+        color-scheme: light;
+    }
+
+    input[type="time"]::-webkit-calendar-picker-indicator {
+        opacity: 0;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Validación de horas silenciosas
+        const startTimeInput = document.getElementById('quiet_hours_start');
+        const endTimeInput = document.getElementById('quiet_hours_end');
+        
+        function validateQuietHours() {
+            const startTime = startTimeInput.value;
+            const endTime = endTimeInput.value;
+            
+            if (startTime && endTime) {
+                const start = new Date(`2000-01-01T${startTime}`);
+                const end = new Date(`2000-01-01T${endTime}`);
+                
+                if (start >= end) {
+                    endTimeInput.setCustomValidity('La hora de fin debe ser posterior a la hora de inicio');
+                } else {
+                    endTimeInput.setCustomValidity('');
+                }
+            } else {
+                endTimeInput.setCustomValidity('');
+            }
+        }
+        
+        startTimeInput.addEventListener('change', validateQuietHours);
+        endTimeInput.addEventListener('change', validateQuietHours);
+        
+        // Confirmación antes de deshabilitar notificaciones importantes
+        const importantSwitches = ['system_enabled', 'email_enabled'];
+        
+        importantSwitches.forEach(switchId => {
+            const switchElement = document.getElementById(switchId);
+            if (switchElement) {
+                switchElement.addEventListener('change', function() {
+                    if (!this.checked) {
+                        const confirmed = confirm(
+                            '¿Estás seguro de que quieres deshabilitar este tipo de notificaciones? ' +
+                            'Podrías perderte información importante.'
+                        );
+                        
+                        if (!confirmed) {
+                            this.checked = true;
+                        }
+                    }
+                });
+            }
+        });
+        
+        // Animación de entrada para las tarjetas
+        const cards = document.querySelectorAll('.bg-white');
+        cards.forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateY(20px)';
+            
+            setTimeout(() => {
+                card.style.transition = 'all 0.5s ease';
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, index * 100);
+        });
+    });
+</script>
+{% endblock %}

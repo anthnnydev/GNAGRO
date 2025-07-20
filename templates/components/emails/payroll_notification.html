@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Comprobante de Nómina</title>
+    <title>Comprobante de Nómina - {{ company_data.name|default:"Sistema de Nómina" }}</title>
     <style>
         * {
             margin: 0;
@@ -44,6 +44,12 @@
         .header p {
             font-size: 16px;
             opacity: 0.9;
+        }
+
+        .company-info {
+            font-size: 14px;
+            opacity: 0.8;
+            margin-top: 10px;
         }
         
         .content {
@@ -263,6 +269,13 @@
             background: linear-gradient(90deg, transparent, #e2e8f0, transparent);
             margin: 25px 0;
         }
+
+        .company-address {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-top: 5px;
+            line-height: 1.4;
+        }
         
         @media only screen and (max-width: 600px) {
             .email-container {
@@ -301,8 +314,18 @@
         <!-- Header -->
         <div class="header">
             <div class="logo">💰</div>
-            <h1>{{ company_name|default:"GNAGRO S.A." }}</h1>
+            <h1>{{ company_data.name|default:"Sistema de Nómina" }}</h1>
             <p>Comprobante de Nómina</p>
+            {% if company_data.ruc %}
+            <div class="company-info">
+                RUC: {{ company_data.ruc }}
+            </div>
+            {% endif %}
+            {% if company_data.address %}
+            <div class="company-address">
+                {{ company_data.address }}
+            </div>
+            {% endif %}
         </div>
 
         <!-- Content -->
@@ -512,15 +535,27 @@
 
         <!-- Footer -->
         <div class="footer">
-            <h4>{{ company_name|default:"GNAGRO S.A." }}</h4>
+            <h4>{{ company_data.name|default:"Sistema de Nómina" }}</h4>
             <p>
-                📧 Email: <a href="mailto:rh@gnagro.com">rh@gnagro.com</a><br>
-                📞 Teléfono: +593 999 999 999<br>
+                {% if company_data.email %}
+                📧 Email: <a href="mailto:{{ company_data.email }}">{{ company_data.email }}</a><br>
+                {% endif %}
+                {% if company_data.phone %}
+                📞 Teléfono: {{ company_data.phone }}<br>
+                {% endif %}
+                {% if company_data.website %}
+                🌐 Web: <a href="{{ company_data.website }}" target="_blank">{{ company_data.website }}</a><br>
+                {% endif %}
                 🕒 Horario: Lunes a Viernes, 8:00 AM - 5:00 PM
             </p>
+            {% if company_data.address %}
+            <p style="margin-top: 10px; font-size: 12px;">
+                📍 {{ company_data.address }}
+            </p>
+            {% endif %}
             <p style="margin-top: 15px; font-size: 12px; opacity: 0.8;">
                 Este email fue enviado automáticamente. Por favor, no respondas a esta dirección.<br>
-                © 2025 {{ company_name|default:"GNAGRO S.A." }} - Todos los derechos reservados.
+                © 2025 {{ company_data.name|default:"Sistema de Nómina" }} - Todos los derechos reservados.
             </p>
         </div>
     </div>

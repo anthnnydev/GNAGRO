@@ -59,6 +59,16 @@
                 </div>
             </div>
 
+            <!-- Botón para seleccionar/deseleccionar todos -->
+            <div class="mb-4">
+                <button type="button" 
+                        onclick="toggleAllAdelantos()" 
+                        class="text-sm text-blue-600 hover:text-blue-800 font-medium">
+                    <i class="fas fa-check-square mr-1"></i>
+                    Seleccionar/Deseleccionar Todos
+                </button>
+            </div>
+
             <form method="post" id="applyAdelantosForm">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="apply_existing">
@@ -70,11 +80,12 @@
                                name="adelanto_ids" 
                                value="{{ adelanto.id }}" 
                                id="adelanto_{{ adelanto.id }}"
-                               class="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded">
+                               class="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded adelanto-checkbox"
+                               data-monto="{{ adelanto.monto }}">
                         <label for="adelanto_{{ adelanto.id }}" class="ml-3 flex-1 cursor-pointer">
                             <div class="flex justify-between items-center">
                                 <div>
-                                    <span class="font-medium text-gray-900">${{ adelanto.monto|floatformat:2 }}</span>
+                                    <span class="font-medium text-gray-900 monto-display">${{ adelanto.monto|floatformat:2 }}</span>
                                     <span class="text-gray-500 ml-2">{{ adelanto.fecha_adelanto|date:"d/m/Y" }}</span>
                                     {% if adelanto.motivo %}
                                     <div class="text-sm text-gray-600 mt-1">{{ adelanto.motivo }}</div>
@@ -89,15 +100,33 @@
                     {% endfor %}
                 </div>
 
+                <!-- Área de información de selección -->
+                <div id="selectionInfo" class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg hidden">
+                    <div class="text-sm text-blue-800">
+                        <span id="selectedCount">0</span> adelanto(s) seleccionado(s) por un total de $<span id="selectedTotal">0.00</span>
+                    </div>
+                </div>
+
                 <div class="flex justify-center">
                     <button type="submit" 
-                            class="bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors font-medium"
-                            onclick="return confirm('¿Descontar los adelantos seleccionados de esta nómina?')">
+                            id="submitButton"
+                            class="bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
+                            disabled>
                         <i class="fas fa-minus-circle mr-2"></i>
                         Descontar Adelantos Seleccionados
                     </button>
                 </div>
             </form>
+        </div>
+        {% else %}
+        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-8">
+            <div class="flex items-center">
+                <i class="fas fa-info-circle text-yellow-600 mr-3"></i>
+                <div class="text-yellow-800">
+                    <h4 class="font-medium">No hay adelantos pendientes</h4>
+                    <p class="text-sm mt-1">Este empleado no tiene adelantos pendientes de descuento.</p>
+                </div>
+            </div>
         </div>
         {% endif %}
 
@@ -176,26 +205,125 @@
 </div>
 
 <script>
-    // Validación en tiempo real del monto
-    document.getElementById('monto').addEventListener('input', function() {
-        const monto = parseFloat(this.value);
-        const maxAdelanto = {{ max_adelanto }};
-        
-        if (monto > maxAdelanto) {
-            this.setCustomValidity(`El monto no puede exceder $${maxAdelanto.toFixed(2)}`);
-        } else {
-            this.setCustomValidity('');
-        }
+    // Variables globales
+    const maxAdelanto = parseFloat('{{ max_adelanto|default:"0"|floatformat:2 }}') || 0;
+    
+    // Inicializar cuando el DOM esté listo
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeEventListeners();
+        updateSelectionInfo();
     });
-
-    // Seleccionar/deseleccionar todos los adelantos
+    
+    function initializeEventListeners() {
+        // Event listeners para checkboxes
+        const checkboxes = document.querySelectorAll('.adelanto-checkbox');
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', updateSelectionInfo);
+        });
+        
+        // Event listener para el formulario de adelantos
+        const form = document.getElementById('applyAdelantosForm');
+        if (form) {
+            form.addEventListener('submit', handleAdelantosSubmit);
+        }
+        
+        // Validación en tiempo real del monto
+        const montoInput = document.getElementById('monto');
+        if (montoInput) {
+            montoInput.addEventListener('input', validateMonto);
+        }
+    }
+    
+    function updateSelectionInfo() {
+        const checkboxes = document.querySelectorAll('.adelanto-checkbox:checked');
+        const submitButton = document.getElementById('submitButton');
+        const selectionInfo = document.getElementById('selectionInfo');
+        const selectedCountSpan = document.getElementById('selectedCount');
+        const selectedTotalSpan = document.getElementById('selectedTotal');
+        
+        let total = 0;
+        
+        checkboxes.forEach(checkbox => {
+            const monto = parseFloat(checkbox.getAttribute('data-monto')) || 0;
+            if (monto > 0) {
+                total += monto;
+            }
+        });
+        
+        // Actualizar información
+        if (selectedCountSpan) selectedCountSpan.textContent = checkboxes.length;
+        if (selectedTotalSpan) selectedTotalSpan.textContent = total.toFixed(2);
+        
+        // Mostrar/ocultar información de selección
+        if (selectionInfo) {
+            if (checkboxes.length > 0) {
+                selectionInfo.classList.remove('hidden');
+            } else {
+                selectionInfo.classList.add('hidden');
+            }
+        }
+        
+        // Habilitar/deshabilitar botón
+        if (submitButton) {
+            submitButton.disabled = checkboxes.length === 0;
+        }
+    }
+    
     function toggleAllAdelantos() {
-        const checkboxes = document.querySelectorAll('input[name="adelanto_ids"]');
+        const checkboxes = document.querySelectorAll('.adelanto-checkbox');
+        if (checkboxes.length === 0) return;
+        
         const allChecked = Array.from(checkboxes).every(cb => cb.checked);
         
         checkboxes.forEach(cb => {
             cb.checked = !allChecked;
         });
+        
+        updateSelectionInfo();
     }
+    
+    function handleAdelantosSubmit(event) {
+        const checkboxes = document.querySelectorAll('.adelanto-checkbox:checked');
+        
+        if (checkboxes.length === 0) {
+            event.preventDefault();
+            alert('⚠️ Debe seleccionar al menos un adelanto para descontar.');
+            return false;
+        }
+        
+        // Confirmar acción
+        const confirmed = confirm(`¿Descontar ${checkboxes.length} adelanto(s) seleccionado(s) de esta nómina?`);
+        if (!confirmed) {
+            event.preventDefault();
+            return false;
+        }
+        
+        // Mostrar indicador de carga
+        const submitButton = document.getElementById('submitButton');
+        if (submitButton) {
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Procesando...';
+        }
+        
+        return true;
+    }
+    
+    function validateMonto() {
+        const montoInput = document.getElementById('monto');
+        if (!montoInput) return;
+        
+        const monto = parseFloat(montoInput.value);
+        
+        if (isNaN(monto)) return;
+        
+        if (monto > maxAdelanto) {
+            montoInput.setCustomValidity(`El monto no puede exceder $${maxAdelanto.toFixed(2)}`);
+        } else {
+            montoInput.setCustomValidity('');
+        }
+    }
+    
+    // Función global para compatibilidad
+    window.toggleAllAdelantos = toggleAllAdelantos;
 </script>
 {% endblock %}

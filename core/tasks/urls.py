@@ -17,6 +17,9 @@ urlpatterns = [
     path('supervisor/tasks/<int:pk>/delete/', supervisor.TaskDeleteView.as_view(), name='task_delete'),
     path('supervisor/tasks/<int:pk>/assign/', supervisor.TaskAssignView.as_view(), name='task_assign'),
     
+    # NUEVO: Endpoint para cambio de estado AJAX
+    path('supervisor/tasks/<int:pk>/change-status/', supervisor.task_change_status, name='task_change_status'),
+    
     # Gestión de categorías
     path('supervisor/categories/', supervisor.TaskCategoryListView.as_view(), name='category_list'),
     path('supervisor/categories/create/', supervisor.TaskCategoryCreateView.as_view(), name='category_create'),

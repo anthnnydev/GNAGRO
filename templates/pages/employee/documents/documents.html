@@ -187,7 +187,7 @@
                                    class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                     <i class="fas fa-download mr-2"></i>Descargar
                                 </a>
-                                <button onclick="viewDocument('{{ document.file.url }}', '{{ document.name }}')" 
+                                <button onclick="viewDocument('{% url 'employees:employee_document_view' document.id %}', '{{ document.name }}')" 
                                         class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                                     <i class="fas fa-eye mr-2"></i>Ver
                                 </button>
@@ -220,7 +220,7 @@
                 
                 <!-- Acciones rápidas -->
                 <div class="flex space-x-2">
-                    <button onclick="viewDocument('{{ document.file.url }}', '{{ document.name }}')" 
+                    <button onclick="viewDocument('{% url 'employees:employee_document_view' document.id %}', '{{ document.name }}')" 
                             class="flex-1 bg-blue-100 text-blue-700 px-3 py-2 rounded text-sm hover:bg-blue-200 transition-colors">
                         <i class="fas fa-eye mr-1"></i>Ver
                     </button>
@@ -291,7 +291,7 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                 <div class="flex space-x-2">
-                                    <button onclick="viewDocument('{{ document.file.url }}', '{{ document.name }}')" 
+                                    <button onclick="viewDocument('{% url 'employees:employee_document_view' document.id %}', '{{ document.name }}')" 
                                             class="text-blue-600 hover:text-blue-900">
                                         <i class="fas fa-eye"></i>
                                     </button>
@@ -592,36 +592,92 @@
     }
 
     function uploadDocument() {
-        const formData = new FormData(document.getElementById('uploadForm'));
+        const form = document.getElementById('uploadForm');
+        const formData = new FormData(form);
         
         // Validaciones básicas
         const file = formData.get('file');
+        const name = formData.get('name');
+        const documentType = formData.get('document_type');
+        
         if (!file || file.size === 0) {
             alert('Por favor selecciona un archivo');
             return;
         }
-
+        
+        if (!name || name.trim() === '') {
+            alert('Por favor ingresa un nombre para el documento');
+            return;
+        }
+        
+        if (!documentType) {
+            alert('Por favor selecciona un tipo de documento');
+            return;
+        }
+        
         if (file.size > 10 * 1024 * 1024) { // 10MB
             alert('El archivo es demasiado grande. Máximo 10MB');
             return;
         }
-
-        // Simulación de subida
-        console.log('Subiendo documento:', Object.fromEntries(formData));
         
-        // Aquí iría la llamada real al backend
-        // fetch('/employees/documents/upload/', { method: 'POST', body: formData })
+        // Validar extensión
+        const allowedExtensions = ['.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png', '.txt'];
+        const fileExtension = '.' + file.name.toLowerCase().split('.').pop();
+        if (!allowedExtensions.includes(fileExtension)) {
+            alert(`Tipo de archivo no permitido. Extensiones permitidas: ${allowedExtensions.join(', ')}`);
+            return;
+        }
         
-        alert('Documento subido exitosamente');
-        closeUploadModal();
-        location.reload();
+        // Mostrar indicador de carga
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Subiendo...';
+        submitBtn.disabled = true;
+        
+        // Enviar al servidor
+        fetch('{% url "employees:employee_document_upload_ajax" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ ' + data.message);
+                closeUploadModal();
+                location.reload();
+            } else {
+                alert('❌ Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('❌ Error al subir el documento. Inténtalo de nuevo.');
+        })
+        .finally(() => {
+            // Restaurar botón
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        });
     }
 
     function viewDocument(url, name) {
+        // Usar la nueva URL que permite iframe
         document.getElementById('viewModalTitle').textContent = name;
         document.getElementById('documentViewer').src = url;
         document.getElementById('viewModal').classList.remove('hidden');
         document.body.style.overflow = 'hidden';
+        
+        // Manejar error de carga
+        const iframe = document.getElementById('documentViewer');
+        iframe.onerror = function() {
+            alert('No se pudo cargar el documento. Se descargará automáticamente.');
+            window.open(url.replace('/view/', '/download/'), '_blank');
+            closeViewModal();
+        };
     }
 
     function closeViewModal() {
@@ -646,14 +702,43 @@
 
     function deleteDocument(documentId, documentName) {
         if (confirm(`¿Estás seguro de que quieres eliminar "${documentName}"?`)) {
-            console.log('Eliminando documento:', documentId);
             
-            // Aquí iría la llamada al backend
-            // fetch(`/employees/documents/${documentId}/delete/`, { method: 'DELETE' })
-            
-            alert('Documento eliminado exitosamente');
-            location.reload();
+            fetch(`{% url 'employees:employee_document_delete' 0 %}`.replace('0', documentId), {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('✅ ' + data.message);
+                    location.reload();
+                } else {
+                    alert('❌ Error: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('❌ Error al eliminar el documento. Inténtalo de nuevo.');
+            });
         }
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
     }
 
     // Cerrar dropdowns al hacer click fuera

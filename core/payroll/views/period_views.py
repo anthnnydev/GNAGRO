@@ -163,7 +163,7 @@ def period_form(request, pk=None):
 
 @login_required
 def period_detail(request, pk):
-    """Detalle del período con nóminas"""
+    """Detalle del período con nóminas - CORREGIDO"""
     period = get_object_or_404(PayrollPeriod, pk=pk)
     payrolls = period.payroll_entries.select_related(
         'employee__user', 
@@ -171,17 +171,96 @@ def period_detail(request, pk):
         'employee__position'
     ).prefetch_related('rubros_aplicados__rubro').all()
     
+    # ✅ CORREGIDO: Calcular totales correctamente
+    total_gross_pay = sum(payroll.gross_pay for payroll in payrolls)
+    total_net_pay = sum(payroll.net_pay for payroll in payrolls)
+    total_deductions = sum(payroll.total_deductions for payroll in payrolls)
+    
+    # ✅ NUEVO: Verificar si todas las nóminas están pagadas y actualizar estado
+    if payrolls.exists():
+        all_paid = all(payroll.is_paid for payroll in payrolls)
+        
+        # Si todas están pagadas y el período no está en estado "paid", actualizarlo
+        if all_paid and period.status != 'paid':
+            period.status = 'paid'
+            period.save()
+            messages.success(
+                request, 
+                '✅ Todas las nóminas están pagadas. El período se marcó automáticamente como "Pagado".'
+            )
+    
     context = {
         'period': period,
         'payrolls': payrolls,
-        'total_employees': period.total_employees,
-        'total_gross_pay': period.total_gross_pay,
-        'total_net_pay': period.total_net_pay,
+        'total_employees': payrolls.count(),
+        'total_gross_pay': total_gross_pay,
+        'total_net_pay': total_net_pay,
+        'total_deductions': total_deductions,
     }
     
     return render(request, 'pages/admin/periods/detail.html', context)
 
-# VERSIÓN OPTIMIZADA - Sin templates nuevos
+def update_period_status_if_needed(period):
+    """Actualizar estado del período basado en el estado de las nóminas"""
+    payrolls = period.payroll_entries.all()
+    
+    if not payrolls.exists():
+        # No hay nóminas, mantener en draft
+        if period.status != 'draft':
+            period.status = 'draft'
+            period.save()
+        return
+    
+    all_paid = all(payroll.is_paid for payroll in payrolls)
+    
+    if all_paid and period.status != 'paid':
+        # Todas las nóminas están pagadas
+        period.status = 'paid'
+        period.save()
+        logger.info(f"Período {period.name} marcado automáticamente como 'paid'")
+    elif not all_paid and period.status == 'paid':
+        # Si alguna nómina no está pagada, volver a processing
+        period.status = 'processing'
+        period.save()
+        logger.info(f"Período {period.name} vuelto a 'processing' porque hay nóminas sin pagar")
+        
+
+@login_required
+def period_mark_all_paid(request, pk):
+    """Marcar todas las nóminas de un período como pagadas"""
+    period = get_object_or_404(PayrollPeriod, pk=pk)
+    
+    if request.method == 'POST':
+        unpaid_payrolls = period.payroll_entries.filter(is_paid=False)
+        
+        if not unpaid_payrolls.exists():
+            messages.info(request, 'Todas las nóminas ya están marcadas como pagadas.')
+            return redirect('payroll:period_detail', pk=pk)
+        
+        # Marcar todas como pagadas
+        payment_date = timezone.now().date()
+        payment_method = request.POST.get('payment_method', 'Transferencia bancaria')
+        
+        updated_count = 0
+        for payroll in unpaid_payrolls:
+            payroll.is_paid = True
+            payroll.payment_date = payment_date
+            payroll.payment_method = payment_method
+            payroll.save()
+            updated_count += 1
+        
+        # Actualizar estado del período
+        period.status = 'paid'
+        period.save()
+        
+        messages.success(
+            request,
+            f'✅ Se marcaron {updated_count} nóminas como pagadas. '
+            f'El período se actualizó automáticamente a "Pagado".'
+        )
+    
+    return redirect('payroll:period_detail', pk=pk)
+        
 
 @login_required
 def period_form(request, pk=None):

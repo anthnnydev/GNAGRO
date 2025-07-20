@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Sistema de Gestión de Nómina{% endblock %}</title>
+    <title>{% block title %}{{ company_name|default:"Sistema de Gestión de Nómina" }}{% endblock %}</title>
     <link rel="stylesheet" href="{% static 'dist/styles.css' %}">
     
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
@@ -23,7 +23,15 @@
                     <div class="flex-shrink-0 flex items-center">
                         <i class="fas fa-users text-primary-600 text-2xl mr-3"></i>
                         <a href="{% url 'users:dashboard' %}" class="text-xl font-bold text-gray-900">
-                            <span class="text-primary-600">GN</span>AGRO
+                            {% if company_name %}
+                                {% if company_name|length > 15 %}
+                                    <span class="text-primary-600">{{ company_name|slice:":2"|upper }}</span>{{ company_name|slice:"2:10" }}
+                                {% else %}
+                                    <span class="text-primary-600">{{ company_name|slice:":2"|upper }}</span>{{ company_name|slice:"2:" }}
+                                {% endif %}
+                            {% else %}
+                                <span class="text-primary-600">GN</span>AGRO
+                            {% endif %}
                         </a>
                     </div>
                 </div>
@@ -39,9 +47,6 @@
                     </a>
                     <a href="{% url 'payroll:nomina_dashboard' %}" class="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
                         <i class="fas fa-money-bill-wave mr-2"></i>Nómina
-                    </a>
-                    <a href="#" class="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-                        <i class="fas fa-chart-bar mr-2"></i>Reportes
                     </a>
                     <a href="{% url 'users:parameters' %}" class="text-gray-700 hover:text-primary-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
                         <i class="fa-solid fa-gears mr-2"></i>Parametros
@@ -124,9 +129,6 @@
                     <a href="{% url 'payroll:nomina_dashboard' %}" class="block px-3 py-2 text-gray-700 hover:text-primary-600 font-medium">
                         <i class="fas fa-money-bill-wave mr-2"></i>Nómina
                     </a>
-                    <a href="#" class="block px-3 py-2 text-gray-700 hover:text-primary-600 font-medium">
-                        <i class="fas fa-chart-bar mr-2"></i>Reportes
-                    </a>
                     <a href="{% url 'users:parameters' %}" class="block px-3 py-2 text-gray-700 hover:text-primary-600 font-medium">
                         <i class="fa-solid fa-gears mr-2"></i>Parametros
                     </a>
@@ -162,7 +164,15 @@
                     <div class="flex items-center mb-4">
                         <i class="fas fa-users text-primary-400 text-2xl mr-3"></i>
                         <h3 class="text-lg font-bold">
-                            <span class="text-primary-400">GN</span>Agro
+                            {% if company_name %}
+                                {% if company_name|length > 15 %}
+                                    <span class="text-primary-400">{{ company_name|slice:":2"|upper }}</span>{{ company_name|slice:"2:10" }}
+                                {% else %}
+                                    <span class="text-primary-400">{{ company_name|slice:":2"|upper }}</span>{{ company_name|slice:"2:" }}
+                                {% endif %}
+                            {% else %}
+                                <span class="text-primary-400">GN</span>Agro
+                            {% endif %}
                         </h3>
                     </div>
                     <p class="text-gray-300 text-sm leading-relaxed">
@@ -198,7 +208,7 @@
             <div class="border-t border-gray-700 mt-8 pt-6">
                 <div class="flex flex-col md:flex-row justify-between items-center">
                     <p class="text-sm text-gray-400">
-                        © 2025 GNAGRO. Todos los derechos reservados.
+                        © 2025 {{ company_name|default:"GNAGRO" }}. Todos los derechos reservados.
                     </p>
                     <div class="flex space-x-6 mt-4 md:mt-0">
                         <a href="#" class="text-gray-400 hover:text-primary-400 transition-colors">

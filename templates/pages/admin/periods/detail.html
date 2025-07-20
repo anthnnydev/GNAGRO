@@ -23,7 +23,7 @@
                         Volver a Lista
                     </a>
                     {% if perms.payroll.change_payrollperiod %}
-                    <a href="{% url 'payroll:period_form' period.pk %}" 
+                    <a href="{% url 'payroll:payroll_edit' period.pk %}" 
                        class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
                         <i class="fas fa-edit mr-2"></i>
                         Editar
@@ -287,13 +287,12 @@
                                     {% endif %}
                                     
                                     {% if not payroll.is_paid and perms.payroll.change_payroll %}
-                                    <form method="post" action="{% url 'payroll:payroll_mark_paid' payroll.pk %}" class="inline">
+                                    <form method="post" action="{% url 'payroll:payroll_mark_paid' payroll.pk %}" class="inline mark-paid-form">
                                         {% csrf_token %}
-                                        <input type="hidden" name="payment_method" value="efectivo">
+                                        <input type="hidden" name="payment_method" value="Transferencia bancaria">
                                         <button type="submit" 
                                                 class="text-green-600 hover:text-green-700 p-1 rounded" 
-                                                title="Marcar como pagada"
-                                                onclick="return confirm('¿Marcar esta nómina como pagada?')">
+                                                title="Marcar como pagada">
                                             <i class="fas fa-dollar-sign"></i>
                                         </button>
                                     </form>
@@ -306,7 +305,7 @@
                 </table>
             </div>
 
-            <!-- Resumen del Período -->
+            <!-- ✅ CORREGIDO: Resumen del Período con totales correctos -->
             <div class="bg-gray-50 px-6 py-4 border-t border-gray-200">
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
                     <div class="text-center">
@@ -318,9 +317,8 @@
                         <div class="text-gray-500">Total Bruto</div>
                     </div>
                     <div class="text-center">
-                        <div class="font-medium text-red-600">
-                            ${% for payroll in payrolls %}{{ payroll.total_deductions|add:0 }}{% if not forloop.last %}+{% endif %}{% empty %}0.00{% endfor %}
-                        </div>
+                        <!-- ✅ CORREGIDO: Mostrar total de deducciones calculado correctamente en la vista -->
+                        <div class="font-medium text-red-600">${{ total_deductions|default:0|floatformat:2 }}</div>
                         <div class="text-gray-500">Total Deducciones</div>
                     </div>
                     <div class="text-center">
@@ -351,7 +349,7 @@
             {% endif %}
         </div>
 
-        <!-- Acciones del Período -->
+        <!-- ✅ MEJORADO: Acciones del Período con funcionalidad real -->
         {% if period.status == 'draft' or period.status == 'processing' %}
         <div class="mt-8 bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <h3 class="text-lg font-semibold text-gray-900 mb-4">
@@ -386,8 +384,9 @@
                 {% endif %}
 
                 {% if payrolls and perms.payroll.change_payrollperiod %}
+                <!-- ✅ NUEVO: Funcionalidad real para marcar todas como pagadas -->
                 <div class="flex items-center p-4 bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors group cursor-pointer"
-                     onclick="massMarkAsPaid()">
+                     onclick="showMarkAllPaidModal()">
                     <div class="bg-purple-600 p-3 rounded-full group-hover:bg-purple-700 transition-colors">
                         <i class="fas fa-check-double text-white"></i>
                     </div>
@@ -402,29 +401,97 @@
         {% endif %}
     </div>
 </div>
+
+<!-- ✅ NUEVO: Modal para marcar todas las nóminas como pagadas -->
+<div id="markAllPaidModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+            <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-purple-100">
+                <i class="fas fa-check-double text-purple-600 text-xl"></i>
+            </div>
+            <div class="mt-3 text-center">
+                <h3 class="text-lg leading-6 font-medium text-gray-900">Marcar Todas las Nóminas como Pagadas</h3>
+                <div class="mt-2 px-7 py-3">
+                    <p class="text-sm text-gray-500" id="unpaidCount"></p>
+                    <div class="mt-4">
+                        <label for="paymentMethod" class="block text-sm font-medium text-gray-700 mb-2">
+                            Método de Pago
+                        </label>
+                        <select id="paymentMethod" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-purple-500 focus:ring-purple-500">
+                            <option value="Transferencia bancaria">Transferencia bancaria</option>
+                            <option value="Efectivo">Efectivo</option>
+                            <option value="Cheque">Cheque</option>
+                            <option value="Depósito bancario">Depósito bancario</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="items-center px-4 py-3">
+                    <button id="confirmMarkAllPaid" 
+                            class="px-4 py-2 bg-purple-600 text-white text-base font-medium rounded-md w-full shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-300">
+                        Confirmar Pago de Todas las Nóminas
+                    </button>
+                    <button onclick="hideMarkAllPaidModal()" 
+                            class="mt-3 px-4 py-2 bg-gray-300 text-gray-800 text-base font-medium rounded-md w-full shadow-sm hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-300">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ✅ NUEVO: Formulario oculto para marcar todas como pagadas -->
+<form id="markAllPaidForm" method="post" action="{% url 'payroll:period_mark_all_paid' period.pk %}" style="display: none;">
+    {% csrf_token %}
+    <input type="hidden" name="payment_method" id="hiddenPaymentMethod">
+</form>
+
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    // Función para marcar todas las nóminas como pagadas
-    function massMarkAsPaid() {
+    // ✅ NUEVO: Funciones para el modal de marcar todas como pagadas
+    function showMarkAllPaidModal() {
         const unpaidCount = document.querySelectorAll('span.bg-yellow-100').length;
         
         if (unpaidCount === 0) {
-            alert('Todas las nóminas ya están marcadas como pagadas.');
+            alert('✅ Todas las nóminas ya están marcadas como pagadas.');
             return;
         }
 
-        if (!confirm(`¿Está seguro que desea marcar ${unpaidCount} nómina(s) como pagadas?\n\nEsta acción no se puede deshacer.`)) {
-            return;
-        }
-
-        // En una implementación real, harías una petición AJAX aquí
-        alert('Funcionalidad en desarrollo. Por favor, marque las nóminas individualmente.');
+        document.getElementById('unpaidCount').textContent = 
+            `Se marcarán ${unpaidCount} nómina(s) como pagadas. Esta acción no se puede deshacer.`;
+        
+        document.getElementById('markAllPaidModal').classList.remove('hidden');
     }
 
-    // Confirmación para marcar nóminas individuales como pagadas
-    document.querySelectorAll('form[action*="marcar-pagado"]').forEach(form => {
+    function hideMarkAllPaidModal() {
+        document.getElementById('markAllPaidModal').classList.add('hidden');
+    }
+
+    // Confirmar y enviar formulario para marcar todas como pagadas
+    document.getElementById('confirmMarkAllPaid').addEventListener('click', function() {
+        const paymentMethod = document.getElementById('paymentMethod').value;
+        document.getElementById('hiddenPaymentMethod').value = paymentMethod;
+        document.getElementById('markAllPaidForm').submit();
+    });
+
+    // Cerrar modal con Escape
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            hideMarkAllPaidModal();
+        }
+    });
+
+    // Cerrar modal haciendo clic fuera de él
+    document.getElementById('markAllPaidModal').addEventListener('click', function(event) {
+        if (event.target === this) {
+            hideMarkAllPaidModal();
+        }
+    });
+
+    // ✅ MEJORADO: Confirmación para marcar nóminas individuales como pagadas
+    document.querySelectorAll('.mark-paid-form').forEach(form => {
         form.addEventListener('submit', function(e) {
             e.preventDefault();
             const employeeName = this.closest('tr').querySelector('.font-medium').textContent.trim();
@@ -472,5 +539,271 @@
             card.style.transform = 'translateY(0)';
         }, index * 100);
     });
+
+    // ✅ NUEVO: Mostrar notificación de estado cuando se actualiza automáticamente
+    function showStatusUpdateNotification() {
+        // Si hay un mensaje de éxito sobre el cambio de estado automático
+        const messages = document.querySelectorAll('.alert-success, .messages .success');
+        messages.forEach(message => {
+            if (message.textContent.includes('automáticamente')) {
+                // Agregar animación especial para estos mensajes
+                message.style.background = 'linear-gradient(45deg, #10B981, #059669)';
+                message.style.color = 'white';
+                message.style.fontWeight = 'bold';
+                message.style.animation = 'pulse 2s infinite';
+            }
+        });
+    }
+
+    // ✅ NUEVO: Función para actualizar la página automáticamente después del pago
+    function refreshPageAfterPayment() {
+        // Si se acaba de marcar una nómina como pagada, verificar si es necesario actualizar
+        const unpaidCount = document.querySelectorAll('span.bg-yellow-100').length;
+        const totalCount = document.querySelectorAll('tbody tr').length;
+        
+        if (unpaidCount === 0 && totalCount > 0) {
+            // Todas están pagadas, mostrar mensaje especial
+            showAllPaidNotification();
+        }
+    }
+
+    // ✅ NUEVO: Mostrar notificación cuando todas las nóminas están pagadas
+    function showAllPaidNotification() {
+        const currentStatus = document.querySelector('.inline-flex.px-2.py-1.text-xs.font-semibold.rounded-full');
+        
+        if (currentStatus && !currentStatus.classList.contains('bg-purple-100')) {
+            // El estado aún no se ha actualizado, mostrar notificación
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-purple-600 text-white px-6 py-3 rounded-lg shadow-lg z-50';
+            notification.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    <span>¡Todas las nóminas están pagadas! El período se actualizará automáticamente.</span>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Remover la notificación después de 5 segundos
+            setTimeout(() => {
+                notification.remove();
+            }, 5000);
+        }
+    }
+
+    // ✅ NUEVO: Validación antes de enviar formularios
+    function validatePaymentAction(formElement) {
+        const isFormValid = formElement.checkValidity();
+        
+        if (!isFormValid) {
+            formElement.reportValidity();
+            return false;
+        }
+        
+        return true;
+    }
+
+    // ✅ NUEVO: Función para mostrar loading en botones de pago
+    function showLoadingState(button) {
+        const originalContent = button.innerHTML;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Procesando...';
+        button.disabled = true;
+        
+        // Restaurar después de 3 segundos (por si no hay redirección)
+        setTimeout(() => {
+            button.innerHTML = originalContent;
+            button.disabled = false;
+        }, 3000);
+    }
+
+    // Aplicar loading state a todos los botones de pago
+    document.querySelectorAll('.mark-paid-form button').forEach(button => {
+        button.addEventListener('click', function() {
+            if (validatePaymentAction(this.closest('form'))) {
+                showLoadingState(this);
+            }
+        });
+    });
+
+    // ✅ NUEVO: Función para exportar datos (placeholder para funcionalidad futura)
+    function exportPayrollData(format = 'excel') {
+        const periodId = '{{ period.pk }}';
+        
+        // Mostrar modal de opciones de exportación
+        const exportFormats = {
+            'excel': 'Excel (.xlsx)',
+            'csv': 'CSV (.csv)',
+            'pdf': 'PDF (.pdf)'
+        };
+        
+        const formatOptions = Object.entries(exportFormats)
+            .map(([key, value]) => `<option value="${key}">${value}</option>`)
+            .join('');
+        
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50';
+        modal.innerHTML = `
+            <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+                <div class="mt-3 text-center">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900">Exportar Nóminas</h3>
+                    <div class="mt-4">
+                        <select id="exportFormat" class="w-full rounded-lg border-gray-300">
+                            ${formatOptions}
+                        </select>
+                    </div>
+                    <div class="mt-4">
+                        <button onclick="performExport()" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 w-full">
+                            <i class="fas fa-download mr-2"></i>Exportar
+                        </button>
+                        <button onclick="this.closest('.fixed').remove()" class="mt-2 px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 w-full">
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        
+        // Función para realizar la exportación
+        window.performExport = function() {
+            const format = document.getElementById('exportFormat').value;
+            // Aquí iría la lógica real de exportación
+            alert(`Funcionalidad de exportación en ${format} en desarrollo.`);
+            modal.remove();
+        };
+    }
+
+    // Agregar event listener al botón de exportar
+    document.querySelector('button:has(.fa-download)')?.addEventListener('click', function() {
+        exportPayrollData();
+    });
+
+    // ✅ NUEVO: Función para mostrar estadísticas en tiempo real
+    function updateRealTimeStats() {
+        const paidCount = document.querySelectorAll('span.bg-green-100').length;
+        const unpaidCount = document.querySelectorAll('span.bg-yellow-100').length;
+        const totalCount = paidCount + unpaidCount;
+        
+        // Actualizar contadores si existen elementos para mostrarlos
+        const stats = {
+            total: totalCount,
+            paid: paidCount,
+            unpaid: unpaidCount,
+            percentage: totalCount > 0 ? (paidCount / totalCount * 100).toFixed(1) : 0
+        };
+        
+        // Agregar tooltip con estadísticas a los elementos de resumen
+        const summaryElements = document.querySelectorAll('.text-center .font-medium');
+        summaryElements.forEach(element => {
+            if (element.textContent.includes('$')) {
+                element.title = `${stats.paid}/${stats.total} nóminas pagadas (${stats.percentage}%)`;
+            }
+        });
+    }
+
+    // ✅ NUEVO: Inicialización cuando la página está lista
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🚀 Página de detalle de período cargada');
+        
+        // Ejecutar funciones de inicialización
+        showStatusUpdateNotification();
+        refreshPageAfterPayment();
+        updateRealTimeStats();
+        
+        // Verificar si hay mensajes del sistema y mostrarlos con estilo
+        const systemMessages = document.querySelectorAll('.messages .alert, .django-messages .alert');
+        systemMessages.forEach(message => {
+            if (message.textContent.includes('automáticamente')) {
+                message.style.borderLeft = '4px solid #10B981';
+                message.style.background = 'linear-gradient(90deg, #ECFDF5 0%, #F0FDF4 100%)';
+            }
+        });
+    });
+
+    // ✅ NUEVO: Función para debugging (solo en desarrollo)
+    function debugPeriodInfo() {
+        console.log('📊 Información del período:');
+        console.log('- Total nóminas:', document.querySelectorAll('tbody tr').length);
+        console.log('- Nóminas pagadas:', document.querySelectorAll('span.bg-green-100').length);
+        console.log('- Nóminas pendientes:', document.querySelectorAll('span.bg-yellow-100').length);
+        console.log('- Estado del período:', document.querySelector('.inline-flex.px-2.py-1.text-xs.font-semibold.rounded-full')?.textContent.trim());
+    }
+
+    // Hacer disponible la función de debug globalmente (solo en desarrollo)
+    window.debugPeriodInfo = debugPeriodInfo;
+
+    // Log de carga exitosa
+    console.log('✅ Todas las funciones de período cargadas correctamente');
 </script>
+
+<!-- ✅ NUEVO: Estilos CSS adicionales para animaciones -->
+<style>
+    @keyframes pulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+    
+    /* Animación suave para las transiciones de estado */
+    .status-transition {
+        transition: all 0.3s ease-in-out;
+    }
+    
+    /* Hover effect mejorado para las filas de la tabla */
+    tbody tr:hover {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    
+    /* Estilo para notificaciones del sistema */
+    .system-notification {
+        animation: slideInRight 0.5s ease-out;
+    }
+    
+    @keyframes slideInRight {
+        from {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+    
+    /* Mejoras visuales para el modal */
+    .modal-backdrop {
+        backdrop-filter: blur(4px);
+    }
+    
+    /* Efecto de loading para botones */
+    .loading-button {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .loading-button::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 20px;
+        height: 20px;
+        margin: -10px 0 0 -10px;
+        border: 2px solid transparent;
+        border-top: 2px solid currentColor;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+    
+    .loading-button.is-loading::after {
+        opacity: 1;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+</style>
 {% endblock %}

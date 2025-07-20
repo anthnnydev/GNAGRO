@@ -13,6 +13,8 @@ from django.http import JsonResponse
 from datetime import datetime
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
+from core.notifications.services import NotificationService
+
 
 from ..models import LeaveType, LeaveRequest, LeaveBalance
 from core.leaves.forms.LeavesForm import (
@@ -196,8 +198,18 @@ class LeaveRequestCreateView(LoginRequiredMixin, CreateView):
                 messages.error(self.request, 'Error: No se pudo encontrar el perfil de empleado.')
                 return self.form_invalid(form)
         
+        # GUARDAR PRIMERO
+        response = super().form_valid(form)
+        
+        # LUEGO ENVIAR NOTIFICACIÓN
+        try:
+            NotificationService.notify_leave_request_created(self.object)
+        except Exception as e:
+            # No fallar la creación si hay error en notificación
+            print(f"Error enviando notificación: {e}")
+        
         messages.success(self.request, 'Solicitud de licencia creada exitosamente.')
-        return super().form_valid(form)
+        return response
 
     def get_success_url(self):
         return reverse('leaves:leave_request_detail', kwargs={'pk': self.object.pk})
@@ -662,10 +674,10 @@ def approve_leave_request(request, pk):
         supervisor_notes = request.POST.get('supervisor_notes', '')
         if supervisor_notes:
             leave_request.supervisor_notes = supervisor_notes
-        
+
+
         leave_request.save()
-        
-        # 9. Actualizar balance
+        NotificationService.notify_leave_request_approved(leave_request)
         balance.used_days += leave_request.days_requested
         balance.remaining_days = balance.allocated_days + balance.carried_forward - balance.used_days
         balance.save()
@@ -769,6 +781,7 @@ def reject_leave_request(request, pk):
         leave_request.approved_date = timezone.now()
         leave_request.supervisor_notes = rejection_reason
         leave_request.save()
+        NotificationService.notify_leave_request_rejected(leave_request)
         
         return JsonResponse({
             'success': True,

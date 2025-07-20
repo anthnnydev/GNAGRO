@@ -1,4 +1,5 @@
-# core/tasks/views/employee.py
+# core/tasks/views/employee.py - CORREGIDO
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -10,6 +11,7 @@ from django.db.models import Q, Sum, Count
 from django.http import JsonResponse
 from django.utils import timezone
 from datetime import datetime, timedelta
+from decimal import Decimal
 
 from core.employees.models import Employee
 from ..models import Task, TaskAssignment, TaskProgress, TaskComment
@@ -204,150 +206,219 @@ class EmployeeTaskDetailView(EmployeeTaskRequiredMixin, LoginRequiredMixin, Deta
         return context
     
     def post(self, request, *args, **kwargs):
+        """Manejar las acciones POST del empleado - CORREGIDO"""
         self.object = self.get_object()
+        assignment = self.object
         
-        # Aceptar tarea
-        if 'accept_task' in request.POST:
-            if self.object.status == 'pending':
-                self.object.status = 'accepted'
-                self.object.accepted_at = timezone.now()
-                self.object.save()
+        # DEBUG: Imprimir información del POST
+        print("=" * 50)
+        print("🔍 DEBUG EmployeeTaskDetailView POST")
+        print("=" * 50)
+        print(f"POST data: {request.POST}")
+        print(f"Assignment: {assignment.task.title} - {assignment.employee.user.get_full_name()}")
+        print(f"Current status: {assignment.status}")
+        print(f"User: {request.user.username}")
+        
+        try:
+            # Aceptar tarea
+            if 'accept_task' in request.POST:
+                print("✅ PROCESANDO ACEPTACIÓN DE TAREA")
+                if assignment.status == 'pending':
+                    with transaction.atomic():
+                        assignment.status = 'accepted'
+                        assignment.accepted_at = timezone.now()
+                        assignment.save()
+                        print(f"✅ Tarea aceptada: {assignment.task.title}")
+                    
+                    messages.success(request, '✅ Tarea aceptada exitosamente.')
+                else:
+                    messages.warning(request, 'Esta tarea ya ha sido aceptada.')
                 
-                messages.success(request, '✅ Tarea aceptada exitosamente.')
-            else:
-                messages.warning(request, 'Esta tarea ya ha sido aceptada.')
+                return redirect('tasks:employee_task_detail', pk=assignment.pk)
             
-            return redirect('tasks:employee_task_detail', pk=self.object.pk)
-        
-        # Rechazar tarea
-        elif 'reject_task' in request.POST:
-            if self.object.status == 'pending':
-                reason = request.POST.get('reject_reason', '')
-                self.object.status = 'rejected'
-                if reason:
-                    self.object.employee_notes = f"Razón del rechazo: {reason}"
-                self.object.save()
-                
-                messages.info(request, '❌ Tarea rechazada.')
-            else:
-                messages.warning(request, 'No se puede rechazar esta tarea.')
+            # Rechazar tarea
+            elif 'reject_task' in request.POST:
+                print("❌ PROCESANDO RECHAZO DE TAREA")
+                if assignment.status == 'pending':
+                    reason = request.POST.get('reject_reason', '').strip()
+                    with transaction.atomic():
+                        assignment.status = 'rejected'
+                        if reason:
+                            assignment.employee_notes = f"Razón del rechazo: {reason}"
+                        assignment.save()
+                        print(f"❌ Tarea rechazada: {assignment.task.title} - Motivo: {reason}")
+                    
+                    messages.info(request, '❌ Tarea rechazada.')
+                    return redirect('tasks:employee_task_list')
+                else:
+                    messages.warning(request, 'No se puede rechazar esta tarea.')
             
-            return redirect('tasks:employee_task_list')
-        
-        # Iniciar trabajo
-        elif 'start_work' in request.POST:
-            if self.object.status == 'accepted':
-                self.object.status = 'in_progress'
-                self.object.started_at = timezone.now()
-                self.object.save()
+            # Iniciar trabajo
+            elif 'start_work' in request.POST:
+                print("▶️ PROCESANDO INICIO DE TRABAJO")
+                if assignment.status == 'accepted':
+                    with transaction.atomic():
+                        assignment.status = 'in_progress'
+                        assignment.started_at = timezone.now()
+                        assignment.save()
+                        
+                        # Actualizar estado de la tarea principal
+                        if assignment.task.status == 'assigned':
+                            assignment.task.status = 'in_progress'
+                            assignment.task.save()
+                            print(f"📝 Estado de tarea principal cambiado a: {assignment.task.status}")
+                        
+                        print(f"▶️ Trabajo iniciado: {assignment.task.title}")
+                    
+                    messages.success(request, '🚀 Trabajo iniciado. ¡Mucho éxito!')
+                else:
+                    messages.warning(request, 'Solo puedes iniciar tareas que hayas aceptado.')
                 
-                # Actualizar estado de la tarea principal
-                if self.object.task.status == 'assigned':
-                    self.object.task.status = 'in_progress'
-                    self.object.task.save()
-                
-                messages.success(request, '🚀 Trabajo iniciado. ¡Mucho éxito!')
+                return redirect('tasks:employee_task_detail', pk=assignment.pk)
             
-            return redirect('tasks:employee_task_detail', pk=self.object.pk)
-        
-        # Pausar trabajo
-        elif 'pause_work' in request.POST:
-            if self.object.status == 'in_progress':
-                self.object.status = 'accepted'  # Volver a aceptado para poder reanudar
-                self.object.save()
+            # Pausar trabajo
+            elif 'pause_work' in request.POST:
+                print("⏸️ PROCESANDO PAUSA DE TRABAJO")
+                if assignment.status == 'in_progress':
+                    with transaction.atomic():
+                        assignment.status = 'accepted'  # Volver a aceptado para poder reanudar
+                        assignment.save()
+                        print(f"⏸️ Trabajo pausado: {assignment.task.title}")
+                    
+                    messages.info(request, '⏸️ Trabajo pausado. Puedes reanudarlo cuando quieras.')
+                else:
+                    messages.warning(request, 'Solo puedes pausar tareas en progreso.')
                 
-                messages.info(request, '⏸️ Trabajo pausado. Puedes reanudarlo cuando quieras.')
+                return redirect('tasks:employee_task_detail', pk=assignment.pk)
             
-            return redirect('tasks:employee_task_detail', pk=self.object.pk)
-        
-        # Reportar progreso
-        elif 'report_progress' in request.POST:
-            progress_form = TaskProgressForm(
-                request.POST,
-                request.FILES,
-                assignment=self.object
-            )
+            # Reportar progreso
+            elif 'report_progress' in request.POST:
+                print("📊 PROCESANDO REPORTE DE PROGRESO")
+                if assignment.status != 'in_progress':
+                    messages.error(request, 'Solo puedes reportar progreso en tareas en progreso.')
+                    return redirect('tasks:employee_task_detail', pk=assignment.pk)
+                
+                progress_form = TaskProgressForm(
+                    request.POST,
+                    request.FILES,
+                    assignment=assignment
+                )
+                
+                if progress_form.is_valid():
+                    with transaction.atomic():
+                        progress = progress_form.save(commit=False)
+                        progress.assignment = assignment
+                        
+                        # Capturar ubicación si está disponible
+                        lat = request.POST.get('latitude')
+                        lng = request.POST.get('longitude')
+                        if lat and lng:
+                            try:
+                                progress.location_lat = Decimal(str(lat))
+                                progress.location_lng = Decimal(str(lng))
+                                print(f"📍 Ubicación capturada: {lat}, {lng}")
+                            except (ValueError, TypeError) as e:
+                                print(f"⚠️ Error capturando ubicación: {e}")
+                        
+                        progress.save()
+                        print(f"📊 Progreso guardado: ID {progress.id}")
+                        
+                        # CORREGIDO: Actualizar totales del assignment correctamente
+                        hours_to_add = progress.hours_worked_session or Decimal('0.00')
+                        units_to_add = progress.units_completed_session or 0
+                        
+                        assignment.hours_worked = (assignment.hours_worked or Decimal('0.00')) + hours_to_add
+                        assignment.units_completed = (assignment.units_completed or 0) + units_to_add
+                        assignment.save()
+                        
+                        print(f"📊 Totales actualizados: {assignment.hours_worked}h, {assignment.units_completed} unidades")
+                    
+                    messages.success(request, '📊 Progreso reportado exitosamente.')
+                    return redirect('tasks:employee_task_detail', pk=assignment.pk)
+                else:
+                    print(f"❌ Error en formulario de progreso: {progress_form.errors}")
+                    for field, errors in progress_form.errors.items():
+                        for error in errors:
+                            messages.error(request, f'{field}: {error}')
             
-            if progress_form.is_valid():
-                progress = progress_form.save(commit=False)
-                progress.assignment = self.object
+            # Marcar como completado
+            elif 'complete_task' in request.POST:
+                print("✅ PROCESANDO FINALIZACIÓN DE TAREA")
+                if assignment.status != 'in_progress':
+                    messages.warning(request, 'Solo puedes completar tareas que estén en progreso.')
+                    return redirect('tasks:employee_task_detail', pk=assignment.pk)
                 
-                # Capturar ubicación si está disponible
-                lat = request.POST.get('latitude')
-                lng = request.POST.get('longitude')
-                if lat and lng:
-                    try:
-                        progress.location_lat = float(lat)
-                        progress.location_lng = float(lng)
-                    except (ValueError, TypeError):
-                        pass
-                
-                progress.save()
-                
-                # Actualizar totales del assignment
-                self.object.hours_worked += progress.hours_worked_session
-                self.object.units_completed += progress.units_completed_session
-                self.object.save()
-                
-                messages.success(request, '📊 Progreso reportado exitosamente.')
-                return redirect('tasks:employee_task_detail', pk=self.object.pk)
-            else:
-                messages.error(request, 'Error en el formulario de progreso. Revisa los datos.')
-        
-        # Marcar como completado
-        elif 'complete_task' in request.POST:
-            if self.object.status == 'in_progress':
-                # Verificar si hay progreso reportado
-                if not self.object.progress_reports.exists():
+                # CORREGIDO: Verificar si hay progreso reportado
+                if not assignment.progress_reports.exists():
                     messages.warning(request, 'Debes reportar progreso antes de completar la tarea.')
-                    return redirect('tasks:employee_task_detail', pk=self.object.pk)
+                    return redirect('tasks:employee_task_detail', pk=assignment.pk)
                 
-                self.object.status = 'completed'
-                self.object.completed_at = timezone.now()
-                self.object.save()
-                
-                # Verificar si todas las asignaciones están completadas
-                task = self.object.task
-                total_assignments = task.assignments.count()
-                completed_assignments = task.assignments.filter(status='completed').count()
-                
-                # Actualizar porcentaje de progreso de la tarea
-                progress_percentage = int((completed_assignments / total_assignments) * 100)
-                task.progress_percentage = progress_percentage
-                
-                if completed_assignments == total_assignments:
-                    task.status = 'completed'
-                    task.completed_at = timezone.now()
-                    task.progress_percentage = 100
-                
-                task.save()
+                with transaction.atomic():
+                    assignment.status = 'completed'
+                    assignment.completed_at = timezone.now()
+                    assignment.save()
+                    print(f"✅ Asignación completada: {assignment.task.title}")
+                    
+                    # CORREGIDO: Verificar si todas las asignaciones están completadas
+                    task = assignment.task
+                    total_assignments = task.assignments.count()
+                    completed_assignments = task.assignments.filter(status='completed').count()
+                    
+                    # Actualizar porcentaje de progreso de la tarea
+                    if total_assignments > 0:
+                        progress_percentage = int((completed_assignments / total_assignments) * 100)
+                        task.progress_percentage = progress_percentage
+                        
+                        # Si todas las asignaciones están completadas, marcar la tarea como completada
+                        if completed_assignments == total_assignments:
+                            task.status = 'completed'
+                            task.completed_at = timezone.now()
+                            task.progress_percentage = 100
+                            print(f"🎉 Tarea principal completada: {task.title}")
+                        
+                        task.save()
+                        print(f"📝 Progreso de tarea actualizado: {progress_percentage}%")
                 
                 messages.success(request, '🎉 ¡Felicitaciones! Tarea completada exitosamente.')
-            else:
-                messages.warning(request, 'Solo puedes completar tareas que estén en progreso.')
+                return redirect('tasks:employee_task_detail', pk=assignment.pk)
             
-            return redirect('tasks:employee_task_detail', pk=self.object.pk)
-        
-        # Agregar comentario
-        elif 'add_comment' in request.POST:
-            comment_form = TaskCommentForm(
-                request.POST,
-                request.FILES,
-                author=request.user.employee_profile
-            )
-            
-            if comment_form.is_valid():
-                comment = comment_form.save(commit=False)
-                comment.task = self.object.task
-                comment.author = request.user.employee_profile
-                comment.save()
+            # Agregar comentario
+            elif 'add_comment' in request.POST:
+                print("💬 PROCESANDO AGREGAR COMENTARIO")
+                comment_form = TaskCommentForm(
+                    request.POST,
+                    request.FILES,
+                    author=request.user.employee_profile
+                )
                 
-                messages.success(request, '💬 Comentario agregado exitosamente.')
-                return redirect('tasks:employee_task_detail', pk=self.object.pk)
+                if comment_form.is_valid():
+                    with transaction.atomic():
+                        comment = comment_form.save(commit=False)
+                        comment.task = assignment.task
+                        comment.author = request.user.employee_profile
+                        comment.save()
+                        print(f"💬 Comentario agregado por {request.user.employee_profile.user.get_full_name()}")
+                    
+                    messages.success(request, '💬 Comentario agregado exitosamente.')
+                    return redirect('tasks:employee_task_detail', pk=assignment.pk)
+                else:
+                    print(f"❌ Error en formulario de comentario: {comment_form.errors}")
+                    for field, errors in comment_form.errors.items():
+                        for error in errors:
+                            messages.error(request, f'{field}: {error}')
+            
             else:
-                messages.error(request, 'Error al agregar comentario.')
+                messages.warning(request, 'Acción no reconocida.')
+                print("⚠️ Acción POST no reconocida")
         
-        return self.get(request, *args, **kwargs)
+        except Exception as e:
+            print(f"❌ Error en EmployeeTaskDetailView POST: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            messages.error(request, f'Error al procesar la acción: {str(e)}')
+        
+        print("=" * 50)
+        return redirect('tasks:employee_task_detail', pk=assignment.pk)
 
 
 class EmployeeTaskProgressView(EmployeeTaskRequiredMixin, LoginRequiredMixin, ListView):
@@ -591,11 +662,11 @@ def employee_task_calendar_api(request):
             'title': task.title,
             'start': task.start_date.isoformat(),
             'end': task.end_date.isoformat(),
-            'color': task.category.color,
+            'color': task.category.color if task.category else '#6B7280',
             'status': assignment.status,
             'priority': task.priority,
             'location': task.location,
-            'payment': assignment.calculated_payment
+            'payment': float(assignment.calculated_payment)
         })
     
     return JsonResponse({'events': events})

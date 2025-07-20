@@ -78,6 +78,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'core.employees.context_processors.dashboard_stats',
+                'core.users.context_processors.company_context',
             ],
         },
     },
@@ -91,8 +92,12 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'tesis_db',
+        'USER': 'postgres',
+        'PASSWORD': 'anthony2003',
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
 
@@ -123,6 +128,15 @@ LANGUAGE_CODE = 'es-es'
 TIME_ZONE = 'America/Guayaquil'
 USE_I18N = True
 USE_TZ = True
+
+# Configuración de X-Frame-Options para permitir iframes del mismo origen
+X_FRAME_OPTIONS = 'SAMEORIGIN' 
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_BROWSER_XSS_FILTER = True
+
+if DEBUG:
+    # Permitir visualización en iframe durante desarrollo
+    X_FRAME_OPTIONS = 'SAMEORIGIN'
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/

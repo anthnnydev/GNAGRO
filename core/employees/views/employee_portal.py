@@ -7,6 +7,8 @@ from django.contrib.auth import update_session_auth_hash
 from django.views.generic import TemplateView, UpdateView, CreateView, DetailView
 from django.urls import reverse_lazy, reverse
 from django.db.models import Q, Sum, Count
+from django.http import HttpResponse, Http404
+from django.views.decorators.clickjacking import xframe_options_exempt
 from django.template.loader import render_to_string
 from django.http import JsonResponse, HttpResponse, FileResponse
 from django.views import View
@@ -17,6 +19,8 @@ from reportlab.lib.pagesizes import letter
 from io import BytesIO
 
 import csv
+import mimetypes
+import os
 import json
 
 from core.employees.models import Employee, EmployeeDocument
@@ -114,6 +118,222 @@ def employee_change_password_view(request):
     }
     
     return render(request, 'pages/employee/auth/change_password.html', context)
+
+class EmployeeDocumentCreateView(EmployeeLoginRequiredMixin, EmployeePasswordChangeRequiredMixin, CreateView):
+    """Vista para que el empleado suba sus propios documentos"""
+    model = EmployeeDocument
+    template_name = 'pages/employee/documents/upload_document.html'
+    fields = ['document_type', 'name', 'file', 'notes']
+    
+    def form_valid(self, form):
+        try:
+            # Asignar el empleado actual
+            form.instance.employee = self.request.user.employee_profile
+            
+            # Validaciones del archivo
+            uploaded_file = form.cleaned_data['file']
+            
+            # Validar tamaño del archivo (máximo 10MB)
+            max_size = 10 * 1024 * 1024  # 10MB en bytes
+            if uploaded_file.size > max_size:
+                messages.error(
+                    self.request, 
+                    f'El archivo es demasiado grande. Tamaño máximo permitido: 10MB. '
+                    f'Tu archivo: {uploaded_file.size / (1024*1024):.1f}MB'
+                )
+                return self.form_invalid(form)
+            
+            # Validar tipo de archivo
+            allowed_extensions = ['.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png', '.txt']
+            file_extension = uploaded_file.name.lower().split('.')[-1]
+            if f'.{file_extension}' not in allowed_extensions:
+                messages.error(
+                    self.request,
+                    f'Tipo de archivo no permitido. Extensiones permitidas: {", ".join(allowed_extensions)}'
+                )
+                return self.form_invalid(form)
+            
+            # Intentar guardar
+            response = super().form_valid(form)
+            
+            messages.success(
+                self.request, 
+                f'Documento "{form.instance.name}" subido exitosamente.'
+            )
+            
+            return response
+            
+        except Exception as e:
+            messages.error(
+                self.request, 
+                f'Error al subir el documento: {str(e)}'
+            )
+            return self.form_invalid(form)
+    
+    def form_invalid(self, form):
+        # Mostrar errores específicos del formulario
+        if form.errors:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(
+                        self.request, 
+                        f'Error en {field}: {error}'
+                    )
+        
+        if form.non_field_errors():
+            for error in form.non_field_errors():
+                messages.error(self.request, f'Error: {error}')
+        
+        return super().form_invalid(form)
+    
+    def get_success_url(self):
+        return reverse('employees:employee_documents')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['employee'] = self.request.user.employee_profile
+        context['title'] = 'Subir Documento'
+        return context
+
+
+@login_required
+def employee_document_upload_ajax(request):
+    """Vista AJAX para subir documentos"""
+    
+    if not hasattr(request.user, 'employee_profile'):
+        return JsonResponse({'success': False, 'error': 'Unauthorized'}, status=403)
+    
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
+    
+    try:
+        employee = request.user.employee_profile
+        
+        # Obtener datos del formulario
+        document_type = request.POST.get('document_type')
+        name = request.POST.get('name')
+        notes = request.POST.get('description', '')  # El frontend usa 'description'
+        uploaded_file = request.FILES.get('file')
+        
+        # Validaciones
+        if not all([document_type, name, uploaded_file]):
+            return JsonResponse({
+                'success': False, 
+                'error': 'Faltan campos requeridos: tipo de documento, nombre y archivo'
+            })
+        
+        # Validar que el tipo de documento sea válido
+        valid_types = [choice[0] for choice in EmployeeDocument.DOCUMENT_TYPES]
+        if document_type not in valid_types:
+            return JsonResponse({
+                'success': False, 
+                'error': f'Tipo de documento no válido. Opciones: {", ".join(valid_types)}'
+            })
+        
+        # Validar tamaño del archivo (máximo 10MB)
+        max_size = 10 * 1024 * 1024  # 10MB en bytes
+        if uploaded_file.size > max_size:
+            return JsonResponse({
+                'success': False, 
+                'error': f'Archivo demasiado grande. Máximo: 10MB. Tu archivo: {uploaded_file.size / (1024*1024):.1f}MB'
+            })
+        
+        # Validar extensión del archivo
+        allowed_extensions = ['.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png', '.txt']
+        file_extension = f'.{uploaded_file.name.lower().split(".")[-1]}'
+        if file_extension not in allowed_extensions:
+            return JsonResponse({
+                'success': False, 
+                'error': f'Extensión no permitida. Permitidas: {", ".join(allowed_extensions)}'
+            })
+        
+        # Crear el documento
+        document = EmployeeDocument.objects.create(
+            employee=employee,
+            document_type=document_type,
+            name=name,
+            file=uploaded_file,
+            notes=notes
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'Documento "{name}" subido exitosamente',
+            'document': {
+                'id': document.id,
+                'name': document.name,
+                'type': document.get_document_type_display(),
+                'upload_date': document.upload_date.strftime('%d/%m/%Y %H:%M'),
+                'file_url': document.file.url if document.file else None,
+                'size': document.file.size if document.file else 0
+            }
+        })
+        
+    except Exception as e:
+        return JsonResponse({
+            'success': False, 
+            'error': f'Error interno del servidor: {str(e)}'
+        }, status=500)
+
+
+@login_required
+def employee_document_delete(request, document_id):
+    """Vista para eliminar documento del empleado"""
+    
+    if not hasattr(request.user, 'employee_profile'):
+        return JsonResponse({'success': False, 'error': 'Unauthorized'}, status=403)
+    
+    try:
+        # Verificar que el documento pertenezca al empleado
+        document = get_object_or_404(
+            EmployeeDocument, 
+            id=document_id, 
+            employee=request.user.employee_profile
+        )
+        
+        if request.method == 'POST' or request.method == 'DELETE':
+            document_name = document.name
+            
+            # Eliminar el archivo físico si existe
+            if document.file:
+                try:
+                    import os
+                    if os.path.isfile(document.file.path):
+                        os.remove(document.file.path)
+                except:
+                    pass  # Si no se puede eliminar el archivo, continuar
+            
+            # Eliminar el registro de la base de datos
+            document.delete()
+            
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': True,
+                    'message': f'Documento "{document_name}" eliminado exitosamente'
+                })
+            else:
+                messages.success(request, f'Documento "{document_name}" eliminado exitosamente')
+                return redirect('employees:employee_documents')
+        
+        else:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'success': False, 'error': 'Method not allowed'}, status=405)
+            else:
+                messages.error(request, 'Método no permitido')
+                return redirect('employees:employee_documents')
+            
+    except EmployeeDocument.DoesNotExist:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'error': 'Documento no encontrado'}, status=404)
+        else:
+            messages.error(request, 'Documento no encontrado')
+            return redirect('employees:employee_documents')
+    except Exception as e:
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({'success': False, 'error': str(e)}, status=500)
+        else:
+            messages.error(request, f'Error al eliminar documento: {str(e)}')
+            return redirect('employees:employee_documents')
 
 
 class EmployeeDashboardView(EmployeeLoginRequiredMixin, EmployeePasswordChangeRequiredMixin, TemplateView):
@@ -965,23 +1185,159 @@ class EmployeeMarkNotificationReadView(EmployeeLoginRequiredMixin, View):
 # Vista para descargar documentos del empleado
 @login_required
 def employee_download_document(request, document_id):
-    """Vista para descargar documentos del empleado"""
+    """Vista para descargar documentos del empleado - VERSIÓN CORREGIDA"""
     
     if not hasattr(request.user, 'employee_profile'):
         messages.error(request, 'No tienes permisos para acceder a este documento.')
         return redirect('core:home')
     
-    document = get_object_or_404(
-        EmployeeDocument, 
-        id=document_id, 
-        employee=request.user.employee_profile
-    )
+    try:
+        document = get_object_or_404(
+            EmployeeDocument, 
+            id=document_id, 
+            employee=request.user.employee_profile
+        )
+        
+        if not document.file:
+            messages.error(request, 'El archivo no está disponible.')
+            return redirect('employees:employee_documents')
+        
+        # Verificar que el archivo existe físicamente
+        try:
+            import os
+            if not os.path.isfile(document.file.path):
+                messages.error(request, 'El archivo no se encuentra en el servidor.')
+                return redirect('employees:employee_documents')
+        except:
+            messages.error(request, 'Error al acceder al archivo.')
+            return redirect('employees:employee_documents')
+        
+        # Retornar el archivo como descarga
+        from django.http import FileResponse
+        import mimetypes
+        
+        file_path = document.file.path
+        file_name = document.file.name.split('/')[-1]  # Obtener solo el nombre del archivo
+        
+        # Detectar el tipo MIME
+        content_type, _ = mimetypes.guess_type(file_path)
+        if content_type is None:
+            content_type = 'application/octet-stream'
+        
+        response = FileResponse(
+            open(file_path, 'rb'),
+            content_type=content_type,
+            as_attachment=True,
+            filename=file_name
+        )
+        
+        return response
+        
+    except EmployeeDocument.DoesNotExist:
+        messages.error(request, 'Documento no encontrado.')
+        return redirect('employees:employee_documents')
+    except Exception as e:
+        messages.error(request, f'Error al descargar el documento: {str(e)}')
+        return redirect('employees:employee_documents')
     
-    # Implementar lógica de descarga de archivo
-    # return FileResponse(document.file, as_attachment=True)
     
-    messages.info(request, f'Descargando documento: {document.name}')
-    return redirect('employees:employee_documents')
+@login_required
+@xframe_options_exempt  # Permite mostrar en iframe
+def employee_document_view(request, document_id):
+    """Vista para mostrar documentos en iframe sin restricciones X-Frame-Options"""
+    
+    if not hasattr(request.user, 'employee_profile'):
+        raise Http404("Documento no encontrado")
+    
+    try:
+        document = get_object_or_404(
+            EmployeeDocument, 
+            id=document_id, 
+            employee=request.user.employee_profile
+        )
+        
+        if not document.file:
+            raise Http404("Archivo no disponible")
+        
+        # Verificar que el archivo existe
+        if not os.path.isfile(document.file.path):
+            raise Http404("Archivo no encontrado en el servidor")
+        
+        # Obtener tipo MIME
+        content_type, _ = mimetypes.guess_type(document.file.path)
+        if content_type is None:
+            content_type = 'application/octet-stream'
+        
+        # Para PDFs, asegurar que se muestre inline
+        if content_type == 'application/pdf':
+            content_type = 'application/pdf'
+        
+        # Leer y retornar el archivo
+        with open(document.file.path, 'rb') as f:
+            response = HttpResponse(f.read(), content_type=content_type)
+            
+            # Para PDFs y imágenes, mostrar inline
+            if content_type.startswith(('application/pdf', 'image/')):
+                response['Content-Disposition'] = f'inline; filename="{document.file.name.split("/")[-1]}"'
+            else:
+                response['Content-Disposition'] = f'attachment; filename="{document.file.name.split("/")[-1]}"'
+            
+            # Remover X-Frame-Options para permitir iframe
+            response['X-Frame-Options'] = 'SAMEORIGIN'
+            
+            return response
+            
+    except EmployeeDocument.DoesNotExist:
+        raise Http404("Documento no encontrado")
+    except Exception as e:
+        raise Http404(f"Error al acceder al documento: {str(e)}")
+
+
+@login_required  
+def employee_document_thumbnail(request, document_id):
+    """Vista para generar miniaturas de documentos (opcional)"""
+    
+    if not hasattr(request.user, 'employee_profile'):
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+    
+    try:
+        document = get_object_or_404(
+            EmployeeDocument, 
+            id=document_id, 
+            employee=request.user.employee_profile
+        )
+        
+        # Para imágenes, retornar la imagen redimensionada
+        if document.file and document.file.name.lower().endswith(('.jpg', '.jpeg', '.png')):
+            try:
+                from PIL import Image
+                from io import BytesIO
+                
+                # Abrir imagen original
+                with Image.open(document.file.path) as img:
+                    # Redimensionar manteniendo aspecto
+                    img.thumbnail((200, 200), Image.Resampling.LANCZOS)
+                    
+                    # Guardar en buffer
+                    buffer = BytesIO()
+                    format = 'JPEG' if img.mode == 'RGB' else 'PNG'
+                    img.save(buffer, format=format)
+                    buffer.seek(0)
+                    
+                    content_type = 'image/jpeg' if format == 'JPEG' else 'image/png'
+                    return HttpResponse(buffer.getvalue(), content_type=content_type)
+                    
+            except ImportError:
+                # Si PIL no está disponible, retornar imagen original
+                pass
+        
+        # Para otros tipos, retornar icono por defecto
+        return HttpResponse(status=404)
+        
+    except EmployeeDocument.DoesNotExist:
+        return HttpResponse(status=404)
+    except Exception:
+        return HttpResponse(status=500)
 
 
 # ==================== APIS PARA TAREAS (OPCIONALES) ====================

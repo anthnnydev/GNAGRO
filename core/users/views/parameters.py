@@ -6,6 +6,7 @@ from datetime import date, timedelta
 from core.employees.models import Department, Employee, Position
 from core.leaves.models import LeaveType, LeaveRequest, LeaveBalance
 from core.attendance.models import WorkSchedule, EmployeeSchedule, Holiday, AttendanceRule
+from core.users.models import Company  # Agregar esta importación
 
 @login_required
 def parameters_view(request):
@@ -18,6 +19,16 @@ def parameters_view(request):
     current_year = today.year
     future_90_days = today + timedelta(days=90)
     future_30_days = today + timedelta(days=30)
+
+    # ============ ESTADÍSTICAS DE EMPRESAS ============
+    companies_stats = {
+        'total': Company.objects.count(),
+        'active': Company.objects.filter(is_active=True).count(),
+        'inactive': Company.objects.filter(is_active=False).count(),
+    }
+    
+    # Obtener la empresa activa
+    active_company = Company.get_active_company()
 
     # Estadísticas de Departamentos
     departments_stats = {
@@ -48,7 +59,7 @@ def parameters_view(request):
         'inactive': Position.objects.filter(is_active=False).count(),
     }
 
-    # ============ NUEVAS ESTADÍSTICAS DE ASISTENCIA ============
+    # ============ ESTADÍSTICAS DE ASISTENCIA ============
     
     # Estadísticas de Horarios de Trabajo
     schedules_stats = {
@@ -144,13 +155,19 @@ def parameters_view(request):
 
     context = {
         'user': request.user,
+        
+        # Estadísticas de empresas (NUEVO)
+        'companies_stats': companies_stats,
+        'active_company': active_company,
+        
+        # Estadísticas existentes
         'departments_stats': departments_stats,
         'employees_stats': employees_stats,
         'positions_stats': positions_stats,
         'leaves_stats': leaves_stats,
         'departments_detail': departments_detail,
         
-        # Nuevas estadísticas de asistencia
+        # Estadísticas de asistencia
         'schedules_stats': schedules_stats,
         'employee_schedules_stats': employee_schedules_stats,
         'holidays_stats': holidays_stats,

@@ -1,0 +1,232 @@
+{% extends 'layouts/base_supervisor.html' %}
+{% load static %}
+
+{% block title %}Detalle de Solicitud - GNAGRO{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Header -->
+    <div class="mb-8">
+        <nav class="flex" aria-label="Breadcrumb">
+            <ol class="flex items-center space-x-4">
+                <li>
+                    <a href="{% url 'employees:supervisor_dashboard' %}" class="text-gray-400 hover:text-gray-500">
+                        <i class="fas fa-home"></i>
+                    </a>
+                </li>
+                <li>
+                    <span class="text-gray-400">/</span>
+                    <a href="{% url 'employees:supervisor_leave_requests' %}" class="text-gray-400 hover:text-gray-500">
+                        Solicitudes de Licencia
+                    </a>
+                </li>
+                <li>
+                    <span class="text-gray-400">/</span>
+                    <span class="text-gray-600">Detalle</span>
+                </li>
+            </ol>
+        </nav>
+        
+        <h1 class="text-3xl font-bold text-gray-900 mt-4">
+            Solicitud de {{ leave_request.leave_type.name }}
+        </h1>
+        <p class="text-gray-600 mt-2">
+            <i class="fas fa-user mr-2"></i>{{ leave_request.employee.user.get_full_name }}
+        </p>
+    </div>
+
+    <!-- Información de la Solicitud -->
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <div class="px-4 py-5 sm:px-6">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">
+                Información de la Solicitud
+            </h3>
+            <p class="mt-1 max-w-2xl text-sm text-gray-500">
+                Detalles de la solicitud de licencia del empleado.
+            </p>
+        </div>
+        <div class="border-t border-gray-200">
+            <dl>
+                <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                    <dt class="text-sm font-medium text-gray-500">Estado</dt>
+                    <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                        {% if leave_request.status == 'pending' %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                                <i class="fas fa-clock mr-1"></i>Pendiente
+                            </span>
+                        {% elif leave_request.status == 'approved' %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                <i class="fas fa-check mr-1"></i>Aprobada
+                            </span>
+                        {% elif leave_request.status == 'rejected' %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                <i class="fas fa-times mr-1"></i>Rechazada
+                            </span>
+                        {% endif %}
+                    </dd>
+                </div>
+                
+                <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                    <dt class="text-sm font-medium text-gray-500">Tipo de Licencia</dt>
+                    <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                        {{ leave_request.leave_type.name }}
+                    </dd>
+                </div>
+                
+                <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                    <dt class="text-sm font-medium text-gray-500">Fecha de Inicio</dt>
+                    <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                        {{ leave_request.start_date|date:"d/m/Y" }}
+                    </dd>
+                </div>
+                
+                <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                    <dt class="text-sm font-medium text-gray-500">Fecha de Fin</dt>
+                    <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                        {{ leave_request.end_date|date:"d/m/Y" }}
+                    </dd>
+                </div>
+                
+                <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                    <dt class="text-sm font-medium text-gray-500">Días Solicitados</dt>
+                    <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                        {{ leave_request.days_requested }} día{{ leave_request.days_requested|pluralize }}
+                    </dd>
+                </div>
+                
+                {% if leave_request.reason %}
+                <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                    <dt class="text-sm font-medium text-gray-500">Motivo</dt>
+                    <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                        {{ leave_request.reason }}
+                    </dd>
+                </div>
+                {% endif %}
+                
+                <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                    <dt class="text-sm font-medium text-gray-500">Fecha de Solicitud</dt>
+                    <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                        {{ leave_request.created_at|date:"d/m/Y H:i" }}
+                    </dd>
+                </div>
+                
+                {% if leave_request.approved_by %}
+                <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                    <dt class="text-sm font-medium text-gray-500">Revisado por</dt>
+                    <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                        {{ leave_request.approved_by.user.get_full_name }}
+                        {% if leave_request.approved_at %}
+                            <span class="text-gray-500">el {{ leave_request.approved_at|date:"d/m/Y H:i" }}</span>
+                        {% endif %}
+                    </dd>
+                </div>
+                {% endif %}
+                
+                {% if leave_request.approval_notes %}
+                <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                    <dt class="text-sm font-medium text-gray-500">Notas de Aprobación</dt>
+                    <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                        {{ leave_request.approval_notes }}
+                    </dd>
+                </div>
+                {% endif %}
+                
+                {% if leave_request.rejection_reason %}
+                <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                    <dt class="text-sm font-medium text-gray-500">Motivo de Rechazo</dt>
+                    <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                        {{ leave_request.rejection_reason }}
+                    </dd>
+                </div>
+                {% endif %}
+            </dl>
+        </div>
+    </div>
+
+    <!-- Acciones -->
+    {% if can_approve %}
+    <div class="mt-8 flex space-x-4">
+        <button onclick="approveRequest({{ leave_request.pk }})" 
+                class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+            <i class="fas fa-check mr-2"></i>Aprobar Solicitud
+        </button>
+        <button onclick="rejectRequest({{ leave_request.pk }})" 
+                class="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+            <i class="fas fa-times mr-2"></i>Rechazar Solicitud
+        </button>
+    </div>
+    {% endif %}
+
+    <!-- Botón de regreso -->
+    <div class="mt-8">
+        <a href="{% url 'employees:supervisor_leave_requests' %}" 
+           class="bg-gray-600 hover:bg-gray-700 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+            <i class="fas fa-arrow-left mr-2"></i>Volver a Solicitudes
+        </a>
+    </div>
+</div>
+
+<script>
+function approveRequest(requestId) {
+    const notes = prompt('Notas adicionales (opcional):');
+    if (notes !== null) { // null significa que el usuario canceló
+        fetch(`{% url 'employees:supervisor_leave_request_approve' 0 %}`.replace('0', requestId), {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                'action': 'approve',
+                'notes': notes || ''
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ ' + data.message);
+                location.reload();
+            } else {
+                alert('❌ Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('❌ Error al aprobar la solicitud. Inténtalo de nuevo.');
+        });
+    }
+}
+
+function rejectRequest(requestId) {
+    const reason = prompt('Motivo del rechazo (requerido):');
+    if (reason !== null && reason.trim() !== '') {
+        fetch(`{% url 'employees:supervisor_leave_request_reject' 0 %}`.replace('0', requestId), {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                'action': 'reject',
+                'rejection_reason': reason
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ ' + data.message);
+                location.reload();
+            } else {
+                alert('❌ Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('❌ Error al rechazar la solicitud. Inténtalo de nuevo.');
+        });
+    } else if (reason !== null) {
+        alert('⚠️ Debe proporcionar un motivo para el rechazo.');
+    }
+}
+</script>
+{% endblock %}

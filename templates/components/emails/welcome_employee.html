@@ -1,0 +1,514 @@
+<!-- templates/components/emails/welcome_employee.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>¡Bienvenido a {{ company_data.name|default:"Nuestra Empresa" }}!</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f8fafc;
+        }
+        
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 40px 20px;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+        
+        .header p {
+            font-size: 18px;
+            opacity: 0.9;
+            margin-bottom: 10px;
+        }
+
+        .company-info {
+            font-size: 14px;
+            opacity: 0.8;
+            margin-top: 10px;
+        }
+        
+        .content {
+            padding: 40px 30px;
+        }
+        
+        .welcome-message {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .welcome-icon {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        
+        .greeting {
+            font-size: 24px;
+            margin-bottom: 15px;
+            color: #1f2937;
+            font-weight: 600;
+        }
+        
+        .welcome-text {
+            font-size: 16px;
+            color: #4b5563;
+            line-height: 1.7;
+            margin-bottom: 30px;
+        }
+        
+        .info-card {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border-left: 4px solid #0ea5e9;
+            padding: 25px;
+            margin-bottom: 30px;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .info-card h3 {
+            color: #0c4a6e;
+            font-size: 18px;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+        
+        .employee-details {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .detail-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #e1f5fe;
+        }
+        
+        .detail-label {
+            font-weight: 500;
+            color: #0369a1;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 5px;
+        }
+        
+        .detail-value {
+            font-weight: 600;
+            color: #1e293b;
+            font-size: 14px;
+        }
+        
+        .next-steps {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border-left: 4px solid #f59e0b;
+            padding: 25px;
+            margin: 30px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .next-steps h3 {
+            color: #92400e;
+            font-size: 18px;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+        
+        .steps-list {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .step-item {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 12px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 6px;
+        }
+        
+        .step-number {
+            background: #f59e0b;
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 12px;
+            margin-right: 12px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        
+        .step-text {
+            color: #92400e;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .cta-section {
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            border-radius: 8px;
+            margin: 30px 0;
+        }
+        
+        .cta-button {
+            display: inline-block;
+            background-color: #ffffff;
+            color: #4f46e5;
+            padding: 15px 30px;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            margin-top: 20px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            font-size: 16px;
+        }
+        
+        .cta-button:hover {
+            background-color: #f8fafc;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+        }
+        
+        .contact-info {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border-left: 4px solid #16a34a;
+            padding: 25px;
+            margin: 30px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .contact-info h3 {
+            color: #166534;
+            font-size: 18px;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+        
+        .contact-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .contact-item {
+            display: flex;
+            align-items: center;
+            color: #166534;
+            font-size: 14px;
+        }
+        
+        .contact-icon {
+            margin-right: 8px;
+            font-size: 16px;
+        }
+        
+        .footer {
+            background-color: #1f2937;
+            color: #9ca3af;
+            padding: 30px 20px;
+            text-align: center;
+            font-size: 14px;
+        }
+        
+        .footer h4 {
+            color: #ffffff;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
+        .footer a {
+            color: #60a5fa;
+            text-decoration: none;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        
+        .logo {
+            font-size: 40px;
+            margin-bottom: 15px;
+            opacity: 0.9;
+        }
+        
+        .divider {
+            height: 1px;
+            background: linear-gradient(90deg, transparent, #e5e7eb, transparent);
+            margin: 30px 0;
+        }
+
+        .company-address {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-top: 8px;
+            line-height: 1.4;
+        }
+
+        .important-note {
+            background-color: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
+            border-left: 4px solid #ef4444;
+        }
+
+        .important-note h4 {
+            color: #dc2626;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+
+        .important-note p {
+            color: #7f1d1d;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        
+        @media only screen and (max-width: 600px) {
+            .email-container {
+                margin: 10px;
+                border-radius: 8px;
+            }
+            
+            .header {
+                padding: 30px 15px;
+            }
+            
+            .header h1 {
+                font-size: 28px;
+            }
+            
+            .content {
+                padding: 30px 20px;
+            }
+            
+            .employee-details {
+                grid-template-columns: 1fr;
+            }
+            
+            .contact-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .greeting {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">🎉</div>
+            <h1>¡Bienvenido!</h1>
+            <p>{{ company_data.name|default:"Nuestra Empresa" }}</p>
+            {% if company_data.ruc %}
+            <div class="company-info">
+                RUC: {{ company_data.ruc }}
+            </div>
+            {% endif %}
+            {% if company_data.address %}
+            <div class="company-address">
+                {{ company_data.address }}
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <!-- Welcome Message -->
+            <div class="welcome-message">
+                <div class="welcome-icon">👋</div>
+                <div class="greeting">¡Hola {{ employee.user.get_full_name }}!</div>
+                <div class="welcome-text">
+                    Nos complace darte la más cordial bienvenida a nuestro equipo de trabajo. 
+                    Estamos emocionados de tenerte con nosotros y esperamos que esta sea una 
+                    experiencia enriquecedora tanto para ti como para la empresa.
+                </div>
+            </div>
+
+            <!-- Employee Information -->
+            <div class="info-card">
+                <h3>📋 Tu Información como Empleado</h3>
+                <div class="employee-details">
+                    <div class="detail-item">
+                        <div class="detail-label">ID de Empleado</div>
+                        <div class="detail-value">{{ employee.employee_number|default:"Por asignar" }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Departamento</div>
+                        <div class="detail-value">{{ employee.department.name|default:"Por asignar" }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Cargo</div>
+                        <div class="detail-value">{{ employee.position.name|default:"Por asignar" }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Fecha de Ingreso</div>
+                        <div class="detail-value">{{ employee.hire_date|date:"d/m/Y"|default:"Por confirmar" }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Next Steps -->
+            <div class="next-steps">
+                <h3>📝 Próximos Pasos</h3>
+                <ul class="steps-list">
+                    <li class="step-item">
+                        <div class="step-number">1</div>
+                        <div class="step-text">
+                            <strong>Proceso de Inducción:</strong> Participa en las sesiones de orientación 
+                            programadas para conocer nuestras políticas, procedimientos y cultura empresarial.
+                        </div>
+                    </li>
+                    <li class="step-item">
+                        <div class="step-number">2</div>
+                        <div class="step-text">
+                            <strong>Configuración de Usuario:</strong> Recibirás tus credenciales de acceso 
+                            al sistema para consultar tu información personal y nóminas.
+                        </div>
+                    </li>
+                    <li class="step-item">
+                        <div class="step-number">3</div>
+                        <div class="step-text">
+                            <strong>Documentación:</strong> Completa y entrega todos los documentos 
+                            requeridos para tu expediente personal.
+                        </div>
+                    </li>
+                    <li class="step-item">
+                        <div class="step-number">4</div>
+                        <div class="step-text">
+                            <strong>Conoce tu Equipo:</strong> Te presentaremos con tus compañeros de 
+                            trabajo y supervisor directo.
+                        </div>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Contact Information -->
+            <div class="contact-info">
+                <h3>📞 Información de Contacto</h3>
+                <div class="contact-grid">
+                    {% if company_data.email %}
+                    <div class="contact-item">
+                        <span class="contact-icon">📧</span>
+                        <a href="mailto:{{ company_data.email }}">{{ company_data.email }}</a>
+                    </div>
+                    {% endif %}
+                    {% if company_data.phone %}
+                    <div class="contact-item">
+                        <span class="contact-icon">📞</span>
+                        <span>{{ company_data.phone }}</span>
+                    </div>
+                    {% endif %}
+                    {% if company_data.website %}
+                    <div class="contact-item">
+                        <span class="contact-icon">🌐</span>
+                        <a href="{{ company_data.website }}" target="_blank">Sitio Web</a>
+                    </div>
+                    {% endif %}
+                    <div class="contact-item">
+                        <span class="contact-icon">🕒</span>
+                        <span>Lun - Vie: 8:00 AM - 5:00 PM</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- CTA Section -->
+            <div class="cta-section">
+                <h3>🚀 Accede a tu Portal de Empleado</h3>
+                <p>Una vez que recibas tus credenciales, podrás acceder a tu portal personal para consultar información sobre nóminas, horarios, y más.</p>
+                <a href="{{ site_url }}/login/" class="cta-button">
+                    Ir al Portal 🔐
+                </a>
+            </div>
+
+            <!-- Important Note -->
+            <div class="important-note">
+                <h4>📌 Información Importante</h4>
+                <p>
+                    Si tienes alguna pregunta durante tu proceso de incorporación, no dudes en 
+                    contactar al departamento de Recursos Humanos. Estamos aquí para ayudarte 
+                    en cada paso del camino.
+                </p>
+            </div>
+
+            <!-- Final Message -->
+            <div style="text-align: center; margin: 30px 0; padding: 20px; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); border-radius: 8px;">
+                <h4 style="color: #1e293b; margin-bottom: 10px; font-size: 18px;">
+                    ¡Esperamos que disfrutes tu experiencia con nosotros! 🌟
+                </h4>
+                <p style="color: #475569; font-size: 14px; line-height: 1.6;">
+                    Tu talento y dedicación son valiosos para nosotros. Juntos lograremos grandes cosas.
+                </p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <h4>{{ company_data.name|default:"Sistema de Recursos Humanos" }}</h4>
+            <p>
+                {% if company_data.email %}
+                📧 Email: <a href="mailto:{{ company_data.email }}">{{ company_data.email }}</a><br>
+                {% endif %}
+                {% if company_data.phone %}
+                📞 Teléfono: {{ company_data.phone }}<br>
+                {% endif %}
+                {% if company_data.website %}
+                🌐 Web: <a href="{{ company_data.website }}" target="_blank">{{ company_data.website }}</a><br>
+                {% endif %}
+                🏢 Recursos Humanos
+            </p>
+            {% if company_data.address %}
+            <p style="margin-top: 15px; font-size: 12px;">
+                📍 {{ company_data.address }}
+            </p>
+            {% endif %}
+            <p style="margin-top: 20px; font-size: 12px; opacity: 0.8;">
+                Este email fue enviado automáticamente por el sistema de Recursos Humanos.<br>
+                © 2025 {{ company_data.name|default:"Sistema de Gestión de Personal" }} - Todos los derechos reservados.
+            </p>
+        </div>
+    </div>
+</body>
+</html>

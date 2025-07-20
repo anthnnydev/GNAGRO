@@ -461,53 +461,283 @@
 
 {% block extra_js %}
 <script>
-function changeTaskStatus(newStatus) {
-    if (confirm(`¿Estás seguro de cambiar el estado de la tarea a "${newStatus}"?`)) {
-        // Implementar cambio de estado via AJAX
-        fetch(`{% url 'tasks:task_update' task.pk %}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            body: JSON.stringify({
-                'status': newStatus,
-                'action': 'change_status'
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('Error al cambiar el estado: ' + data.error);
+// Función para obtener el token CSRF
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error de conexión');
-        });
+        }
     }
+    return cookieValue;
 }
 
+// Función para cambiar el estado de la tarea
+function changeTaskStatus(newStatus) {
+    // Mensajes personalizados según el estado
+    const statusMessages = {
+        'assigned': '¿Estás seguro de que quieres asignar esta tarea?',
+        'in_progress': '¿Estás seguro de que quieres iniciar esta tarea?',
+        'completed': '¿Estás seguro de que quieres marcar esta tarea como completada?',
+        'paused': '¿Estás seguro de que quieres pausar esta tarea?',
+        'cancelled': '¿Estás seguro de que quieres cancelar esta tarea?'
+    };
+    
+    const confirmMessage = statusMessages[newStatus] || `¿Estás seguro de cambiar el estado a "${newStatus}"?`;
+    
+    if (!confirm(confirmMessage)) {
+        return;
+    }
+    
+    // Mostrar indicador de carga
+    const button = event.target;
+    const originalText = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Cambiando...';
+    button.disabled = true;
+    
+    // Realizar la petición AJAX
+    fetch(`{% url 'tasks:task_change_status' task.pk %}`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            'status': newStatus
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => Promise.reject(err));
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Mostrar mensaje de éxito
+            showNotification(data.message, 'success');
+            
+            // Recargar la página después de un breve delay para mostrar el mensaje
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } else {
+            throw new Error(data.error || 'Error desconocido');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        
+        let errorMessage = 'Error de conexión';
+        if (error.error) {
+            errorMessage = error.error;
+        } else if (error.message) {
+            errorMessage = error.message;
+        }
+        
+        showNotification(errorMessage, 'error');
+        
+        // Restaurar el botón
+        button.innerHTML = originalText;
+        button.disabled = false;
+    });
+}
+
+// Función para mostrar notificaciones
+function showNotification(message, type = 'info') {
+    // Crear el elemento de notificación
+    const notification = document.createElement('div');
+    notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg z-50 text-white max-w-sm ${
+        type === 'success' ? 'bg-green-500' : 
+        type === 'error' ? 'bg-red-500' : 
+        type === 'warning' ? 'bg-yellow-500' :
+        'bg-blue-500'
+    }`;
+    
+    notification.innerHTML = `
+        <div class="flex items-center">
+            <i class="fas fa-${
+                type === 'success' ? 'check-circle' : 
+                type === 'error' ? 'exclamation-circle' : 
+                type === 'warning' ? 'exclamation-triangle' :
+                'info-circle'
+            } mr-2"></i>
+            <span>${message}</span>
+            <button onclick="this.parentElement.parentElement.remove()" 
+                    class="ml-4 text-white hover:text-gray-200 focus:outline-none">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+    
+    // Agregar al DOM
+    document.body.appendChild(notification);
+    
+    // Animación de entrada
+    notification.style.opacity = '0';
+    notification.style.transform = 'translateX(100%)';
+    setTimeout(() => {
+        notification.style.transition = 'all 0.3s ease';
+        notification.style.opacity = '1';
+        notification.style.transform = 'translateX(0)';
+    }, 10);
+    
+    // Auto-remover después de 5 segundos
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.style.opacity = '0';
+            notification.style.transform = 'translateX(100%)';
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 300);
+        }
+    }, 5000);
+}
+
+// Función para validar transiciones de estado en el frontend
+function isValidTransition(currentStatus, newStatus) {
+    const validTransitions = {
+        'draft': ['assigned', 'cancelled'],
+        'assigned': ['in_progress', 'cancelled'],
+        'in_progress': ['completed', 'paused', 'cancelled'],
+        'paused': ['in_progress', 'cancelled'],
+        'completed': [],
+        'cancelled': []
+    };
+    
+    return validTransitions[currentStatus]?.includes(newStatus) || false;
+}
+
+// Event listeners cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', function() {
-    // Auto-resize textarea
+    console.log('🚀 Task detail page loaded');
+    
+    // Auto-resize textarea para comentarios
     const textarea = document.querySelector('textarea[name="comment"]');
     if (textarea) {
         textarea.addEventListener('input', function() {
             this.style.height = 'auto';
-            this.style.height = this.scrollHeight + 'px';
+            this.style.height = Math.min(this.scrollHeight, 150) + 'px';
         });
     }
     
-    // Smooth scroll para comentarios
+    // Validación del formulario de comentarios
+    const commentForm = document.querySelector('form');
+    if (commentForm) {
+        commentForm.addEventListener('submit', function(e) {
+            const commentText = textarea.value.trim();
+            if (commentText.length === 0) {
+                e.preventDefault();
+                showNotification('Por favor escribe un comentario antes de enviar', 'warning');
+                textarea.focus();
+            }
+        });
+    }
+    
+    // Smooth scroll para comentarios anclados
     const urlHash = window.location.hash;
     if (urlHash && urlHash.startsWith('#comment-')) {
         const element = document.querySelector(urlHash);
         if (element) {
-            element.scrollIntoView({ behavior: 'smooth' });
+            setTimeout(() => {
+                element.scrollIntoView({ 
+                    behavior: 'smooth', 
+                    block: 'center' 
+                });
+            }, 500);
         }
     }
+    
+    // Efectos visuales para las tarjetas
+    const cards = document.querySelectorAll('.bg-white.rounded-xl');
+    cards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+            card.style.transition = 'all 0.5s ease';
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
+    
+    // Hover effects para los empleados asignados
+    const employeeCards = document.querySelectorAll('.bg-gray-50.rounded-lg');
+    employeeCards.forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'scale(1.02)';
+            this.style.transition = 'transform 0.2s ease';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'scale(1)';
+        });
+    });
+    
+    console.log('✅ Task detail JavaScript initialized');
+});
+
+// Función para actualizar la barra de progreso en tiempo real
+function updateProgressBar(percentage) {
+    const progressBar = document.querySelector('.bg-gradient-to-r.from-green-400.to-green-600');
+    if (progressBar) {
+        progressBar.style.width = percentage + '%';
+        
+        // Actualizar texto del porcentaje
+        const progressText = progressBar.parentNode.previousElementSibling.querySelector('span:last-child');
+        if (progressText) {
+            progressText.textContent = percentage + '%';
+        }
+    }
+}
+
+// Función para actualizar las estadísticas en tiempo real
+function updateTaskStats() {
+    // Esta función se puede usar para actualizar estadísticas sin recargar la página
+    fetch(`{% url 'tasks:supervisor_stats_api' %}`)
+        .then(response => response.json())
+        .then(data => {
+            // Actualizar estadísticas en la interfaz
+            console.log('Stats updated:', data);
+        })
+        .catch(error => {
+            console.error('Error updating stats:', error);
+        });
+}
+
+// Función para formatear fechas de manera amigable
+function formatRelativeTime(date) {
+    const now = new Date();
+    const diff = now - new Date(date);
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    
+    if (days === 0) return 'Hoy';
+    if (days === 1) return 'Ayer';
+    if (days < 7) return `Hace ${days} días`;
+    if (days < 30) return `Hace ${Math.floor(days / 7)} semanas`;
+    return `Hace ${Math.floor(days / 30)} meses`;
+}
+
+// Prevenir envío múltiple de formularios
+let formSubmitting = false;
+document.addEventListener('submit', function(e) {
+    if (formSubmitting) {
+        e.preventDefault();
+        return false;
+    }
+    
+    formSubmitting = true;
+    setTimeout(() => {
+        formSubmitting = false;
+    }, 2000);
 });
 </script>
 {% endblock %}

@@ -187,7 +187,7 @@ class TaskAssignmentForm(forms.Form):
 
 
 class TaskProgressForm(forms.ModelForm):
-    """Formulario para reportar progreso de una tarea"""
+    """Formulario para reportar progreso de una tarea - CORREGIDO"""
     
     class Meta:
         model = TaskProgress
@@ -199,7 +199,8 @@ class TaskProgressForm(forms.ModelForm):
             'progress_description': forms.Textarea(attrs={
                 'class': 'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500',
                 'rows': 4,
-                'placeholder': 'Describe el progreso realizado en esta sesión...'
+                'placeholder': 'Describe el progreso realizado en esta sesión...',
+                'required': True
             }),
             'progress_image': forms.FileInput(attrs={
                 'class': 'w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100',
@@ -222,20 +223,105 @@ class TaskProgressForm(forms.ModelForm):
         self.assignment = kwargs.pop('assignment', None)
         super().__init__(*args, **kwargs)
         
-        # Personalizar campos según el tipo de pago de la tarea
+        # CORREGIDO: Configurar campos según el tipo de pago de la tarea
         if self.assignment and self.assignment.task:
             task = self.assignment.task
+            payment_type = task.payment_type
             
-            if task.payment_type == 'hourly':
+            print(f"🔧 Configurando formulario para tipo de pago: {payment_type}")
+            
+            if payment_type == 'hourly':
+                # Para pago por hora: horas son obligatorias, unidades no
                 self.fields['hours_worked_session'].required = True
+                self.fields['units_completed_session'].required = False
                 self.fields['units_completed_session'].widget = forms.HiddenInput()
-            elif task.payment_type == 'unit':
+                print("⏰ Configurado para pago por hora")
+                
+            elif payment_type == 'unit':
+                # Para pago por unidad: unidades son obligatorias, horas opcionales
                 self.fields['units_completed_session'].required = True
                 self.fields['units_completed_session'].label = f"Unidades completadas ({task.unit_description})"
                 self.fields['hours_worked_session'].required = False
-            elif task.payment_type == 'fixed':
+                print(f"📦 Configurado para pago por unidad: {task.unit_description}")
+                
+            elif payment_type == 'fixed':
+                # Para pago fijo: horas opcionales, unidades no aplican
                 self.fields['hours_worked_session'].required = False
+                self.fields['units_completed_session'].required = False
                 self.fields['units_completed_session'].widget = forms.HiddenInput()
+                print("💰 Configurado para pago fijo")
+            
+            else:
+                # Fallback: hacer ambos opcionales
+                self.fields['hours_worked_session'].required = False
+                self.fields['units_completed_session'].required = False
+                print(f"❓ Tipo de pago desconocido: {payment_type}")
+        
+        else:
+            # Sin assignment: hacer ambos campos opcionales
+            self.fields['hours_worked_session'].required = False
+            self.fields['units_completed_session'].required = False
+            print("⚠️ No hay assignment - ambos campos opcionales")
+        
+        # La descripción del progreso siempre es obligatoria
+        self.fields['progress_description'].required = True
+    
+    def clean(self):
+        """Validación personalizada"""
+        cleaned_data = super().clean()
+        
+        if not self.assignment:
+            return cleaned_data
+        
+        task = self.assignment.task
+        payment_type = task.payment_type
+        
+        hours_worked = cleaned_data.get('hours_worked_session')
+        units_completed = cleaned_data.get('units_completed_session')
+        progress_description = cleaned_data.get('progress_description')
+        
+        # Validar que haya descripción
+        if not progress_description or not progress_description.strip():
+            raise forms.ValidationError("Debes proporcionar una descripción del progreso.")
+        
+        # Validaciones específicas por tipo de pago
+        if payment_type == 'hourly':
+            if not hours_worked or hours_worked <= 0:
+                raise forms.ValidationError("Debes especificar las horas trabajadas para tareas con pago por hora.")
+        
+        elif payment_type == 'unit':
+            if not units_completed or units_completed <= 0:
+                raise forms.ValidationError(f"Debes especificar las {task.unit_description} completadas.")
+        
+        elif payment_type == 'fixed':
+            # Para pago fijo, al menos uno de los dos campos debe tener valor
+            if not hours_worked and not units_completed:
+                raise forms.ValidationError("Debes especificar horas trabajadas o unidades completadas.")
+        
+        # Validar valores negativos
+        if hours_worked and hours_worked < 0:
+            raise forms.ValidationError("Las horas trabajadas no pueden ser negativas.")
+        
+        if units_completed and units_completed < 0:
+            raise forms.ValidationError("Las unidades completadas no pueden ser negativas.")
+        
+        return cleaned_data
+    
+    def save(self, commit=True):
+        """Guardar con valores por defecto para campos opcionales"""
+        progress = super().save(commit=False)
+        
+        # Asegurar valores por defecto para evitar NULL
+        if not progress.hours_worked_session:
+            progress.hours_worked_session = 0
+        
+        if not progress.units_completed_session:
+            progress.units_completed_session = 0
+        
+        if commit:
+            progress.save()
+        
+        return progress
 
 
 class TaskCommentForm(forms.ModelForm):
